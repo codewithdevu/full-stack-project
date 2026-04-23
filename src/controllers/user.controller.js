@@ -15,7 +15,9 @@ const registerUser = asyncHandler(async (req , res) =>{
     // check for user creation 
     // return response
 
+    // console.log("req.body: ", req.body);
     const {email, username, fullName , password} = req.body
+    
     console.log("email: ", email);
 
     if (
@@ -39,7 +41,7 @@ const registerUser = asyncHandler(async (req , res) =>{
 
     
     const avatarLocalPath = req.files?.avatar[0]?.path;
-    const coverImageLocalPath = req.files?.coverImage[0]?.path
+    const coverImageLocalPath = req.files?.coverImage?.[0]?.path
     // console.log(req.files);
     
 
