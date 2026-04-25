@@ -156,7 +156,7 @@ const loginUser = asyncHandler(async (req, res) => {
 // logout
 
 const logoutUser = asyncHandler(async (req, res) => {
-    await User.findOneAndUpdate(
+    await User.findByIdAndUpdate(
         req.user._id,
         {
             $set: { refreshToken: undefined }
@@ -232,5 +232,62 @@ const refreshAccessToken = asyncHandler(async (req, res) => {
 })
 
 
+// forget password
 
-export { registerUser, loginUser, logoutUser, refreshAccessToken}
+const forgetPassword = asyncHandler(async(req, res) => {
+    const {oldPassword, newPassword} = req.body
+
+    const user = await User.findById(req.user?._id) 
+
+    const isPasswordCorrect = await user.isPasswordCorrect(oldPassword)
+
+    if(!isPasswordCorrect){
+        throw new ApiError(401, "old password is incorrect")
+    }
+
+    user.password = newPassword
+    user.save({validateBeforeSave: false})
+
+    return res
+    .status(200)
+    .json(new ApiResponse(200, {}, "password change successfully"))
+})
+
+//find current user
+const getCurrentUser = asyncHandler(async(req, res) => {
+    return res
+    .status(200)
+    .json(new ApiResponse(200 , req.user , "user fetched successfully"))
+})
+
+// update user fullName and email
+const updateAccountDetails = asyncHandler( async( req , res ) => {
+    const {fullName, emial} = req.body
+
+    if(!(fullName || email)){
+        throw new ApiError(400, "all fields are required")
+    }
+
+    const user = await User.findByIdAndUpdate(
+        req.user?._id,
+        {
+            $set: {
+                fullName,
+                email,
+            }
+        },
+        {
+            returnDocument: 'after'
+        }
+    ).select("-password")
+})
+
+
+export { 
+    registerUser,
+    loginUser,
+    logoutUser,
+    refreshAccessToken,
+    forgetPassword,
+    getCurrentUser,
+}
