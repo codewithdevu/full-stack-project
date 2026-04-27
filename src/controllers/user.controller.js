@@ -161,7 +161,7 @@ const logoutUser = asyncHandler(async (req, res) => {
     await User.findByIdAndUpdate(
         req.user._id,
         {
-            $set: { refreshToken: undefined }
+            $set: { refreshToken: 1 }
         },
         {
             returnDocument: 'after' // 'new: true' ki jagah ye likho
@@ -263,7 +263,9 @@ const getCurrentUser = asyncHandler(async (req, res) => {
 
 // update user fullName and email
 const updateAccountDetails = asyncHandler(async (req, res) => {
-    const { fullName, email } = req.body
+    const { fullName , email } = req.body
+    // console.log("fullName" , fullName);
+    
 
     if (!(fullName || email)) {
         throw new ApiError(400, "all fields are required")
@@ -281,6 +283,10 @@ const updateAccountDetails = asyncHandler(async (req, res) => {
             returnDocument: 'after'
         }
     ).select("-password")
+
+    return res
+    .status(200)
+    .json(new ApiResponse(200, {} , "fullName changed successfully"))
 })
 
 // update user avatar
