@@ -19,9 +19,9 @@ const getVideoComments = asyncHandler(async (req, res) => {
 
     const convertId = mongoose.Types.ObjectId(videoId)
 
-    const skipValue = (page - 1)* limit
+    const skipValue = (page - 1) * limit
 
-    const myPipline = Comment.aggregate([
+    const myPipline = [
         {
             $match: {
                 video: new mongoose.Types.ObjectId(convertId)
@@ -29,7 +29,7 @@ const getVideoComments = asyncHandler(async (req, res) => {
         },
         {
             $lookup: {
-                from: "users" ,
+                from: "users",
                 localField: "owner",
                 foreignField: "_id",
                 as: "ownerDetails"
@@ -47,51 +47,104 @@ const getVideoComments = asyncHandler(async (req, res) => {
                 createdAt: -1
             }
         },
-    ])
+    ]
 
 
-    const options = {page: parseInt(page), limit:parseInt(limit)}
+    const options = { page: parseInt(page), limit: parseInt(limit) }
 
-    const result = await Comment.aggregatePaginate(myPipline , options)
+    const result = await Comment.aggregatePaginate(myPipline, options)
 
     return res
-    .status(200)
-    .json(new ApiResponse(200, result , "get video comments successfully"))
+        .status(200)
+        .json(new ApiResponse(200, result, "get video comments successfully"))
 
 })
 
 const addComment = asyncHandler(async (req, res) => {
     //Todo: get a comment to a video
-        const { content } = req.body
+    const { content } = req.body
 
-        if (!content) { throw new ApiError(400, "Content is required") }
+    if (!content) { throw new ApiError(400, "Content is required") }
 
-        const user = req.user
+    const user = req.user
 
-        const { videoId } = req.params
-        const videoIdIsValid = mongoose.isValidObjectId(videoId)
+    const { videoId } = req.params
+    const videoIdIsValid = mongoose.isValidObjectId(videoId)
 
-        if (!videoIdIsValid) {
-            throw new ApiError(400, "videoId is required")
-        }
+    if (!videoIdIsValid) {
+        throw new ApiError(400, "videoId is required")
+    }
 
-        const addCommentResponse = await Comment.create({
-            content: content,
-            video: videoId,
-            owner: user
-        })
+    const addCommentResponse = await Comment.create({
+        content: content,
+        video: videoId,
+        owner: req.user?._id
+    })
 
-        return res
-            .status(200)
-            .json(new ApiResponse(200, { addCommentResponse }, "comment add successfully"))
+    return res
+        .status(200)
+        .json(new ApiResponse(200, { addCommentResponse }, "comment add successfully"))
 })
 
 const updateComment = asyncHandler(async (req, res) => {
     // Todo: update a comment
+    const { commentId } = req.params
+
+    const { content } = req.body
+
+    if (!content || content == "") {
+        throw new ApiError(400, "content is required")
+    }
+
+    const comment = await Comment.findById(commentId)
+
+    if (!comment) {
+        throw new ApiError(400, "invalid comment id")
+    }
+
+    const verifiedComment = comment.owner.toString() == req.user?._id.toString()
+
+    if (!verifiedComment) { throw new ApiError(403, "You are not authorized") }
+
+    const updatedComment = await Comment.findByIdAndUpdate(
+        commentId,
+        {
+            $set: {content},
+        },
+        {
+            new: true,
+        }
+    )
+
+
+    return res
+        .status(200)
+        .json(new ApiResponse(200, updatedComment, "comment updated successfully"))
 })
 
-const deleteComment = asyncHandler(async (Req, res) => {
+const deleteComment = asyncHandler(async (req, res) => {
     // Todo: delete a comment
+    const{ commentId } = req.params
+
+    const comment = await Comment.findById(commentId)
+
+    if (!comment) {
+        throw new ApiError(400, "comment is required")
+    }
+
+    const verifiedUser = comment.owner.toString() == req.user?._id.toString()
+
+    if (!verifiedUser) {
+        throw new ApiError(400, "You are not authorized")
+    }
+
+    await Comment.findByIdAndDelete(
+        commentId,
+    )
+
+    return res
+    .status(200)
+    .json(new ApiResponse(200 , {} , "comment deleted succcessfully"))
 })
 
 export {
