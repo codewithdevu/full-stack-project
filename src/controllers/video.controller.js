@@ -1,10 +1,11 @@
-import mongoose from "mongoose";
+import mongoose, { isValidObjectId } from "mongoose";
 import { asyncHandler } from "../utils/asyncHandler.js";
 import { Video } from "../models/video.model.js"
 import { ApiError } from "../utils/ApiError.js"
 import { ApiResponse } from "../utils/ApiResponse.js"
 import { uploadOncloudinary } from "../utils/cloudinary.js"
 import fs from "fs"
+import { response } from "express";
 
 
 const getAllVideos = asyncHandler(async (req, res) => {
@@ -52,8 +53,48 @@ const publishVideo = asyncHandler(async (req, res) => {
 })
 
 const getVideoById = asyncHandler(async (req, res) => {
-    const { videoId } = req.params
     //Todo: get Video by id
+    const { videoId } = req.params
+
+    const validatedVideoId = mongoose.isValidObjectId(videoId)
+
+    if(!validatedVideoId){
+        throw new ApiError(400, "video Id is reqiured")
+    }
+    
+    await Video.findByIdAndUpdate( videoId , { $inc: {views: 1} })
+
+    const video = await Video.aggregate([
+        {
+            $match: {
+                _id : new mongoose.Types.ObjectId(videoId)
+            }
+        },
+        {
+            $lookup: {
+                from: "users",
+                localField: "owner",
+                foreignField: "_id",
+                as: "owner"
+            }
+        },
+        {
+            $addFields: {
+                owner: {
+                    $first: "$owner"
+                }
+            }
+        },
+    ])
+
+    if(!video?.length){
+        throw new ApiError(400, "Error: while genreating pipline")
+    }
+
+    return res
+    .status(200)
+    .json(new ApiResponse(200, video[0], "Get the video by id succcessfully"))
+
 })
 
 const updateVideo = asyncHandler(async (req, res) => {
