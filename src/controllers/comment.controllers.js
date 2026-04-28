@@ -1,6 +1,6 @@
 import mongoose from "mongoose";
 import { asyncHandler } from "../utils/asyncHandler.js";
-import { User } from "../models/user.model";
+import { User } from "../models/user.model.js";
 import { Comment } from "../models/comment.model.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { ApiError } from "../utils/ApiError.js";
@@ -17,7 +17,7 @@ const getVideoComments = asyncHandler(async (req, res) => {
         throw new ApiError(400, "videoId is required")
     }
 
-    const convertId = mongoose.Types.ObjectId(videoId)
+    const convertId = new mongoose.Types.ObjectId(videoId)
 
     const skipValue = (page - 1) * limit
 
