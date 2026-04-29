@@ -99,6 +99,55 @@ const getVideoById = asyncHandler(async (req, res) => {
 
 const updateVideo = asyncHandler(async (req, res) => {
     // Todo:  update video details like -> title , descirption , thumbnail
+    const {videoId} = req.params
+    const {title , description} = req.body
+
+    if (!videoId) {
+        throw new ApiError(400, "video file is reqiured")
+    }
+
+    if ([title , description].some((field) => field?.trim() === "")) {
+        throw new ApiError(400 , "title and descirption are reqiured")
+    }
+    
+    const video = await Video.findById(videoId)
+
+    if(!video){
+        throw new ApiError(400 , "videoId is invalid")
+    }
+
+    if(video.owner.toString() !== req.user?._id.toString()){
+        throw new ApiError(400, "You are not authorized to update this video")
+    }
+
+    const thumbnailLocalpath = req.files?.thumbnail?.[0]?.path
+
+    let thumbnail;
+    if(thumbnailLocalpath){
+        await deleteOnCloudinary(video.thumbnail, "image")
+        thumbnail = await uploadOncloudinary(thumbnailLocalpath)
+        if(!thumbnail){
+            throw new ApiError(400, "failed to upload file on cloudinary")
+        }
+    }
+
+    const updatedVideo = await Video.findByIdAndUpdate(
+        videoId,
+        {
+            $set: {
+                title,
+                description,
+                thumbnail: thumbnail? thumbnail.url: video.thumbnail,
+            }
+        },
+        {
+            new: true,
+        }
+    )
+
+    return res
+    .status(200)
+    .json(new ApiResponse(200, updatedVideo, "video updated succcessfully"))
 })
 
 const deleteVideo = asyncHandler(async (req, res) => {
