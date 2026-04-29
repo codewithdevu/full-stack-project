@@ -99,34 +99,34 @@ const getVideoById = asyncHandler(async (req, res) => {
 
 const updateVideo = asyncHandler(async (req, res) => {
     // Todo:  update video details like -> title , descirption , thumbnail
-    const {videoId} = req.params
-    const {title , description} = req.body
+    const { videoId } = req.params
+    const { title, description } = req.body
 
     if (!videoId) {
         throw new ApiError(400, "video file is reqiured")
     }
 
-    if ([title , description].some((field) => field?.trim() === "")) {
-        throw new ApiError(400 , "title and descirption are reqiured")
+    if ([title, description].some((field) => field?.trim() === "")) {
+        throw new ApiError(400, "title and descirption are reqiured")
     }
-    
+
     const video = await Video.findById(videoId)
 
-    if(!video){
-        throw new ApiError(400 , "videoId is invalid")
+    if (!video) {
+        throw new ApiError(400, "videoId is invalid")
     }
 
-    if(video.owner.toString() !== req.user?._id.toString()){
+    if (video.owner.toString() !== req.user?._id.toString()) {
         throw new ApiError(400, "You are not authorized to update this video")
     }
 
     const thumbnailLocalpath = req.files?.thumbnail?.[0]?.path
 
     let thumbnail;
-    if(thumbnailLocalpath){
+    if (thumbnailLocalpath) {
         await deleteOnCloudinary(video.thumbnail, "image")
         thumbnail = await uploadOncloudinary(thumbnailLocalpath)
-        if(!thumbnail){
+        if (!thumbnail) {
             throw new ApiError(400, "failed to upload file on cloudinary")
         }
     }
@@ -137,7 +137,7 @@ const updateVideo = asyncHandler(async (req, res) => {
             $set: {
                 title,
                 description,
-                thumbnail: thumbnail? thumbnail.url: video.thumbnail,
+                thumbnail: thumbnail ? thumbnail.url : video.thumbnail,
             }
         },
         {
@@ -146,8 +146,8 @@ const updateVideo = asyncHandler(async (req, res) => {
     )
 
     return res
-    .status(200)
-    .json(new ApiResponse(200, updatedVideo, "video updated succcessfully"))
+        .status(200)
+        .json(new ApiResponse(200, updatedVideo, "video updated succcessfully"))
 })
 
 const deleteVideo = asyncHandler(async (req, res) => {
@@ -179,6 +179,45 @@ const deleteVideo = asyncHandler(async (req, res) => {
 
 const togglePublishStatus = asyncHandler(async (req, res) => {
     const { videoId } = req.params
+
+    if (!videoId) {
+        throw new ApiError(400, "videoId is reqiured")
+    }
+
+    const validId = mongoose.isValidObjectId(videoId)
+
+    if (!validId) {
+        throw new ApiError(400, "invalid videoId")
+    }
+
+    const video = await Video.findById(videoId)
+
+    if (!video) {
+        throw new ApiError(404, "video not found")
+    }
+
+    if (video.owner.toString() !== req.user?._id.toString()) {
+        throw new ApiError(401, "unauthorized request")
+    }
+
+    const newstatus = !video.isPublished
+
+    const updatedVideo = await Video.findByIdAndUpdate(
+        videoId,
+        {
+            $set: {
+                isPublished: newstatus
+            }
+        },
+        {
+            new: true
+        }
+
+    )
+
+    return res
+    .status(200)
+    .json(new ApiResponse(200, updatedVideo , "updated ispublished video successfullyy" ))
 })
 
 export {
