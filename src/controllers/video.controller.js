@@ -3,7 +3,7 @@ import { asyncHandler } from "../utils/asyncHandler.js";
 import { Video } from "../models/video.model.js"
 import { ApiError } from "../utils/ApiError.js"
 import { ApiResponse } from "../utils/ApiResponse.js"
-import { uploadOncloudinary } from "../utils/cloudinary.js"
+import { uploadOncloudinary, deleteOnCloudinary } from "../utils/cloudinary.js"
 import fs from "fs"
 import { response } from "express";
 
@@ -28,13 +28,13 @@ const publishVideo = asyncHandler(async (req, res) => {
         throw new ApiError(400, "videoFile or thumbnail is reqiured")
     }
 
-    
+
     const videoFile = await uploadOncloudinary(videoLocalpath)
     const thumbnail = await uploadOncloudinary(thumbnailLocalpath)
-    
+
     if (!(videoFile && thumbnail)) {
-        if(videoLocalpath) fs.unlinkSync(videoLocalpath)
-        if(thumbnailLocalpath) fs.unlinkSync(thumbnailLocalpath)
+        if (videoLocalpath) fs.unlinkSync(videoLocalpath)
+        if (thumbnailLocalpath) fs.unlinkSync(thumbnailLocalpath)
         throw new ApiError(400, "videoFile or thumbnail is required")
     }
 
@@ -48,8 +48,8 @@ const publishVideo = asyncHandler(async (req, res) => {
     })
 
     return res
-    .status(200)
-    .json(new ApiResponse(200, video , "video is upload"))
+        .status(200)
+        .json(new ApiResponse(200, video, "video is upload"))
 })
 
 const getVideoById = asyncHandler(async (req, res) => {
@@ -58,16 +58,16 @@ const getVideoById = asyncHandler(async (req, res) => {
 
     const validatedVideoId = mongoose.isValidObjectId(videoId)
 
-    if(!validatedVideoId){
+    if (!validatedVideoId) {
         throw new ApiError(400, "video Id is reqiured")
     }
-    
-    await Video.findByIdAndUpdate( videoId , { $inc: {views: 1} })
+
+    await Video.findByIdAndUpdate(videoId, { $inc: { views: 1 } })
 
     const video = await Video.aggregate([
         {
             $match: {
-                _id : new mongoose.Types.ObjectId(videoId)
+                _id: new mongoose.Types.ObjectId(videoId)
             }
         },
         {
@@ -87,13 +87,13 @@ const getVideoById = asyncHandler(async (req, res) => {
         },
     ])
 
-    if(!video?.length){
+    if (!video?.length) {
         throw new ApiError(400, "Error: while genreating pipline")
     }
 
     return res
-    .status(200)
-    .json(new ApiResponse(200, video[0], "Get the video by id succcessfully"))
+        .status(200)
+        .json(new ApiResponse(200, video[0], "Get the video by id succcessfully"))
 
 })
 
@@ -103,6 +103,29 @@ const updateVideo = asyncHandler(async (req, res) => {
 
 const deleteVideo = asyncHandler(async (req, res) => {
     const { videoId } = req.params
+
+    if (!videoId) {
+        throw new ApiError(400, "videoId is required")
+    }
+
+    const video = await Video.findById(videoId)
+
+    if (!video) {
+        throw new ApiError(400, "invalid video Id ")
+    }
+
+    if (video.owner.toString() !== req.user?._id.toString()) {
+        throw new ApiError(400, "you can't delete the video")
+    }
+
+    await deleteOnCloudinary(video.videoFile, "video")
+    await deleteOnCloudinary(video.thumbnail, "image")
+
+    const result = await Video.findByIdAndDelete(videoId)
+
+    return res
+        .status(200)
+        .json(new ApiResponse(200, result, "deleted succcessfully"))
 })
 
 const togglePublishStatus = asyncHandler(async (req, res) => {
