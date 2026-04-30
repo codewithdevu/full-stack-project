@@ -6,11 +6,92 @@ import { ApiResponse } from "../utils/ApiResponse.js"
 import { uploadOncloudinary, deleteOnCloudinary } from "../utils/cloudinary.js"
 import fs from "fs"
 import { response } from "express";
-
+import { pipeline } from "stream";
 
 const getAllVideos = asyncHandler(async (req, res) => {
-    const { psge = 1, limit = 10, query, sortBy, sortType, userId } = req.query
+    const { page = 1, limit = 10, query, sortBy, sortType, userId } = req.query
     // Todo: get all videos based on query ,sort , pagination
+
+    const pipeline = []
+
+    if (query) {
+        pipeline.push(
+            {
+                $match: {
+                    $or: [
+                        {
+                            title: {
+                                $regex: query,
+                                $options: "i"
+                            }
+                        },
+                        {
+                            description: {
+                                $regex: query,
+                                $options: "i"
+                            }
+                        },
+                    ]
+                },
+            }
+        )
+    }
+
+    pipeline.push({$match: {isPublished: true}})
+
+    if(userId){
+        pipeline.push({
+            $match: {
+                owner: new mongoose.Types.ObjectId(userId)
+            }
+        })
+    }
+
+
+    // learn after code is correct
+    pipeline.push({
+        $sort: {
+            [sortBy||"createdAt"]:sortType==="asc"?1:-1
+        }
+    })
+
+    pipeline.push({
+        $lookup: {
+            from: "users",
+            localField: "owner",
+            foreignField: "_id",
+            as: "ownerDetails",
+            pipeline: [
+                {
+                    $project: {
+                        username: 1,
+                        avatar: 1,
+                    }
+                }
+            ]
+        }
+    })
+
+    pipeline.push({
+        $unwind: "$ownerDetails"
+    })
+    
+    const options = {
+        page: parseInt(page),
+        limit: parseInt(limit)
+    }
+
+    const videoAggregate = Video.aggregate(pipeline)
+    const result = await Video.aggregatePaginate(videoAggregate , options)
+
+    if(!result){
+        throw new ApiError(500, "Error:  while fetching videos")
+    }
+
+    return res
+    .status(200)
+    .json(new ApiResponse(200 , result , "videos fetched successfullyy"))
+
 })
 
 const publishVideo = asyncHandler(async (req, res) => {
@@ -216,8 +297,8 @@ const togglePublishStatus = asyncHandler(async (req, res) => {
     )
 
     return res
-    .status(200)
-    .json(new ApiResponse(200, updatedVideo , "updated ispublished video successfullyy" ))
+        .status(200)
+        .json(new ApiResponse(200, updatedVideo, "updated ispublished video successfullyy"))
 })
 
 export {
