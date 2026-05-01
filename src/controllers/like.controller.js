@@ -1,4 +1,4 @@
-import mongoose from "mongoose";
+import mongoose, { Aggregate } from "mongoose";
 import { Like } from "../models/like.model.js"
 import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
@@ -55,7 +55,7 @@ const toggleCommentLike = asyncHandler(async (req, res) => {
 
     const validId = mongoose.isValidObjectId(commentId)
 
-    if(!validId){
+    if (!validId) {
         throw new ApiError(400, "invalid commentId")
     }
 
@@ -64,40 +64,40 @@ const toggleCommentLike = asyncHandler(async (req, res) => {
         likedBy: req.user?._id,
     })
 
-    if(alreadyLiked){
+    if (alreadyLiked) {
         await Like.deleteOne({
             comment: commentId,
             likedBy: req.user?._id
         })
 
         return res
-        .status(200)
-        .json(new ApiResponse(200, {} , "unLiked the comment succcessfully"))
+            .status(200)
+            .json(new ApiResponse(200, {}, "unLiked the comment succcessfully"))
     }
-    else{
+    else {
         await Like.create({
             comment: commentId,
             likedBy: req.user?._id
         })
 
         return res
-        .status(200)
-        .json(new ApiResponse(200, {} , "liked the comment succcessfully"))
-     }
+            .status(200)
+            .json(new ApiResponse(200, {}, "liked the comment succcessfully"))
+    }
 })
 
 const toggleTweetLike = asyncHandler(async (req, res) => {
     // Todo: toggle like on tweets
     const { tweetId } = req.params
 
-    
+
     if (!tweetId) {
         throw new ApiError(404, "tweetId is reqiured")
     }
 
     const validId = mongoose.isValidObjectId(tweetId)
 
-    if(!validId){
+    if (!validId) {
         throw new ApiError(400, "invalid tweetId")
     }
 
@@ -106,31 +106,69 @@ const toggleTweetLike = asyncHandler(async (req, res) => {
         likedBy: req.user?._id,
     })
 
-    if(alreadyLiked){
+    if (alreadyLiked) {
         await Like.deleteOne({
             tweet: tweetId,
             likedBy: req.user?._id
         })
 
         return res
-        .status(200)
-        .json(new ApiResponse(200, {} , "unLiked the tweet succcessfully"))
+            .status(200)
+            .json(new ApiResponse(200, {}, "unLiked the tweet succcessfully"))
     }
-    else{
+    else {
         await Like.create({
             tweet: tweetId,
             likedBy: req.user?._id
         })
 
         return res
-        .status(200)
-        .json(new ApiResponse(200, {} , "liked the tweet succcessfully"))
-     }
+            .status(200)
+            .json(new ApiResponse(200, {}, "liked the tweet succcessfully"))
+    }
 
 })
 
 const getLikeVideos = asyncHandler(async (req, res) => {
     // Todo:  get all liked videos
+
+    const getLikedVideo = await Like.aggregate([
+        {
+            $match: {
+                likedBy: new mongoose.Types.ObjectId(req.user?._id),
+                video: { $exists: true }
+            }
+        },
+        {
+            $lookup: {
+                from: "videos",
+                localField: "video",
+                foreignField: "_id",
+                as: "videoDetails",
+                pipeline: [
+                    {
+                        $lookup: {
+                            from: "users",
+                            localField: "owner",
+                            foreignField: "_id",
+                            as: "ownerDetails"
+                        }
+                    },
+                    {$unwind: "$ownerDetails"}
+                ]
+            }
+        },
+        {
+            $unwind: "$videoDetails"
+        },
+        {
+            $sort: {createdAt: -1}
+        }
+    ])
+
+    return res
+    .status(200)
+    .json(new ApiResponse(200, getLikeVideo, "like video fetched succcessfully"))
 })
 
 export {
