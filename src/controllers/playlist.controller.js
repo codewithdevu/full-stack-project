@@ -99,14 +99,68 @@ const removeVideoFromPlaylist = asyncHandler(async(req , res) => {
 })
 
 const deletePlaylist = asyncHandler(async(req , res) => {
-    const {playlistId} = req.params
     // Todo: delete playlist
+    const {playlistId} = req.params
+
+    if(!mongoose.isValidObjectId(playlistId)){
+        throw new ApiError(400 , "invalid playlistId")
+    }
+
+    const playlist = await Playlist.findById(playlistId)
+
+        if (playlist.owner.toString() !== req.user?._id.toString()) {
+         throw new ApiError(403, "UnAunthorized: Only owner can delete the playlist")
+    }
+
+    if (!playlist) {
+        throw new ApiError(400, "playlist not found")
+    }
+
+    await Playlist.findByIdAndDelete(
+        playlistId
+    )
+
+    return res
+    .status(200)
+    .json(new ApiResponse(200 , {} , "playlist deleted succcessfully"))
 })
 
 const updatePlaylist = asyncHandler(async(req , res) => {
-    const {playlistId , videoId} = req.params
-    const {name , description} = req.body
     // Todo: update playlist
+    const {playlistId} = req.params
+    const {name , description} = req.body
+
+    if (!mongoose.isValidObjectId(playlistId)) {
+        throw new ApiError(400, "invalid playlistId")
+    }
+
+    if ([name, description].some((field) => field.trim() == "")) {
+          throw new ApiError(400 , "name or descirption is required")
+    }
+
+    const playlist = await Playlist.findById(playlistId)
+
+    if (playlist.owner.toString() !== req.user?._id.toString()) {
+         throw new ApiError(403, "UnAunthorized: Only owner can update the playlist")
+    }
+
+    if (!playlist) {
+        throw new ApiError(400, "playlist not found")
+    }
+
+    const updatedPlaylist = await Playlist.findByIdAndUpdate(
+        playlistId,
+        {
+            name,
+            description
+        },
+        {
+            new: true
+        })
+
+        return res
+        .status(200)
+        .json(new ApiResponse(200, updatedPlaylist , "name and description updated successfully"))
 })
 
 export {
