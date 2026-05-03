@@ -6,7 +6,7 @@ import { ApiResponse } from "../utils/ApiResponse.js";
 
 const createPlaylist = asyncHandler(async (req, res) => {
     // Todo: create playlist
-    const { name, description } = req.body
+    const { name , description } = req.body
 
     if ([name, description].some((field) => field?.trim() == "")) {
         throw new ApiError(400, " name or descirption field is reqiured")
@@ -41,7 +41,6 @@ const getUserPlaylists = asyncHandler(async (req, res) => {
         {
             $match: {
                 owner: new mongoose.Types.ObjectId(userId),
-                ispublished: true
             }
         },
         {
@@ -91,10 +90,6 @@ const getUserPlaylists = asyncHandler(async (req, res) => {
         }
     ])
 
-    if (!playlist.length) {
-        throw new ApiError(404, "playlist not found")
-    }
-
     return res
         .status(200)
         .json(new ApiResponse(200, playlist, "playlist of User by Id "))
@@ -103,6 +98,8 @@ const getUserPlaylists = asyncHandler(async (req, res) => {
 const getPlaylistById = asyncHandler(async (req, res) => {
     // Todo: remove video from playlist
     const { playlistId } = req.params
+    console.log(playlistId);
+    
 
     if (!mongoose.isValidObjectId(playlistId)) {
         throw new ApiError(400, "playlistId is reqiured")
@@ -174,10 +171,17 @@ const getPlaylistById = asyncHandler(async (req, res) => {
 })
 
 const addVideoToPlaylist = asyncHandler(async (req, res) => {
-    const { playlistId, videoId } = req.params
+    const { videoId , playlistId } = req.params
+    console.log("playlistId" , playlistId);
+    console.log("videoId" , videoId);
+    
 
-    if (!mongoose.isValidObjectId(playlistId) || !mongoose.isValidObjectId(videoId)) {
-        throw new ApiError(400, "invalid playlistId or videoId")
+    if (!mongoose.isValidObjectId(playlistId)){
+        throw new ApiError(400, "invalid playlistId")
+    } 
+
+    if(!mongoose.isValidObjectId(videoId)) {
+        throw new ApiError(400, "invalid  videoId")
     }
 
     const playlist = await Playlist.findById(playlistId)
