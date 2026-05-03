@@ -167,8 +167,8 @@ const getPlaylistById = asyncHandler(async (req, res) => {
     ])
 
     return res
-    .status(200)
-    .json(new ApiResponse(200, ownerPlaylist[0] , "owner of the playlist"))
+        .status(200)
+        .json(new ApiResponse(200, ownerPlaylist[0], "owner of the playlist"))
 
 
 })
