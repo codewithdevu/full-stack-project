@@ -4,6 +4,7 @@ import { User } from "../models/user.model.js";
 import { Comment } from "../models/comment.model.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 import { ApiError } from "../utils/ApiError.js";
+import { Video } from "../models/video.model.js";
 
 
 const getVideoComments = asyncHandler(async (req, res) => {
