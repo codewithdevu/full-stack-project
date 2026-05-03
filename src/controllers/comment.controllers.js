@@ -14,17 +14,13 @@ const getVideoComments = asyncHandler(async (req, res) => {
     const videoIdIsValid = mongoose.isValidObjectId(videoId)
 
     if (!videoIdIsValid) {
-        throw new ApiError(400, "videoId is required")
+        throw new ApiError(400, "invalid videoId")
     }
-
-    const convertId = new mongoose.Types.ObjectId(videoId)
-
-    const skipValue = (page - 1) * limit
 
     const myPipline = [
         {
             $match: {
-                video: new mongoose.Types.ObjectId(convertId)
+                video: new mongoose.Types.ObjectId(videoId)
             }
         },
         {
@@ -52,7 +48,11 @@ const getVideoComments = asyncHandler(async (req, res) => {
 
     const options = { page: parseInt(page), limit: parseInt(limit) }
 
-    const result = await Comment.aggregatePaginate(myPipline, options)
+    const result = await Comment.aggregatePaginate(Comment.aggregate(myPipline), options)
+
+    if (!result) {
+        throw new ApiError(500, "Error: while fetching comments")
+    }
 
     return res
         .status(200)
@@ -66,24 +66,28 @@ const addComment = asyncHandler(async (req, res) => {
 
     if (!content) { throw new ApiError(400, "Content is required") }
 
-    const user = req.user
-
     const { videoId } = req.params
     const videoIdIsValid = mongoose.isValidObjectId(videoId)
 
     if (!videoIdIsValid) {
-        throw new ApiError(400, "videoId is required")
+        throw new ApiError(400, "invalid videoId")
     }
 
-    const addCommentResponse = await Comment.create({
-        content: content,
+    const videoExists = await Video.findById(videoId)
+
+    if (!videoExists) {
+        throw new ApiError(404, "Video not found")
+    }
+
+    const comment = await Comment.create({
+        content,
         video: videoId,
         owner: req.user?._id
     })
 
     return res
         .status(200)
-        .json(new ApiResponse(200, { addCommentResponse }, "comment add successfully"))
+        .json(new ApiResponse(200, comment , "comment added successfully"))
 })
 
 const updateComment = asyncHandler(async (req, res) => {
