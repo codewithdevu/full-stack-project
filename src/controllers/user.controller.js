@@ -110,13 +110,18 @@ const loginUser = asyncHandler(async (req, res) => {
 
     const { username, email, password } = req.body
 
-    if (!(username || email)) {
+    let authIdentifier = email || username;
+
+    if (!authIdentifier) {
         throw new ApiError(400, "username or email is required")
     }
 
     const user = await User.findOne(
         {
-            $or: [{ username }, { email }]
+            $or: [
+                {username: authIdentifier},
+                {email: authIdentifier}
+            ]
         }
     )
 
@@ -137,6 +142,7 @@ const loginUser = asyncHandler(async (req, res) => {
     const options = {
         httpOnly: true,
         secure: true,
+        sameSite: "None"
     }
 
     return res
@@ -150,7 +156,6 @@ const loginUser = asyncHandler(async (req, res) => {
                 },
                 "user logged in successfully"
             ),
-            console.log("successfully"),
         )
 
 })
@@ -161,7 +166,7 @@ const logoutUser = asyncHandler(async (req, res) => {
     await User.findByIdAndUpdate(
         req.user._id,
         {
-            $set: { refreshToken: 1 }
+            $unset: { refreshToken: undefined }
         },
         {
             returnDocument: 'after' // 'new: true' ki jagah ye likho
