@@ -59,7 +59,7 @@ const Register = () => {
                 <div className="mb-6">
                     <label className="block text-sm text-slate-400 mb-2">Cover Image</label>
                     <input type="file" className="text-sm text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:bg-purple-600 file:text-white hover:file:bg-purple-700"
-                        onChange={(e) => setAvatar(e.target.files[0])} required />
+                        onChange={(e) => setCoverImage (e.target.files[0])} required />
                 </div>
 
                 <button type="submit" className="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 rounded transition duration-200">Register</button>
