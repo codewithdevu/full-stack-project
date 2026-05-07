@@ -23,13 +23,13 @@ const Dashboard = (e) => {
                 }
 
                 // stats aur video parallel fetch 
-                const [statsResponse, VideoReponse] = await Promise.all([
+                const [statsResponse, VideoResponse] = await Promise.all([
                     apiClient.get("/dashboard/stats"),
                     apiClient.get("/dashboard/videos"),
                 ]);
 
                 if (statsResponse.data) setStats(statsResponse.data.data);
-                if (VideoReponse) setVideos(VideoReponse.data.data)
+                if (VideoRepsonse) setVideos(VideoRepsonse.data.data)
 
             } catch (error) {
                 console.error("Error: while fetching the data", error);
