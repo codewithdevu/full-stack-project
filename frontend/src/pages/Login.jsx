@@ -15,6 +15,8 @@ const Login = () => {
                 password: password
             });
             
+            console.log("response.data: " , response.data);
+            
             if (response.data) {
                 alert("Login Successfully!")
                 navigate("/dashboard")
