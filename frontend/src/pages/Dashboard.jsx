@@ -29,8 +29,8 @@ const Dashboard = (e) => {
                 ]);
 
                 if (statsResponse.data) setStats(statsResponse.data.data);
+                
                 if (VideoRepsonse) setVideos(VideoRepsonse.data.data)
-
             } catch (error) {
                 console.error("Error: while fetching the data", error);
                 if (error.response?.status === 401) navigate("/login")
