@@ -5,7 +5,6 @@ import { useState, useEffect } from "react";
 import { Users, Eye, Video, Heart } from 'lucide-react';
 
 
-
 const Dashboard = (e) => {
     const [user, setUser] = useState(null);
     const [stats, setStats] = useState(null);
@@ -30,7 +29,7 @@ const Dashboard = (e) => {
 
                 if (statsResponse.data) setStats(statsResponse.data.data);
                 
-                if (VideoRepsonse) setVideos(VideoRepsonse.data.data)
+                if (VideoRepsonse) setVideos(VideoRepsonse.data?.data)
             } catch (error) {
                 console.error("Error: while fetching the data", error);
                 if (error.response?.status === 401) navigate("/login")

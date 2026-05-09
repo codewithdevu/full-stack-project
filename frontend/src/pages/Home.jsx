@@ -15,7 +15,7 @@ const Home = () => {
                 setLoading(true);
                 const response = await apiClient.get("/videos?page=1&limit=12");
 
-                console.log("videos from backend: " , response.data);
+                // console.log("videos from backend: " , response.data);
                 
         
                 if(response.data?.data?.docs){
