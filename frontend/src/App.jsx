@@ -5,6 +5,7 @@ import Login from './pages/Login.jsx'
 import Dashboard from './pages/Dashboard.jsx'
 import Home from './pages/Home.jsx'
 import VideoDetail from './pages/VideoDetail.jsx'
+import MyChannel from './pages/MyChannel.jsx'
 
 function App() {
   return (
@@ -14,6 +15,7 @@ function App() {
     <Route path='/dashboard' element={<Dashboard/>}/>
     <Route path='/' element={<Home/>}/>
     <Route path='/video/:videoId' element={<VideoDetail/>}/>
+    <Route path= '/c/:username' element={<MyChannel />}/>
     </Routes>
   )
 }

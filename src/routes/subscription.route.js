@@ -9,8 +9,9 @@ router.use(verifyJWT)
 router
     .route("/c/:subscriberId")
     .get(getSubscirbedChannels)
+    
+    router.route("/u/:channelId")
+    .get(getUserChannelSubscribers)
     .post(toggleSubscription)
-
-router.route("/u/:channelId").get(getUserChannelSubscribers)
 
 export default router

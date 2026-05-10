@@ -1,50 +1,48 @@
-import React from "react";
+import React, { useState, useEffect } from "react";
 import apiClient from "../api/apiConfig";
-import { Link, useNavigate } from "react-router-dom";
-import { useState, useEffect } from "react";
-import { Users, Eye, Video, Heart } from 'lucide-react';
+import { useNavigate } from "react-router-dom";
+import { Users, Eye, Video, Heart, Plus } from 'lucide-react'; // Plus icon add kiya
+import UploadVideo from "./UploadVideo"; // Is file ko import karna mat bhoolna
 
-
-const Dashboard = (e) => {
+const Dashboard = () => {
     const [user, setUser] = useState(null);
     const [stats, setStats] = useState(null);
     const [videos, setVideos] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [isUploadModalOpen, setIsUploadModalOpen] = useState(false); // Modal control state
     const navigate = useNavigate();
 
     useEffect(() => {
         const fetchAllData = async () => {
             try {
-                // pehele current User fetch karo 
                 const UserResponse = await apiClient.get("/users/current-user");
                 if (UserResponse.data) {
                     setUser(UserResponse.data.data);
                 }
 
-                // stats aur video parallel fetch 
                 const [statsResponse, VideoResponse] = await Promise.all([
                     apiClient.get("/dashboard/stats"),
                     apiClient.get("/dashboard/videos"),
                 ]);
 
                 if (statsResponse.data) setStats(statsResponse.data.data);
+                // Typo fix: VideoResponse
+                if (VideoResponse.data) setVideos(VideoResponse.data.data);
                 
-                if (VideoRepsonse) setVideos(VideoRepsonse.data?.data)
             } catch (error) {
                 console.error("Error: while fetching the data", error);
-                if (error.response?.status === 401) navigate("/login")
+                if (error.response?.status === 401) navigate("/login");
             } finally {
-                setLoading(false)
+                setLoading(false);
             }
         };
         fetchAllData();
     }, [navigate]);
 
     if (loading) {
-        return <div className="text-white text-center mt-10">Loading Dashboard...</div>
+        return <div className="text-white text-center mt-10 animate-pulse">Loading Dashboard...</div>
     }
 
-    // Reusable StatCard Component
     const StatCard = ({ icon, label, value, color }) => (
         <div className="bg-slate-800 border border-slate-700 p-5 rounded-xl shadow-md">
             <div className="flex items-center gap-3 mb-2">
@@ -58,7 +56,8 @@ const Dashboard = (e) => {
     return (
         <div className="min-h-screen bg-slate-900 text-white p-4 md:p-8">
             <div className="max-w-7xl mx-auto">
-
+                
+                {/* Profile Section */}
                 <div className="bg-slate-800 p-6 rounded-2xl border border-slate-700 shadow-lg mb-8">
                     <div className="flex flex-col md:flex-row items-center gap-6">
                         <img
@@ -70,11 +69,14 @@ const Dashboard = (e) => {
                             <h1 className="text-3xl font-bold">{user?.fullName}</h1>
                             <p className="text-slate-400">@{user?.username}</p>
                         </div>
-                        <div className="md:ml-auto flex gap-4 mt-4 md:mt-0">
-                            <div className="px-4 py-2 bg-slate-700 rounded-lg">
-                                <p className="text-xs text-slate-400">Email Address</p>
-                                <p className="text-sm font-medium">{user?.email}</p>
-                            </div>
+                        <div className="md:ml-auto flex flex-col sm:flex-row gap-4 mt-4 md:mt-0">
+                            {/* NEW: Upload Button */}
+                            <button 
+                                onClick={() => setIsUploadModalOpen(true)}
+                                className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-xl font-bold flex items-center justify-center gap-2 transition-all shadow-lg shadow-blue-900/20"
+                            >
+                                <Plus size={20} /> Upload Video
+                            </button>
                             <div className="px-4 py-2 bg-slate-700 rounded-lg">
                                 <p className="text-xs text-slate-400">Account Status</p>
                                 <p className="text-sm text-green-400 font-medium">Active</p>
@@ -85,7 +87,7 @@ const Dashboard = (e) => {
 
                 <h2 className="text-2xl font-bold mb-6">Channel Statistics</h2>
 
-                {/* 2. MIDDLE SECTION: Stats Cards Grid */}
+                {/* Stats Grid */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
                     <StatCard icon={<Users className="text-purple-500" />} label="Subscribers" value={stats?.subscribers} color="bg-purple-500/10" />
                     <StatCard icon={<Eye className="text-blue-500" />} label="Total Views" value={stats?.totalViews} color="bg-blue-500/10" />
@@ -93,12 +95,20 @@ const Dashboard = (e) => {
                     <StatCard icon={<Heart className="text-red-500" />} label="Total Likes" value={stats?.totalLikes} color="bg-red-500/10" />
                 </div>
 
+                {/* Video Table ya List yahan videos state se map kar sakte ho */}
+
                 <button
                     onClick={() => navigate("/login")}
-                    className="mt-8 px-6 py-2 text-white border bg-red-500 hover:bg-red-700 hover:text-shadow-amber-100 font-medium rounded-full transition-all duration-300 flex items-center gap-2 w-fit"
+                    className="mt-8 px-6 py-2 text-white border-2 border-red-500 bg-transparent hover:bg-red-500 font-medium rounded-full transition-all duration-300 flex items-center gap-2 w-fit"
                 >
                     Logout from account
                 </button>
+
+                {/* UPLOAD MODAL COMPONENT */}
+                <UploadVideo 
+                    isOpen={isUploadModalOpen} 
+                    onClose={() => setIsUploadModalOpen(false)} 
+                />
             </div>
         </div>
     );
