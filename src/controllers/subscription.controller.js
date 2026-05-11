@@ -74,7 +74,7 @@ const getUserChannelSubscribers = asyncHandler(async (req, res) => {
 })
 
 //controller to return channel list to which user has subscriber
-const getSubscirbedChannels = asyncHandler(async (req, res) => {
+const getSubscribedChannels = asyncHandler(async (req, res) => {
     const { subscriberId } = req.params
 
     const subscribedTo = await Subscription.aggregate([
@@ -111,6 +111,6 @@ const getSubscirbedChannels = asyncHandler(async (req, res) => {
 
 export {
     toggleSubscription,
-    getSubscirbedChannels,
+    getSubscribedChannels,
     getUserChannelSubscribers
 }
