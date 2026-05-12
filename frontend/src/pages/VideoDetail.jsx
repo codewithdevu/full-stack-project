@@ -161,7 +161,18 @@ const VideoDetail = () => {
         fetchUser();
     }, []);
 
-
+    useEffect(() => {
+        const addToHistory = async () => {
+            try {
+                await apiClient.post(`/users/history/${videoId}`);
+            } catch (error) {
+                console.error("Error: adding to history: ", error);
+            }
+        };
+        if (videoId) {
+            addToHistory();
+        }
+    }, [videoId]);
 
     if (loading) {
         return <div className="text-white text-center mt-20">Loading Video...</div>;

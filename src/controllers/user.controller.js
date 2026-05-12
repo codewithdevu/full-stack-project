@@ -452,6 +452,19 @@ const getUserChannelProfile = asyncHandler(async (req, res) => {
         .json(new ApiResponse(200, channel[0], "channel user fetched successfully"))
 })
 
+const addToWatchHistory = asyncHandler(async (req, res) => {
+    const { videoId } = req.params;
+
+    await User.findByIdAndUpdate(
+        req.user?._id,
+        {
+            $addToSet: { watchHistory: videoId } // 🟢 Duplicate nahi hone dega
+        }
+    );
+
+    return res.status(200).json(new ApiResponse(200, {}, "History updated"));
+});
+
 const getWatchHistory = asyncHandler(async (req, res) => {
     const user = await User.aggregate([
         {
@@ -461,7 +474,7 @@ const getWatchHistory = asyncHandler(async (req, res) => {
         },
         {
             $lookup: {
-                from: "video",
+                from: "videos",
                 localField: "watchHistory",
                 foreignField: "_id",
                 as: "watchHistory",
@@ -499,9 +512,29 @@ const getWatchHistory = asyncHandler(async (req, res) => {
     .status(200)
     .json( new ApiResponse(
         200, 
-        user[0].watchHistory, 
+        user[0]?.watchHistory, 
         "watch history fetched succcessfully"
     ))
+})
+
+const clearWatchHistory = asyncHandler(async (req, res) => {
+    const user = await User.findByIdAndUpdate(
+        req.user?._id,
+        {
+            $set: {
+                watchHistory: []
+            }
+        },
+        {new: true}
+    );
+
+    if (!user) {
+      throw new ApiError(404, "User not found");  
+    }
+
+    return res  
+    .status(200)
+    .json(new ApiResponse(200, {}, "watch history cleared successfully"))
 })
 
 export {
@@ -515,5 +548,7 @@ export {
     updateUserCoverimage,
     updateUserAvatar,
     getUserChannelProfile,
-    getWatchHistory
+    getWatchHistory,
+    clearWatchHistory,
+    addToWatchHistory
 }
