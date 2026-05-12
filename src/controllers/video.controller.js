@@ -36,9 +36,9 @@ const getAllVideos = asyncHandler(async (req, res) => {
         )
     }
 
-    pipeline.push({$match: {isPublished: true}})
+    pipeline.push({ $match: { isPublished: true } })
 
-    if(userId){
+    if (userId) {
         pipeline.push({
             $match: {
                 owner: new mongoose.Types.ObjectId(userId)
@@ -50,7 +50,7 @@ const getAllVideos = asyncHandler(async (req, res) => {
     // learn after code is correct
     pipeline.push({
         $sort: {
-            [sortBy||"createdAt"]:sortType==="asc"?1:-1
+            [sortBy || "createdAt"]: sortType === "asc" ? 1 : -1
         }
     })
 
@@ -74,22 +74,22 @@ const getAllVideos = asyncHandler(async (req, res) => {
     pipeline.push({
         $unwind: "$ownerDetails"
     })
-    
+
     const options = {
         page: parseInt(page),
         limit: parseInt(limit)
     }
 
     const videoAggregate = Video.aggregate(pipeline)
-    const result = await Video.aggregatePaginate(videoAggregate , options)
+    const result = await Video.aggregatePaginate(videoAggregate, options)
 
-    if(!result){
+    if (!result) {
         throw new ApiError(500, "Error:  while fetching videos")
     }
 
     return res
-    .status(200)
-    .json(new ApiResponse(200 , result , "videos fetched successfullyy"))
+        .status(200)
+        .json(new ApiResponse(200, result, "videos fetched successfullyy"))
 
 })
 
@@ -133,16 +133,14 @@ const publishVideo = asyncHandler(async (req, res) => {
 })
 
 const getVideoById = asyncHandler(async (req, res) => {
-    //Todo: get Video by id
-    const { videoId } = req.params
+    const { videoId } = req.params;
 
-    const validatedVideoId = mongoose.isValidObjectId(videoId)
-
-    if (!validatedVideoId) {
-        throw new ApiError(400, "video Id is reqiured")
+    if (!mongoose.isValidObjectId(videoId)) {
+        throw new ApiError(400, "Invalid video Id");
     }
 
-    await Video.findByIdAndUpdate(videoId, { $inc: { views: 1 } })
+    // Views badhao
+    await Video.findByIdAndUpdate(videoId, { $inc: { views: 1 } });
 
     const video = await Video.aggregate([
         {
@@ -150,32 +148,68 @@ const getVideoById = asyncHandler(async (req, res) => {
                 _id: new mongoose.Types.ObjectId(videoId)
             }
         },
+        // 1. Likes fetch karo
+        {
+            $lookup: {
+                from: "likes",
+                localField: "_id",
+                foreignField: "video",
+                as: "likes"
+            }
+        },
+        // 1. Subscriptions fetch karo
+        {
+            $lookup: {
+                from: "subscriptions",
+                localField: "owner",
+                foreignField: "channel",
+                as: "subscribers"
+            }
+        },
+        // 2. Owner details fetch karo
         {
             $lookup: {
                 from: "users",
                 localField: "owner",
                 foreignField: "_id",
-                as: "owner"
+                as: "owner",
+                pipeline: [
+                    {
+                        $project: {
+                            username: 1,
+                            fullName: 1,
+                            avatar: 1
+                        }
+                    }
+                ]
             }
         },
+        // 3. Sab calculate karo
         {
             $addFields: {
-                owner: {
-                    $first: "$owner"
+                owner: { $first: "$owner" },
+                likesCount: { $size: "$likes" },
+                isLiked: { $in: [req.user?._id, "$likes.likedBy"] },
+
+                // 🟢 2. Subscribers ki details add karo
+                subscribersCount: { $size: "$subscribers" },
+                isSubscribed: {
+                    $in: [req.user?._id, "$subscribers.subscriber"]
                 }
             }
         },
-    ])
+        { $project: { likes: 0, subscribers: 0 } } // Extra kachra saaf
+
+    ]);
 
     if (!video?.length) {
-        throw new ApiError(400, "Error: while genreating pipline")
+        throw new ApiError(404, "Video not found");
     }
 
     return res
         .status(200)
-        .json(new ApiResponse(200, video[0], "Get the video by id succcessfully"))
-
-})
+        .json(new ApiResponse(200, video[0], "Video fetched successfully"));
+});
 
 const updateVideo = asyncHandler(async (req, res) => {
     // Todo:  update video details like -> title , descirption , thumbnail

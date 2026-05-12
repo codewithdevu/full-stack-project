@@ -40,6 +40,18 @@ const getVideoComments = asyncHandler(async (req, res) => {
             }
         },
         {
+            $project: {
+                content: 1,
+                createdAt: 1,
+                owner: {
+                    username: 1,
+                    fullName: 1,
+                    avatar: 1,
+                    _id: 1
+                }
+            }
+        },
+        {
             $sort: {
                 createdAt: -1
             }
@@ -84,11 +96,15 @@ const addComment = asyncHandler(async (req, res) => {
         content,
         video: videoId,
         owner: req.user?._id
-    })
+    });
+
+    const populatedComment = await comment.populate("owner", "username avatar");
+    // console.log("populatedComment: ", populatedComment);
+
 
     return res
         .status(200)
-        .json(new ApiResponse(200, comment , "comment added successfully"))
+        .json(new ApiResponse(200, populatedComment, "comment added successfully"))
 })
 
 const updateComment = asyncHandler(async (req, res) => {
@@ -114,7 +130,7 @@ const updateComment = asyncHandler(async (req, res) => {
     const updatedComment = await Comment.findByIdAndUpdate(
         commentId,
         {
-            $set: {content},
+            $set: { content },
         },
         {
             new: true,
@@ -129,7 +145,7 @@ const updateComment = asyncHandler(async (req, res) => {
 
 const deleteComment = asyncHandler(async (req, res) => {
     // Todo: delete a comment
-    const{ commentId } = req.params
+    const { commentId } = req.params
 
     const comment = await Comment.findById(commentId)
 
@@ -140,7 +156,7 @@ const deleteComment = asyncHandler(async (req, res) => {
     const verifiedUser = comment.owner.toString() == req.user?._id.toString()
 
     if (!verifiedUser) {
-        throw new ApiError(400, "You are not authorized")
+        throw new ApiError(403, "You are not authorized")
     }
 
     await Comment.findByIdAndDelete(
@@ -148,8 +164,8 @@ const deleteComment = asyncHandler(async (req, res) => {
     )
 
     return res
-    .status(200)
-    .json(new ApiResponse(200 , {} , "comment deleted succcessfully"))
+        .status(200)
+        .json(new ApiResponse(200, {}, "comment deleted succcessfully"))
 })
 
 export {
