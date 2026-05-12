@@ -144,7 +144,7 @@ const likedVideos = await Like.aggregate([
                 from: "videos",
                 localField: "video",
                 foreignField: "_id",
-                as: "videoDetails",
+                as: "video",
                 pipeline: [
                     {
                         $lookup: {
@@ -173,12 +173,12 @@ const likedVideos = await Like.aggregate([
                 ]
             }
         },
-        { $unwind: "$videoDetails" },
+        { $unwind: "$video" },
         { $sort: { createdAt: -1 } },
         {
             $project: { // Final cleanup
                 _id: 1,
-                videoDetails: 1
+                video: 1
             }
         }
     ]);
