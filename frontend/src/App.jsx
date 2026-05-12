@@ -7,6 +7,7 @@ import Home from './pages/Home.jsx'
 import VideoDetail from './pages/VideoDetail.jsx'
 import MyChannel from './pages/MyChannel.jsx'
 import Layout from './pages/Layout.jsx'
+import Settings from './pages/Setting.jsx'
 
 function App() {
   return (
@@ -16,6 +17,7 @@ function App() {
         <Route path='/dashboard' element={<Dashboard />} />
         <Route path='/video/:videoId' element={<VideoDetail />} />
         <Route path='/c/:username' element={<MyChannel />} />
+        <Route path='/settings' element={<Settings />} />
       </Route>
       {/* Auth pages without layout */}
       <Route path='/login' element={<Login />} />

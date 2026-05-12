@@ -1,13 +1,14 @@
 import React from "react";
 import {NavLink} from "react-router-dom";
-import { Home , LayoutDashboard , History , Heart } from "lucide-react";
+import { Home , LayoutDashboard , History , Heart  , Settings} from "lucide-react";
 
 const Sidebar = () => {
     const links = [
         { name: "Home" ,  path: "/" , icon: <Home size={20} /> },
         { name: "Dashboard" ,  path: "/dashboard" , icon: <LayoutDashboard size={20} /> },
         { name: "History" ,  path: "/history" , icon: <History size={20} /> },
-        { name: "Liked Videos" ,  path: "/liked" , icon: <Heart size={20} /> }
+        { name: "Liked Videos" ,  path: "/liked" , icon: <Heart size={20} /> },
+        { name: "Settings" ,  path: "/settings" , icon: <Settings size={20} /> },
     ];
     
     return (
