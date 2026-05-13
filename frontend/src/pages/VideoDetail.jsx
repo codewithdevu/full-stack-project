@@ -1,7 +1,8 @@
 import React, { useState, useEffect } from "react";
 import apiClient from "../api/apiConfig.js";
 import { useParams, useNavigate } from "react-router-dom";
-import { ThumbsUp, Share2, MessageSquare, Trash2, Pencil } from "lucide-react";
+import { ThumbsUp, Share2, MessageSquare, Trash2, Pencil, ListPlus } from "lucide-react";
+
 
 
 
@@ -13,6 +14,8 @@ const VideoDetail = () => {
     const [loading, setLoading] = useState(true);
     const [recommendations, setRecommendations] = useState([]);
     const [currentUser, setCurrentUser] = useState(null);
+    const [showPlaylistModal, setShowPlaylistModal] = useState(false);
+    const [userPlaylists, setUserPlaylists] = useState([]);
     const navigate = useNavigate();
 
 
@@ -52,6 +55,30 @@ const VideoDetail = () => {
             fetchVideoDetail();
         }
     }, [videoId]);
+
+    const openPlaylistModal = async () => {
+        try {
+            if (!currentUser?._id) {
+                alert("Please log in to save videos to a playlist.");
+                return;
+            }
+            setShowPlaylistModal(true);
+            const response = await apiClient.get(`playlist/user/${currentUser._id}`);
+            setUserPlaylists(response.data?.data || []);
+        } catch (error) {
+            console.error("Error: fetching user playlists: ", error);
+        }
+    };
+
+    const addVideoToPlaylist = async (playlistId) => {
+        try {
+            const response = await apiClient.patch(`/playlist/add/${videoId}/${playlistId}`);
+            alert("Video added to playlist successfully!");
+            setShowPlaylistModal(false);
+        } catch (error) {
+            console.error("Error: adding video to playlist: ", error);
+        }
+    };
 
     const handleLike = async () => {
         try {
@@ -214,6 +241,13 @@ const VideoDetail = () => {
                                 <button className="bg-slate-800 px-5 py-2 rounded-full hover:bg-slate-700 transition">
                                     <Share2 size={18} />
                                 </button>
+                                <button
+                                    onClick={openPlaylistModal}
+                                    className="flex items-center gap-2 bg-slate-800 px-5 py-2 rounded-full hover:bg-slate-700 transition text-slate-300"
+                                >
+                                    <ListPlus size={18} />
+                                    <span className="text-sm font-bold">Save</span>
+                                </button>
                             </div>
                         </div>
                     </div>
@@ -320,7 +354,42 @@ const VideoDetail = () => {
                     )}
                 </div>
             </div>
+
+            {/* PLAYLIST MODAL */}
+            {showPlaylistModal && (
+                <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4">
+                    <div className="bg-slate-800 border border-slate-700 w-full max-w-md rounded-2xl p-6 shadow-2xl">
+                        <h2 className="text-xl font-bold mb-4">Save to playlist</h2>
+                        <div className="space-y-3 max-h-60 overflow-y-auto">
+                            {userPlaylists.length > 0 ? (
+                                userPlaylists.map(pl => (
+                                    <div
+                                        key={pl._id}
+                                        onClick={() => addVideoToPlaylist(pl._id)}
+                                        className="p-3 bg-slate-700/50 rounded-xl hover:bg-blue-600 transition cursor-pointer flex justify-between items-center group"
+                                    >
+                                        <span className="font-medium">{pl.name}</span>
+                                        <span className="text-[10px] bg-slate-800 px-2 py-1 rounded text-slate-400 group-hover:bg-blue-700">
+                                            {pl.videos?.length || 0} videos
+                                        </span>
+                                    </div>
+                                ))
+                            ) : (
+                                <p className="text-center text-slate-500 py-4 italic text-sm">No playlists found.</p>
+                            )}
+                        </div>
+                        <button
+                            onClick={() => setShowPlaylistModal(false)}
+                            className="mt-6 w-full text-center text-slate-400 hover:text-white"
+                        >
+                            Close
+                        </button>
+                    </div>
+                </div>
+            )}
         </div>
+
+
     );
 }
 

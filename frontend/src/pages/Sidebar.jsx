@@ -1,6 +1,6 @@
 import React from "react";
 import {NavLink} from "react-router-dom";
-import { Home , LayoutDashboard , History , Heart  , Settings} from "lucide-react";
+import { Home , LayoutDashboard , History , Heart  , Settings , FolderPlus} from "lucide-react";
 
 const Sidebar = () => {
     const links = [
@@ -9,6 +9,7 @@ const Sidebar = () => {
         { name: "History" ,  path: "/history" , icon: <History size={20} /> },
         { name: "Liked Videos" ,  path: "/liked" , icon: <Heart size={20} /> },
         { name: "Settings" ,  path: "/settings" , icon: <Settings size={20} /> },
+        {name: "Playlists" , path: "/playlists" , icon: <FolderPlus size={20} /> }
     ];
     
     return (
