@@ -98,7 +98,7 @@ const getUserPlaylists = asyncHandler(async (req, res) => {
 const getPlaylistById = asyncHandler(async (req, res) => {
     // Todo: remove video from playlist
     const { playlistId } = req.params
-    console.log(playlistId);
+    // console.log(playlistId);
     
 
     if (!mongoose.isValidObjectId(playlistId)) {
