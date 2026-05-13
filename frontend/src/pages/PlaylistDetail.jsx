@@ -1,12 +1,17 @@
 import React, { useState, useEffect } from "react";
 import apiClient from "../api/apiConfig";
 import { useParams, useNavigate } from "react-router-dom";
-import { Trash2, Play, Clock, LayoutGrid, ListVideo } from "lucide-react";
+import { Trash2, Play, Clock, LayoutGrid, ListVideo, Edit2 } from "lucide-react";
 
 const PlaylistDetail = () => {
     const { playlistId } = useParams();
     const [playlist, setPlaylist] = useState(null);
     const [loading, setLoading] = useState(true);
+    const [isEditModelOpen, setIsEditModelOpen] = useState(false);
+    const [editData, setEditData] = useState({
+        name: "",
+        description: "",
+    });
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -28,6 +33,43 @@ const PlaylistDetail = () => {
 
     }, [playlistId]);
 
+    const handleEditPlaylist = async (e) => {
+        e.preventDefault();
+        try {
+            setLoading(true);
+            const response = await apiClient.patch(`/playlist/${playlistId}`, {
+                name: editData.name,
+                description: editData.description,
+            });
+
+            if (response.data?.success) {
+                setPlaylist(prev => ({
+                    ...prev,
+                    name: response.data.data.name,
+                    description: response.data.data.description,
+                }));
+                setIsEditModelOpen(false);
+                alert("Playlist updated successfully!");
+            }
+        } catch (error) {
+            console.error("Error updating playlist:", error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
+    const handleDeletePlaylist = async () => {
+        if (!window.confirm("Are you sure you want to delete this playlist?")) return;
+        try {
+            await apiClient.delete(`/playlist/${playlistId}`);
+            alert("Playlist deleted successfully!");
+            navigate("/playlists");
+        } catch (error) {
+            console.error("Error deleting playlist:", error);
+        }
+    };
+
+
     const handleRemoveVideo = async (videoId) => {
         if (!window.confirm("Are you sure you want to remove this video from the playlist?")) return;
         try {
@@ -36,7 +78,7 @@ const PlaylistDetail = () => {
             setPlaylist((prev) => ({
                 ...prev,
                 videos: prev.videos.filter((video) => video._id !== videoId),
-            })); 
+            }));
         } catch (error) {
             console.error("Error removing video from playlist:", error);
         }
@@ -67,8 +109,8 @@ const PlaylistDetail = () => {
                             <h1 className="text-4xl font-extrabold mb-2">{playlist.name}</h1>
                             <p className="text-slate-400 mb-4">{playlist.description || "No description provided."}</p>
                             <div className="flex gap-4 text-sm text-slate-300">
-                                <span className="flex items-center gap-1"><ListVideo size={16}/> {playlist.videosDetails?.length} videos</span>
-                                <span className="flex items-center gap-1"><Clock size={16}/> Updated recently</span>
+                                <span className="flex items-center gap-1"><ListVideo size={16} /> {playlist.videosDetails?.length} videos</span>
+                                <span className="flex items-center gap-1"><Clock size={16} /> Updated recently</span>
                             </div>
                         </div>
                     </div>
@@ -78,12 +120,12 @@ const PlaylistDetail = () => {
                 <div className="space-y-4">
                     {playlist.videosDetails?.length > 0 ? (
                         playlist.videosDetails.map((video, index) => (
-                            <div 
+                            <div
                                 key={video._id || index}
                                 className="flex gap-4 bg-slate-800/30 p-3 rounded-2xl border border-slate-800 group hover:border-blue-500/50 transition items-center"
                             >
                                 <span className="text-slate-600 font-bold ml-2 w-4">{index + 1}</span>
-                                <div 
+                                <div
                                     className="relative w-44 aspect-video shrink-0 cursor-pointer"
                                     onClick={() => navigate(`/video/${video._id}`)}
                                 >
@@ -93,13 +135,13 @@ const PlaylistDetail = () => {
                                     </div>
                                 </div>
                                 <div className="flex-1">
-                                    <h3 className="font-bold text-lg line-clamp-1 cursor-pointer hover:text-blue-400" 
+                                    <h3 className="font-bold text-lg line-clamp-1 cursor-pointer hover:text-blue-400"
                                         onClick={() => navigate(`/video/${video._id}`)}>
                                         {video.title}
                                     </h3>
                                     <p className="text-sm text-slate-400">@{video.userDetails?.username}</p>
                                 </div>
-                                <button 
+                                <button
                                     onClick={() => handleRemoveVideo(video._id)}
                                     className="p-3 text-slate-500 hover:text-red-500 hover:bg-red-500/10 rounded-full transition"
                                 >
@@ -112,8 +154,81 @@ const PlaylistDetail = () => {
                     )}
                 </div>
             </div>
+
+            <div className="flex items-center justify-center gap-10 mt-6">
+                {/* Edit Button */}
+                <button
+                    onClick={() => {
+                        setEditData({ name: playlist.name, description: playlist.description });
+                        setIsEditModalOpen(true);
+                    }}
+                    className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2.5 rounded-xl font-medium transition-all duration-200 active:scale-95 shadow-lg shadow-blue-900/20 flex gap-2"
+                >
+                    <Edit2 size={18} />
+                    Edit Playlist
+                </button>
+
+                {/* Delete Button */}
+                <button
+                    onClick={() => handleDeletePlaylist(playlist._id)}
+                    className="bg-red-500 hover:bg-red-600 text-white hover:text-white px-6 py-2.5 rounded-xl font-medium border border-slate-700 hover:border-red-600 transition-all duration-200 active:scale-95 flex items-center gap-2"
+                >
+                    <Trash2 size={18} />
+                    Delete Playlist
+                </button>
+            </div>
+
+            {/* --- EDIT MODAL --- */}
+            {isEditModelOpen && (
+                <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
+                    <div className="bg-slate-800 border border-slate-700 w-full max-w-md rounded-2xl p-6">
+                        <h2 className="text-xl font-bold mb-4">Update Playlist Details</h2>
+
+                        <form onSubmit={handleEditPlaylist} className="space-y-4">
+                            <div>
+                                <label className="text-sm text-slate-400 block mb-1">Playlist Name</label>
+                                <input
+                                    type="text"
+                                    value={editData.name}
+                                    onChange={(e) => setEditData({ ...editData, name: e.target.value })}
+                                    className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 outline-none focus:border-blue-500"
+                                    required
+                                />
+                            </div>
+
+                            <div>
+                                <label className="text-sm text-slate-400 block mb-1">Description</label>
+                                <textarea
+                                    value={editData.description}
+                                    onChange={(e) => setEditData({ ...editData, description: e.target.value })}
+                                    rows="3"
+                                    className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 outline-none focus:border-blue-500 resize-none"
+                                />
+                            </div>
+
+                            <div className="flex gap-3 pt-2">
+                                <button
+                                    type="button"
+                                    onClick={() => setIsEditModelOpen(false)}
+                                    className="flex-1 py-2 rounded-lg border border-slate-700 hover:bg-slate-700 transition"
+                                >
+                                    Cancel
+                                </button>
+                                <button
+                                    type="submit"
+                                    className="flex-1 py-2 bg-blue-600 rounded-lg font-bold hover:bg-blue-700 transition"
+                                >
+                                    Save Changes
+                                </button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+
+            )}
+
         </div>
-    );        
+    );
 };
 
 export default PlaylistDetail;
