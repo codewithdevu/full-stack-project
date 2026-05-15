@@ -234,7 +234,7 @@ const updateVideo = asyncHandler(async (req, res) => {
         throw new ApiError(400, "You are not authorized to update this video")
     }
 
-    const thumbnailLocalpath = req.files?.thumbnail?.[0]?.path
+    const thumbnailLocalpath = req.file?.path || req.files?.thumbnail?.[0]?.path
 
     let thumbnail;
     if (thumbnailLocalpath) {
