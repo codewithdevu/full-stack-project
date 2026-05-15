@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import apiClient from "../api/apiConfig";
-import { useNavigate } from "react-router-dom";
-import { Trash2, Edit, Users, Eye, Video, Heart, Plus ,CheckCircle, XCircle} from 'lucide-react'; // Plus icon add kiya
+import { Form, useNavigate } from "react-router-dom";
+import { Trash2, Edit, Users, Eye, Video, Heart, Plus, CheckCircle, XCircle } from 'lucide-react'; // Plus icon add kiya
 import UploadVideo from "./UploadVideo"; // Is file ko import karna mat bhoolna
 
 const Dashboard = () => {
@@ -9,7 +9,9 @@ const Dashboard = () => {
     const [stats, setStats] = useState(null);
     const [videos, setVideos] = useState([]);
     const [loading, setLoading] = useState(true);
-    const [isUploadModalOpen, setIsUploadModalOpen] = useState(false); // Modal control state
+    const [isUploadModalOpen, setIsUploadModalOpen] = useState(false);
+    const [editingVideo, setEditingVideo] = useState(null);
+    const [isEditModalOpen, setIsEditModalOpen] = useState(false);
     const navigate = useNavigate();
 
     useEffect(() => {
@@ -38,6 +40,41 @@ const Dashboard = () => {
         };
         fetchAllData();
     }, [navigate]);
+
+    const handleUpdateVideo = async (e) => {
+        e.preventDefault();
+
+        if (!editingVideo.title.trim()) {
+            return alert("Title cannot be empty!");
+        }
+        try {
+            setLoading(true);
+            const formData = new FormData();
+            formData.append("title", editingVideo.title);
+            formData.append("description", editingVideo.description);
+            if (editingVideo.newThumbnail) {
+                formData.append("thumbnail", editingVideo.newThumbnail);
+            }
+
+            const response = await apiClient.patch(`/videos/${editingVideo._id}`, formData, {
+                headers: {
+                    "Content-Type": "multipart/form-data",
+                },
+            });
+
+            if (response.data.success) {
+                // Update the video in the state
+                setVideos(prev => prev.map(video => video._id === editingVideo._id ? response.data.data : video));
+                alert("Video updated successfully!");
+                setIsEditModalOpen(false);
+            }
+        } catch (error) {
+            console.error("Error updating video:", error);
+            alert("Failed to update video. Please try again.");
+        } finally {
+            setLoading(false);
+        }
+    }
 
     const handleDeleteVideo = async (videoId) => {
         if (!window.confirm("Are you sure you want to delete this video?")) return;
@@ -158,7 +195,15 @@ const Dashboard = () => {
                                         <td className="px-6 py-4 font-semibold">{video.views}</td>
                                         <td className="px-6 py-4">
                                             <div className="flex items-center gap-4">
-                                                <button className="text-slate-400 hover:text-blue-500 transition"><Edit size={18} /></button>
+                                                <button
+                                                    onClick={() => {
+                                                        setEditingVideo(video);
+                                                        setIsEditModalOpen(true);
+                                                    }}
+                                                    className="text-slate-400 hover:text-blue-500 transition"
+                                                >
+                                                    <Edit size={18} />
+                                                </button>
                                                 <button
                                                     onClick={() => handleDeleteVideo(video._id)}
                                                     className="text-slate-400 hover:text-red-500 transition"
@@ -192,6 +237,70 @@ const Dashboard = () => {
                     isOpen={isUploadModalOpen}
                     onClose={() => setIsUploadModalOpen(false)}
                 />
+
+                {isEditModalOpen && (
+                    <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
+                        <div className="bg-slate-800 border border-slate-700 w-full max-w-lg rounded-2xl p-6 shadow-2xl">
+                            <h2 className="text-xl font-bold mb-6 flex items-center gap-2">
+                                <Edit size={20} className="text-blue-500" /> Edit Video Details
+                            </h2>
+
+                            <form onSubmit={handleUpdateVideo} className="space-y-4">
+                                {/* Title */}
+                                <div>
+                                    <label className="text-sm text-slate-400 block mb-1">Title</label>
+                                    <input
+                                        type="text"
+                                        value={editingVideo?.title}
+                                        onChange={(e) => setEditingVideo({ ...editingVideo, title: e.target.value })}
+                                        className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 outline-none focus:border-blue-500 transition"
+                                        required
+                                    />
+                                </div>
+
+                                {/* Description */}
+                                <div>
+                                    <label className="text-sm text-slate-400 block mb-1">Description</label>
+                                    <textarea
+                                        value={editingVideo?.description}
+                                        onChange={(e) => setEditingVideo({ ...editingVideo, description: e.target.value })}
+                                        rows="4"
+                                        className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 outline-none focus:border-blue-500 resize-none"
+                                    />
+                                </div>
+
+                                {/* Thumbnail Preview/Change */}
+                                <div>
+                                    <label className="text-sm text-slate-400 block mb-2">Change Thumbnail (Optional)</label>
+                                    <input
+                                        type="file"
+                                        accept="image/*"
+                                        onChange={(e) => setEditingVideo({ ...editingVideo, newThumbnail: e.target.files[0] })}
+                                        className="text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-600/10 file:text-blue-500 hover:file:bg-blue-600/20"
+                                    />
+                                </div>
+
+                                {/* Modal Actions */}
+                                <div className="flex gap-3 pt-4">
+                                    <button
+                                        type="button"
+                                        onClick={() => setIsEditModalOpen(false)}
+                                        className="flex-1 py-2.5 rounded-xl border border-slate-700 hover:bg-slate-700 transition font-medium"
+                                    >
+                                        Cancel
+                                    </button>
+                                    <button
+                                        type="submit"
+                                        disabled={loading}
+                                        className="flex-1 py-2.5 bg-blue-600 rounded-xl font-bold hover:bg-blue-700 transition disabled:opacity-50"
+                                    >
+                                        {loading ? "Updating..." : "Update Video"}
+                                    </button>
+                                </div>
+                            </form>
+                        </div>
+                    </div>
+                )}
             </div>
         </div>
     );

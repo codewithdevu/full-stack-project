@@ -238,10 +238,23 @@ const updateVideo = asyncHandler(async (req, res) => {
 
     let thumbnail;
     if (thumbnailLocalpath) {
-        await deleteOnCloudinary(video.thumbnail, "image")
-        thumbnail = await uploadOncloudinary(thumbnailLocalpath)
-        if (!thumbnail) {
-            throw new ApiError(400, "failed to upload file on cloudinary")
+        try {
+            await deleteOnCloudinary(video.thumbnail, "image")
+
+            thumbnail = await uploadOncloudinary(thumbnailLocalpath)
+
+            if (fs.existsSync(thumbnailLocalpath)) {
+                fs.unlinkSync(thumbnailLocalpath)
+            }
+
+            if (!thumbnail) {
+                throw new ApiError(400, "failed to upload file on cloudinary")
+            }
+        } catch (error) {
+                if (fs.existsSync(thumbnailLocalpath)) {    
+                    fs.unlinkSync(thumbnailLocalpath)
+                }
+                throw new ApiError(400, "failed to upload file on cloudinary")
         }
     }
 
