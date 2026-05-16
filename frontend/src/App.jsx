@@ -12,6 +12,7 @@ import History from './pages/History.jsx'
 import LikedVideos from './pages/LikedVideos.jsx'
 import Playlist from './pages/Playlist.jsx'
 import PlaylistDetail from './pages/PlaylistDetail.jsx'
+import Tweet from './pages/Tweet.jsx'
 
 function App() {
   return (
@@ -26,6 +27,7 @@ function App() {
         <Route path='/liked' element={<LikedVideos />} />
         <Route path='/playlists' element={<Playlist />} />
         <Route path='/playlist/:playlistId' element={<PlaylistDetail />} />
+        <Route path='/tweet' element={<Tweet />} />
       </Route>
       {/* Auth pages without layout */}
       <Route path='/login' element={<Login />} />
