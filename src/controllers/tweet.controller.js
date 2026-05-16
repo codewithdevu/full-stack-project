@@ -7,28 +7,54 @@ import { ApiResponse } from "../utils/ApiResponse.js";
 const getAllTweets = asyncHandler(async (req, res) => {
     const tweets = await Tweet.aggregate([
         {
+            $match: {}
+        },
+        {
+            $lookup: {
+                from: "likes",
+                localField: "_id",
+                foreignField: "tweet",
+                as: "likesDetails"
+            }
+        },
+        {
             $lookup: {
                 from: "users",
                 localField: "owner",
                 foreignField: "_id",
                 as: "ownerDetails",
-                pipeline: [
-                    {
-                        $project: {
-                            username: 1,
-                            avatar: 1,
-                            fullName: 1
-                        }
-                    }
-                ]
             }
         },
         {
             $unwind: "$ownerDetails"
         },
         {
+            $addFields: {
+                likesCount: { $size: "$likesDetails" }, 
+                isLiked: {
+                    $cond: {
+                        if: { $in: [new mongoose.Types.ObjectId(req.user?._id), "$likesDetails.likedBy"] },
+                        then: true,
+                        else: false
+                    }
+                },
+                owner: {
+                    _id: "$ownerDetails._id",
+                    username: "$ownerDetails.username",
+                    fullName: "$ownerDetails.fullName",
+                    avatar: "$ownerDetails.avatar"
+                }
+            }
+        },
+        {
             $sort: {
                 createdAt: -1
+            }
+        },
+        {
+            $project: {
+                likesDetails: 0,
+                ownerDetails: 0
             }
         }
     ]);
@@ -128,13 +154,13 @@ const updateTweet = asyncHandler(async (req, res) => {
 
     const valid = mongoose.isValidObjectId(tweetId)
 
-    if(!valid){
+    if (!valid) {
         throw new ApiError(400, "invalid tweet id")
     }
 
     const confirmedTweetId = await Tweet.findById(tweetId)
 
-    if(!confirmedTweetId){
+    if (!confirmedTweetId) {
         throw new ApiError(404, "tweet not found")
     }
 
@@ -145,8 +171,8 @@ const updateTweet = asyncHandler(async (req, res) => {
 
     const updatedTweet = await Tweet.findByIdAndUpdate(
         tweetId,
-        { $set: { content }},
-        {new: true}
+        { $set: { content } },
+        { new: true }
     )
 
     return res
@@ -165,14 +191,14 @@ const deleteTweet = asyncHandler(async (req, res) => {
 
     const valid = mongoose.isValidObjectId(tweetId)
 
-    if(!valid){
+    if (!valid) {
         throw new ApiError(400, "invalid tweet id")
     }
 
     const confirmedTweetId = await Tweet.findById(tweetId)
-    
 
-    if(!confirmedTweetId){
+
+    if (!confirmedTweetId) {
         throw new ApiError(404, "tweet not found")
     }
 
