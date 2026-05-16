@@ -4,6 +4,44 @@ import { ApiError } from "../utils/ApiError.js";
 import { Tweet } from "../models/tweet.model.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
 
+const getAllTweets = asyncHandler(async (req, res) => {
+    const tweets = await Tweet.aggregate([
+        {
+            $lookup: {
+                from: "users",
+                localField: "owner",
+                foreignField: "_id",
+                as: "ownerDetails",
+                pipeline: [
+                    {
+                        $project: {
+                            username: 1,
+                            avatar: 1,
+                            fullName: 1
+                        }
+                    }
+                ]
+            }
+        },
+        {
+            $unwind: "$ownerDetails"
+        },
+        {
+            $sort: {
+                createdAt: -1
+            }
+        }
+    ]);
+
+    if (!tweets) {
+        throw new ApiError(404, "No tweets found");
+    }
+
+    return res
+        .status(200)
+        .json(new ApiResponse(200, tweets, "Tweets fetched successfully"));
+});
+
 const createTweet = asyncHandler(async (req, res) => {
     // Todo: create Tweet 
     const { content } = req.body
@@ -153,5 +191,6 @@ export {
     createTweet,
     getUserTweets,
     updateTweet,
-    deleteTweet
+    deleteTweet,
+    getAllTweets
 }
