@@ -1,7 +1,6 @@
 import React, { useState, useEffect } from "react";
 import apiClient from "../api/apiConfig";
-import { Trash2, Edit } from "lucide-react";
-
+import { Trash2, Edit, Heart} from "lucide-react";
 
 
 const Tweet = () => {
@@ -31,20 +30,20 @@ const Tweet = () => {
     }, []);
 
     useEffect(() => {
-    const fetchUserDataAndTweets = async () => {
-        try {
-            fetchTweets();
+        const fetchUserDataAndTweets = async () => {
+            try {
+                fetchTweets();
 
-            const userResponse = await apiClient.get("/users/current-user");
-            if (userResponse.data?.data) {
-                setCurrentUser(userResponse.data.data);
+                const userResponse = await apiClient.get("/users/current-user");
+                if (userResponse.data?.data) {
+                    setCurrentUser(userResponse.data.data);
+                }
+            } catch (error) {
+                console.error("Error fetching user details:", error);
             }
-        } catch (error) {
-            console.error("Error fetching user details:", error);
-        }
-    };
-    fetchUserDataAndTweets();
-}, []);
+        };
+        fetchUserDataAndTweets();
+    }, []);
 
     const handleCreateTweet = async (e) => {
         e.preventDefault();
@@ -92,8 +91,33 @@ const Tweet = () => {
             console.error("Error deleting tweet:", error);
         } finally {
             setLoading(false);
-        } 
+        }
     }
+
+    const handleToggleTweetLike = async (tweetId) => {
+        try {
+            setTweets((prevTweets) =>
+                prevTweets.map((t) => {
+                    if (t._id === tweetId) {
+                        const currentlyLiked = t.isLiked;
+                        return {
+                            ...t,
+                            isLiked: !currentlyLiked,
+                            likesCount: currentlyLiked ? (t.likesCount || 1) - 1 : (t.likesCount || 0) + 1
+                        };
+                    }
+                    return t;
+                })
+            );
+            await apiClient.post(`/likes/toggle/t/${tweetId}`);
+        } catch (error) {
+            console.error("Error toggling tweet like:", error);
+
+            fetchTweets();
+        }
+    };
+
+
 
     if (loading && tweets.length === 0) {
         return <div className="text-white text-center mt-20 animate-pulse">Loading Tweets...</div>;
@@ -109,7 +133,7 @@ const Tweet = () => {
                     <textarea
                         value={newTweet}
                         onChange={(e) => setNewTweet(e.target.value)}
-                        placeholder="Bhai, kya chal raha hai dimaag mein? Likho yahan..."
+                        placeholder="What's happening?"
                         className="w-full bg-slate-900 text-white rounded-xl p-3 border border-slate-700 outline-none focus:border-blue-500 resize-none h-24 transition"
                         maxLength={280}
                         required
@@ -157,23 +181,38 @@ const Tweet = () => {
 
                                             {/* Actions (Edit / Delete) */}
                                             {currentUser?._id === tweet.ownerDetails?._id && (
-                                            <div className="flex gap-3">
-                                                <button onClick={() => setEditingTweet(tweet)} className="text-slate-500 hover:text-blue-500 transition">
-                                                    <Edit size={16} />
-                                                </button>
-                                                <button onClick={() => handleDeleteTweet(tweet._id)} className="text-slate-500 hover:text-red-500 transition">
-                                                    <Trash2 size={16} />
-                                                </button>
-                                            </div>
+                                                <div className="flex gap-3">
+                                                    <button onClick={() => setEditingTweet(tweet)} className="text-slate-500 hover:text-blue-500 transition">
+                                                        <Edit size={16} />
+                                                    </button>
+                                                    <button onClick={() => handleDeleteTweet(tweet._id)} className="text-slate-500 hover:text-red-500 transition">
+                                                        <Trash2 size={16} />
+                                                    </button>
+                                                </div>
                                             )}
                                         </div>
                                         <p className="text-slate-200 text-base leading-relaxed wrap-break-word">{tweet.content}</p>
+                                        <div className="flex items-center gap-6 mt-4 pt-3 border-t border-slate-700/50">
+                                            <button
+                                                onClick={() => handleToggleTweetLike(tweet._id)}
+                                                className={`flex items-center gap-2 text-sm font-semibold transition-colors duration-200 group ${tweet.isLiked ? "text-red-500" : "text-slate-400 hover:text-red-500"
+                                                    }`}
+                                            >
+                                                <Heart
+                                                    size={18}
+                                                    className="group-active:scale-125 transition-transform duration-150"
+                                                    fill={tweet.isLiked ? "currentColor" : "none"}
+                                                />
+                                                <span>{tweet.likesCount || 0}</span>
+                                            </button>
+                                        </div>
+
                                     </>
                                 )}
                             </div>
                         ))
                     ) : (
-                        <div className="text-center py-10 text-slate-500 italic">Koi tweet nahi mila, bhai. Pehla tweet dalo!</div>
+                        <div className="text-center py-10 text-slate-500 italic">write your first tweet!</div>
                     )}
                 </div>
             </div>
