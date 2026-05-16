@@ -41,6 +41,19 @@ const Dashboard = () => {
         fetchAllData();
     }, [navigate]);
 
+
+    const handleLogout = async () => {
+        try {
+            setLoading(true);
+            await apiClient.post("/users/logout");
+            navigate("/login");
+        } catch (error) {
+            console.error("Error during logout:", error);
+        } finally {
+            setLoading(false);
+        }
+    };
+
     const handleUpdateVideo = async (e) => {
         e.preventDefault();
 
@@ -226,7 +239,7 @@ const Dashboard = () => {
                 </div>
 
                 <button
-                    onClick={() => navigate("/login")}
+                    onClick={() => handleLogout()}
                     className="mt-8 px-6 py-2 text-white border-2 border-red-500 bg-transparent hover:bg-red-500 font-medium rounded-full transition-all duration-300 flex items-center gap-2 w-fit"
                 >
                     Logout from account
