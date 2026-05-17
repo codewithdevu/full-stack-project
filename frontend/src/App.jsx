@@ -1,4 +1,4 @@
-import React from 'react'
+import React, { useEffect } from 'react'
 import { Routes, Route, Navigate } from 'react-router-dom'
 import Register from './pages/Register.jsx'
 import Login from './pages/Login.jsx'
@@ -13,8 +13,18 @@ import LikedVideos from './pages/LikedVideos.jsx'
 import Playlist from './pages/Playlist.jsx'
 import PlaylistDetail from './pages/PlaylistDetail.jsx'
 import Tweet from './pages/Tweet.jsx'
+import { useNavigate } from 'react-router-dom'
+import { setupInterceptor } from './api/apiConfig.js'
+
 
 function App() {
+  const navigate = useNavigate();
+  
+
+  useEffect(() => {
+    setupInterceptor(navigate);
+  }, [navigate]);
+
   return (
     <Routes>
       <Route element={<Layout />}>
