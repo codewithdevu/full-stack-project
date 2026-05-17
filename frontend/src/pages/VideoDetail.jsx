@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import apiClient from "../api/apiConfig.js";
 import { useParams, useNavigate } from "react-router-dom";
-import { ThumbsUp, Share2, MessageSquare, Trash2, Pencil, ListPlus } from "lucide-react";
+import { ThumbsUp, Share2, MessageSquare, Trash2, Pencil, ListPlus , ThumbsUpIcon } from "lucide-react";
 
 
 
@@ -40,6 +40,8 @@ const VideoDetail = () => {
 
             const commentResponse = await apiClient.get(`/comments/${videoId}`)
 
+            // console.log("commentResponse",commentResponse.data?.data);
+            
             if (commentResponse.data?.data) {
                 setComment(commentResponse.data.data.docs || commentResponse.data.data);
             }
@@ -96,6 +98,29 @@ const VideoDetail = () => {
         } catch (error) {
             console.error("Error: liking video: ", error);
             // Agar error aaye toh wapas purani state par le jao (Optional)
+        }
+    };
+
+    const handleToggleCommentLike = async (commentId) => {
+        try {
+            setComment((prevComments) =>
+                prevComments.map((c) => {
+                    if (c._id === commentId) {
+                        const currentlyLiked = c.isLiked;
+                        return {
+                            ...c,
+                            isLiked: !currentlyLiked,
+                            likesCount: currentlyLiked ? (c.likesCount || 1) - 1 : (c.likesCount || 0) + 1
+                        };
+                    }
+                    return c;
+                })
+            );
+            await apiClient.post(`/likes/toggle/c/${commentId}`);
+        } catch (error) {
+            console.error("Error toggling comment like:", error);
+
+            fetchComments();
         }
     };
 
@@ -301,6 +326,20 @@ const VideoDetail = () => {
                                             <span className="text-[10px] text-slate-500">{new Date(c.createdAt).toLocaleDateString()}</span>
                                         </div>
                                         <p className="text-sm mt-1 text-slate-200">{c.content}</p>
+                                        <div className="flex items-center gap-6 mt-4 pt-3 border-t border-slate-700/50">
+                                            <button
+                                                onClick={() => handleToggleCommentLike(c._id)}
+                                                className={`flex items-center gap-2 text-sm font-semibold transition-colors duration-200 group ${c.isLiked ? "text-red-500" : "text-slate-400 hover:text-red-500"
+                                                    }`}
+                                            >
+                                                <ThumbsUpIcon
+                                                    size={18}
+                                                    className="group-active:scale-125 transition-transform duration-150"
+                                                    fill={c.isLiked ? "currentColor" : "none"}
+                                                />
+                                                <span>{c.likesCount || 0}</span>
+                                            </button>
+                                        </div>
                                     </div>
 
                                     {/* 🟢 Logic: Agar comment owner aur log-in user same hain, tabhi buttons dikhao */}
