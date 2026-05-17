@@ -175,7 +175,7 @@ const Tweet = () => {
                                         {/* Tweet Content View */}
                                         <div className="flex justify-between items-start mb-2">
                                             <div>
-                                                <span className="font-bold block text-sm">@{tweet.ownerDetails?.username || "user"}</span>
+                                                <span className="font-bold block text-sm">@{tweet.owner?.username || "user"}</span>
                                                 <span className="text-xs text-slate-500">{new Date(tweet.createdAt).toLocaleDateString()}</span>
                                             </div>
 
