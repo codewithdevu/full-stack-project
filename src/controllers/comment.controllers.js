@@ -26,6 +26,14 @@ const getVideoComments = asyncHandler(async (req, res) => {
         },
         {
             $lookup: {
+                from: "likes",
+                localField: "_id",
+                foreignField: "comment",
+                as: "likes"
+            }
+        },
+        {
+            $lookup: {
                 from: "users",
                 localField: "owner",
                 foreignField: "_id",
@@ -33,21 +41,23 @@ const getVideoComments = asyncHandler(async (req, res) => {
             }
         },
         {
-            $addFields: {
-                owner: {
-                    $first: "$ownerDetails"
-                }
-            }
+            $unwind: "$ownerDetails"
         },
         {
-            $project: {
-                content: 1,
-                createdAt: 1,
+            $addFields: {
+                likesCount: { $size: "$likes" },
+                isLiked: {
+                    $cond: {
+                        if: { $in: [new mongoose.Types.ObjectId(req.user?._id), "$likes.likedBy"] },
+                        then: true,
+                        else: false
+                    }
+                },
                 owner: {
-                    username: 1,
-                    fullName: 1,
-                    avatar: 1,
-                    _id: 1
+                    _id: "$ownerDetails._id",
+                    username: "$ownerDetails.username",
+                    fullName: "$ownerDetails.fullName",
+                    avatar: "$ownerDetails.avatar",
                 }
             }
         },
@@ -56,12 +66,23 @@ const getVideoComments = asyncHandler(async (req, res) => {
                 createdAt: -1
             }
         },
+        {
+            $project: {
+                _id: 1,
+                content: 1,
+                createdAt: 1,
+                likesCount: 1,
+                isLiked: 1,
+                owner: 1
+            }
+        },
     ]
 
 
     const options = { page: parseInt(page), limit: parseInt(limit) }
 
-    const result = await Comment.aggregatePaginate(Comment.aggregate(myPipline), options)
+    const myAggregate = Comment.aggregate(myPipline)
+    const result = await Comment.aggregatePaginate(myAggregate, options)
 
     if (!result) {
         throw new ApiError(500, "Error: while fetching comments")
