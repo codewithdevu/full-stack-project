@@ -1,5 +1,6 @@
 import dotenv from "dotenv";
 import path from "path";
+import {app} from "./app.js";
 
 dotenv.config({
     path: "./.env"
@@ -25,3 +26,4 @@ connectDb()
     
 })
 
+export default app;
