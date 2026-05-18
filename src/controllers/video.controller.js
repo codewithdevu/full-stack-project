@@ -139,8 +139,12 @@ const getVideoById = asyncHandler(async (req, res) => {
         throw new ApiError(400, "Invalid video Id");
     }
 
+    const userHasWatched = req.user?.watchHistory?.includes(videoId);
+
     // Views badhao
-    await Video.findByIdAndUpdate(videoId, { $inc: { views: 1 } });
+    if (!userHasWatched) {
+        await Video.findByIdAndUpdate(videoId, { $inc: { views: 1 } });
+    }
 
     const video = await Video.aggregate([
         {
