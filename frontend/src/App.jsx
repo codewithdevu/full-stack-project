@@ -15,6 +15,7 @@ import PlaylistDetail from './pages/PlaylistDetail.jsx'
 import Tweet from './pages/Tweet.jsx'
 import { useNavigate } from 'react-router-dom'
 import { setupInterceptor } from './api/apiConfig.js'
+import Library from './pages/Library.jsx'
 
 
 function App() {
@@ -38,6 +39,7 @@ function App() {
         <Route path='/playlists' element={<Playlist />} />
         <Route path='/playlist/:playlistId' element={<PlaylistDetail />} />
         <Route path='/tweet' element={<Tweet />} />
+        <Route path='/library' element={<Library />} />
       </Route>
       {/* Auth pages without layout */}
       <Route path='/login' element={<Login />} />

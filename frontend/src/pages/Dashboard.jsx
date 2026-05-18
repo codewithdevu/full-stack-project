@@ -125,30 +125,30 @@ const Dashboard = () => {
     );
 
     return (
-        <div className="min-h-screen bg-slate-900 text-white p-4 md:p-8">
+        <div className="min-h-screen bg-slate-900 text-white p-3 md:p-8 pb-24 lg:pb-8">
             <div className="max-w-7xl mx-auto">
 
                 {/* Profile Section */}
-                <div className="bg-slate-800 p-6 rounded-2xl border border-slate-700 shadow-lg mb-8">
-                    <div className="flex flex-col md:flex-row items-center gap-6">
+                <div className="bg-slate-800 p-4 md:p-6 rounded-2xl border border-slate-700 shadow-lg mb-8">
+                    <div className="flex flex-col md:flex-row items-center gap-4 md:gap-6">
                         <img
                             src={user?.avatar}
                             alt="avatar"
-                            className="w-24 h-24 rounded-full border-4 border-blue-500 object-cover"
+                            className="w-20 h-20 md:w-24 md:h-24 rounded-full border-4 border-blue-500 object-cover"
                         />
                         <div className="text-center md:text-left">
-                            <h1 className="text-3xl font-bold">{user?.fullName}</h1>
-                            <p className="text-slate-400">@{user?.username}</p>
+                            <h1 className="text-2xl md:text-3xl font-bold">{user?.fullName}</h1>
+                            <p className="text-slate-400 text-sm">@{user?.username}</p>
                         </div>
-                        <div className="md:ml-auto flex flex-col sm:flex-row gap-4 mt-4 md:mt-0">
-                            {/* NEW: Upload Button */}
+                        <div className="w-full md:w-auto md:ml-auto flex flex-col sm:flex-row gap-3 mt-4 md:mt-0">
+                            {/* Upload Button */}
                             <button
                                 onClick={() => setIsUploadModalOpen(true)}
-                                className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-2 rounded-xl font-bold flex items-center justify-center gap-2 transition-all shadow-lg shadow-blue-900/20"
+                                className="bg-blue-600 hover:bg-blue-700 text-white px-5 py-2.5 rounded-xl font-bold flex items-center justify-center gap-2 transition-all shadow-lg shadow-blue-900/20 w-full sm:w-auto order-1 sm:order-0"
                             >
                                 <Plus size={20} /> Upload Video
                             </button>
-                            <div className="px-4 py-2 bg-slate-700 rounded-lg">
+                            <div className="px-4 py-2 bg-slate-700 rounded-xl flex sm:flex-col items-center sm:items-start justify-between gap-1 w-full sm:w-auto">
                                 <p className="text-xs text-slate-400">Account Status</p>
                                 <p className="text-sm text-green-400 font-medium">Active</p>
                             </div>
@@ -156,23 +156,24 @@ const Dashboard = () => {
                     </div>
                 </div>
 
-                <h2 className="text-2xl font-bold mb-6">Channel Statistics</h2>
+                <h2 className="text-xl md:text-2xl font-bold mb-4 md:mb-6">Channel Statistics</h2>
 
-                {/* Stats Grid */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-8">
-                    <StatCard icon={<Users className="text-purple-500" />} label="Subscribers" value={stats?.subscribers} color="bg-purple-500/10" />
-                    <StatCard icon={<Eye className="text-blue-500" />} label="Total Views" value={stats?.totalViews} color="bg-blue-500/10" />
-                    <StatCard icon={<Video className="text-green-500" />} label="Total Videos" value={stats?.totalVideos} color="bg-green-500/10" />
-                    <StatCard icon={<Heart className="text-red-500" />} label="Total Likes" value={stats?.totalLikes} color="bg-red-500/10" />
+                {/* Stats Grid - Fixed columns for mobile */}
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 md:gap-4 mb-8">
+                    <StatCard icon={<Users className="text-purple-500" size={18} />} label="Subscribers" value={stats?.subscribers} color="bg-purple-500/10" />
+                    <StatCard icon={<Eye className="text-blue-500" size={18} />} label="Total Views" value={stats?.totalViews} color="bg-blue-500/10" />
+                    <StatCard icon={<Video className="text-green-500" size={18} />} label="Total Videos" value={stats?.totalVideos} color="bg-green-500/10" />
+                    <StatCard icon={<Heart className="text-red-500" size={18} />} label="Total Likes" value={stats?.totalLikes} color="bg-red-500/10" />
                 </div>
 
-                {/* Video Table ya List yahan videos state se map kar sakte ho */}
-
-                <div className="bg-slate-800 border border-slate-700 rounded-2xl overflow-hidden shadow-xl mt-10">
-                    <div className="p-6 border-b border-slate-700">
-                        <h3 className="text-xl font-bold">Manage Videos</h3>
+                {/* Video Container */}
+                <div className="bg-slate-800 border border-slate-700 rounded-2xl overflow-hidden shadow-xl mt-6 md:mt-10">
+                    <div className="p-4 md:p-6 border-b border-slate-700">
+                        <h3 className="text-lg md:text-xl font-bold">Manage Videos</h3>
                     </div>
-                    <div className="overflow-x-auto">
+
+                    {/* 1. LAPTOP SCREEN VIEW (Hidden on Mobile) */}
+                    <div className="hidden md:block overflow-x-auto">
                         <table className="w-full text-left">
                             <thead className="bg-slate-900/50 text-slate-400 text-sm">
                                 <tr>
@@ -189,8 +190,7 @@ const Dashboard = () => {
                                         <td className="px-6 py-4">
                                             <button
                                                 onClick={() => handleTogglePublish(video._id)}
-                                                className={`flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold ${video.isPublished ? "bg-green-500/10 text-green-500" : "bg-red-500/10 text-red-500"
-                                                    }`}
+                                                className={`flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold ${video.isPublished ? "bg-green-500/10 text-green-500" : "bg-red-500/10 text-red-500"}`}
                                             >
                                                 {video.isPublished ? <CheckCircle size={14} /> : <XCircle size={14} />}
                                                 {video.isPublished ? "Published" : "Private"}
@@ -199,7 +199,7 @@ const Dashboard = () => {
                                         <td className="px-6 py-4">
                                             <div className="flex items-center gap-3">
                                                 <img src={video.thumbnail} alt="thumb" className="w-16 h-10 object-cover rounded-lg border border-slate-600" />
-                                                <span className="font-medium truncate max-w-200px">{video.title}</span>
+                                                <span className="font-medium truncate max-w-50">{video.title}</span>
                                             </div>
                                         </td>
                                         <td className="px-6 py-4 text-slate-400 text-sm">
@@ -236,11 +236,60 @@ const Dashboard = () => {
                             </tbody>
                         </table>
                     </div>
+
+                    {/* 2. MOBILE SCREEN VIEW (Hidden on Desktop) */}
+                    <div className="block md:hidden p-4 space-y-4 divide-y divide-slate-700/50">
+                        {videos.length > 0 ? videos.map((video, index) => (
+                            <div key={video._id} className={`flex flex-col gap-3 ${index !== 0 ? "pt-4" : ""}`}>
+                                <div className="flex gap-3">
+                                    <img src={video.thumbnail} alt="thumb" className="w-24 h-14 object-cover rounded-lg border border-slate-700 shrink-0" />
+                                    <div className="flex flex-col justify-between min-w-0 flex-1">
+                                        <span className="font-medium text-sm text-slate-100 block truncate">{video.title}</span>
+                                        <div className="flex items-center justify-between text-xs text-slate-400 mt-1">
+                                            <span>{new Date(video.createdAt).toLocaleDateString()}</span>
+                                            <span className="font-medium text-slate-300">{video.views} views</span>
+                                        </div>
+                                    </div>
+                                </div>
+                                <div className="flex items-center justify-between bg-slate-900/40 p-2 rounded-xl border border-slate-700/50">
+                                    <button
+                                        onClick={() => handleTogglePublish(video._id)}
+                                        className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-xs font-bold ${video.isPublished ? "bg-green-500/10 text-green-400" : "bg-red-500/10 text-red-400"}`}
+                                    >
+                                        {video.isPublished ? <CheckCircle size={13} /> : <XCircle size={13} />}
+                                        {video.isPublished ? "Published" : "Private"}
+                                    </button>
+                                    <div className="flex items-center gap-3 pr-2">
+                                        <button
+                                            onClick={() => {
+                                                setEditingVideo(video);
+                                                setIsEditModalOpen(true);
+                                            }}
+                                            className="p-1.5 text-slate-400 hover:text-blue-400 active:scale-95 transition"
+                                        >
+                                            <Edit size={16} />
+                                        </button>
+                                        <button
+                                            onClick={() => handleDeleteVideo(video._id)}
+                                            className="p-1.5 text-slate-400 hover:text-red-400 active:scale-95 transition"
+                                        >
+                                            <Trash2 size={16} />
+                                        </button>
+                                    </div>
+                                </div>
+                            </div>
+                        )) : (
+                            <div className="text-center py-8 text-slate-500 text-sm">
+                                No videos found. Upload your first video, bhai!
+                            </div>
+                        )}
+                    </div>
                 </div>
 
+                {/* Logout Button */}
                 <button
                     onClick={() => handleLogout()}
-                    className="mt-8 px-6 py-2 text-white border-2 border-red-500 bg-transparent hover:bg-red-500 font-medium rounded-full transition-all duration-300 flex items-center gap-2 w-fit"
+                    className="mt-6 md:mt-8 px-5 py-2 text-sm text-red-500 border border-red-500/50 bg-transparent hover:bg-red-500 hover:text-white font-medium rounded-full transition-all duration-300 flex items-center gap-2 w-full sm:w-fit justify-center"
                 >
                     Logout from account
                 </button>
@@ -251,61 +300,58 @@ const Dashboard = () => {
                     onClose={() => setIsUploadModalOpen(false)}
                 />
 
+                {/* EDIT MODAL COMPONENT */}
                 {isEditModalOpen && (
-                    <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
-                        <div className="bg-slate-800 border border-slate-700 w-full max-w-lg rounded-2xl p-6 shadow-2xl">
-                            <h2 className="text-xl font-bold mb-6 flex items-center gap-2">
+                    <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-3 backdrop-blur-sm">
+                        <div className="bg-slate-800 border border-slate-700 w-full max-w-lg rounded-2xl p-5 md:p-6 shadow-2xl mx-2">
+                            <h2 className="text-lg md:text-xl font-bold mb-4 md:mb-6 flex items-center gap-2">
                                 <Edit size={20} className="text-blue-500" /> Edit Video Details
                             </h2>
 
                             <form onSubmit={handleUpdateVideo} className="space-y-4">
-                                {/* Title */}
                                 <div>
-                                    <label className="text-sm text-slate-400 block mb-1">Title</label>
+                                    <label className="text-xs md:text-sm text-slate-400 block mb-1">Title</label>
                                     <input
                                         type="text"
                                         value={editingVideo?.title}
                                         onChange={(e) => setEditingVideo({ ...editingVideo, title: e.target.value })}
-                                        className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 outline-none focus:border-blue-500 transition"
+                                        className="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-sm outline-none focus:border-blue-500 transition"
                                         required
                                     />
                                 </div>
 
-                                {/* Description */}
                                 <div>
-                                    <label className="text-sm text-slate-400 block mb-1">Description</label>
+                                    <label className="text-xs md:text-sm text-slate-400 block mb-1">Description</label>
                                     <textarea
                                         value={editingVideo?.description}
                                         onChange={(e) => setEditingVideo({ ...editingVideo, description: e.target.value })}
                                         rows="4"
-                                        className="w-full bg-slate-900 border border-slate-700 rounded-lg p-2.5 outline-none focus:border-blue-500 resize-none"
+                                        className="w-full bg-slate-900 border border-slate-700 rounded-xl p-2.5 text-sm outline-none focus:border-blue-500 resize-none"
                                     />
                                 </div>
 
-                                {/* Thumbnail Preview/Change */}
                                 <div>
-                                    <label className="text-sm text-slate-400 block mb-2">Change Thumbnail (Optional)</label>
+                                    <label className="text-xs md:text-sm text-slate-400 block mb-2">Change Thumbnail (Optional)</label>
                                     <input
                                         type="file"
                                         accept="image/*"
                                         onChange={(e) => setEditingVideo({ ...editingVideo, newThumbnail: e.target.files[0] })}
-                                        className="text-sm text-slate-500 file:mr-4 file:py-2 file:px-4 file:rounded-full file:border-0 file:text-sm file:font-semibold file:bg-blue-600/10 file:text-blue-500 hover:file:bg-blue-600/20"
+                                        className="text-xs text-slate-500 file:mr-3 file:py-1.5 file:px-3 file:rounded-full file:border-0 file:text-xs file:font-semibold file:bg-blue-600/10 file:text-blue-500 hover:file:bg-blue-600/20"
                                     />
                                 </div>
 
-                                {/* Modal Actions */}
-                                <div className="flex gap-3 pt-4">
+                                <div className="flex gap-3 pt-2">
                                     <button
                                         type="button"
                                         onClick={() => setIsEditModalOpen(false)}
-                                        className="flex-1 py-2.5 rounded-xl border border-slate-700 hover:bg-slate-700 transition font-medium"
+                                        className="flex-1 py-2 rounded-xl border border-slate-700 hover:bg-slate-700 transition font-medium text-sm"
                                     >
                                         Cancel
                                     </button>
                                     <button
                                         type="submit"
                                         disabled={loading}
-                                        className="flex-1 py-2.5 bg-blue-600 rounded-xl font-bold hover:bg-blue-700 transition disabled:opacity-50"
+                                        className="flex-1 py-2 bg-blue-600 rounded-xl font-bold hover:bg-blue-700 transition disabled:opacity-50 text-sm"
                                     >
                                         {loading ? "Updating..." : "Update Video"}
                                     </button>
