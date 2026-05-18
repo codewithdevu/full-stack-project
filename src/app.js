@@ -44,4 +44,4 @@ app.use("/api/v1/dashboard" , dashboardRouter)
 
 // http://localhost:3000/api/v1/users/register
 
-export {app}
+export default {app}
