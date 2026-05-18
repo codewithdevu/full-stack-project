@@ -21,11 +21,6 @@ app.use(async (req, res, next) => {
     }
 });
 
-// Homepage route ko .then se bahar nikal diya taaki Vercel ise turant read kar sake
-app.get("/", (req, res) => {
-    res.send("welcome to homepage");
-});
-
 // Local testing ke liye (Vercel is block ko ignore karega)
 if (process.env.NODE_ENV !== 'production') {
     connectDb().then(() => {
