@@ -49,14 +49,32 @@ const MyChannel = () => {
 
     const handleSubscribe = async () => {
         try {
-            if (!channel._id) return;
+            if (!channel?._id) return;
+
+            setChannel((prev) => {
+                const currentStatus = prev.isSubscribed || prev.issubscribed || false;
+                const nextStatus = !currentStatus;
+
+                const currentCount = Number(prev.subscriberCount) || 0;
+                const nextCount = currentStatus
+                    ? Math.max(0, currentCount - 1)
+                    : currentCount + 1;
+
+                return {
+                    ...prev,
+                    isSubscribed: nextStatus,
+                    issubscribed: nextStatus, 
+                    subscriberCount: nextCount
+                };
+            });
 
             await apiClient.post(`/subscriptions/u/${channel._id}`);
-            await fetchChannelData(true);
+
         } catch (error) {
-            console.error("Error subscribing to channel: ", error)
+            console.error("Error subscribing to channel: ", error);
+            fetchChannelData(true);
         }
-    }
+    };
 
     if (loading) return <div className="text-white text-center mt-20">Loading Channel...</div>;
     if (!channel) return <div className="text-white text-center mt-20">Channel not found!</div>;
@@ -102,19 +120,20 @@ const MyChannel = () => {
                                 {channel.channelSubscriberToCount} Subscribed
                             </span>
                         </div>
-                        
+
                     </div>
 
-                    {/* Subscribe Button */}
+
+                    {/* Subscribe Button Layer inside return container */}
                     <div className="pb-1 w-full md:w-auto mt-2 md:mt-0">
                         <button
                             onClick={handleSubscribe}
-                            className={`w-full md:w-auto px-8 py-3 md:py-2.5 rounded-xl md:rounded-full text-sm font-extrabold transition-all duration-200 active:scale-[0.98] ${channel.issubscribed
-                                ? "bg-slate-800 text-slate-400 border border-slate-700 font-bold"
-                                : "bg-blue-600 text-white hover:bg-blue-700 shadow-lg shadow-blue-600/10"
+                            className={`w-full md:w-auto px-8 py-3 md:py-2.5 rounded-xl md:rounded-full text-sm font-extrabold transition-all duration-200 active:scale-[0.98] ${(channel.isSubscribed || channel.issubscribed)
+                                    ? "bg-slate-800 text-slate-400 border border-slate-700 font-bold"
+                                    : "bg-blue-600 text-white hover:bg-blue-700 shadow-lg shadow-blue-600/10"
                                 }`}
                         >
-                            {channel.issubscribed ? "Subscribed" : "Subscribe"}
+                            {(channel.isSubscribed || channel.issubscribed) ? "Subscribed" : "Subscribe"}
                         </button>
                     </div>
                 </div>

@@ -76,11 +76,8 @@ const VideoDetail = () => {
 
     const handleLike = async () => {
         try {
-            // 1. Backend hit karo
             const response = await apiClient.post(`/likes/toggle/v/${videoId}`);
 
-            // 2. UI ko bina refresh kiye update karo (Optimistic Update)
-            // Agar pehle liked tha, toh count -1 karo, varna +1
             setVideo((prev) => ({
                 ...prev,
                 isLiked: !prev.isLiked,
@@ -89,7 +86,6 @@ const VideoDetail = () => {
 
         } catch (error) {
             console.error("Error: liking video: ", error);
-            // Agar error aaye toh wapas purani state par le jao (Optional)
         }
     };
 

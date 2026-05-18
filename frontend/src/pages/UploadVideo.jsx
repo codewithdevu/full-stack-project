@@ -11,7 +11,7 @@ const UploadVideo = ({ isOpen, onClose }) => {
     const [thumbnail, setThumbnail] = useState(null);
     const [uploading, setUploading] = useState(false);
 
-    if (!isOpen) return null; // Agar modal open nahi hai toh kuch mat dikhao
+    if (!isOpen) return null; 
 
     const handleSubmit = async (e) => {
         e.preventDefault();
@@ -24,12 +24,11 @@ const UploadVideo = ({ isOpen, onClose }) => {
         if (thumbnail) data.append("thumbnail", thumbnail);
 
         try {
-            // Backend route check karna, mostly it is "/videos" for POST
             await apiClient.post("/videos", data, {
                 headers: { "Content-Type": "multipart/form-data" }
             });
             alert("Video Uploaded Successfully! 🚀");
-            onClose(); // Upload ke baad modal band kar do
+            onClose(); 
         } catch (error) {
             console.error("Error uploading video:", error);
             alert("Upload failed. Check console.");

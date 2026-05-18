@@ -34,21 +34,18 @@ const Playlist = () => {
 
 
 
-    // Function to handle creation
     const handleCreatePlaylist = async (e) => {
         e.preventDefault();
         if (!newPlaylistData.name.trim()) return alert("Name is required!");
 
         try {
             setLoading(true);
-            // Backend: POST /playlist
             const response = await apiClient.post("/playlist/", {
                 name: newPlaylistData.name,
                 description: newPlaylistData.description
             });
 
             if (response.data?.success) {
-                // Nayi playlist ko list mein add karo bina refresh kiye
                 setPlaylists([response.data.data, ...playlists]);
                 setShowCreateModal(false);
                 setNewPlaylistData({ name: "", description: "" });
