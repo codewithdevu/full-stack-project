@@ -101,44 +101,46 @@ const registerUser = asyncHandler(async (req, res) => {
 // login user 
 
 const loginUser = asyncHandler(async (req, res) => {
-    // req body -> data
-    // username or email
-    // find the user 
-    // password check
-    // access and refresh token 
-    // send cookie
+    // 1. req.body se email, username, ya agar frontend se single key 'emailOrUsername' aa rahi ho toh use nikalenge
+    const { username, email, emailOrUsername, password } = req.body
 
-    const { username, email, password } = req.body
-
-    let authIdentifier = email || username;
+    // 2. Teeno mein se jo bhi mil jaye use identifier bana lo (Foolproof check)
+    let authIdentifier = emailOrUsername || email || username;
 
     if (!authIdentifier) {
-        throw new ApiError(400, "username or email is required")
+        throw new ApiError(400, "Username or Email is required")
     }
 
-    const user = await User.findOne(
-        {
-            $or: [
-                {username: authIdentifier},
-                {email: authIdentifier}
-            ]
-        }
-    )
+    if (!password) {
+        throw new ApiError(400, "Password is required")
+    }
+
+    // 3. Database mein check karein
+    const user = await User.findOne({
+        $or: [
+            { username: authIdentifier.trim().toLowerCase() }, // Trim aur lowercase safe rakhne ke liye
+            { email: authIdentifier.trim().toLowerCase() }
+        ]
+    })
 
     if (!user) {
-        throw new ApiError(404, "user does not exist")
+        throw new ApiError(404, "User does not exist")
     }
 
+    // 4. Password validation
     const isValidPassword = await user.isPasswordCorrect(password)
 
     if (!isValidPassword) {
-        throw new ApiError(401, "invalid user password")
+        throw new ApiError(401, "Invalid user password")
     }
 
+    // 5. Token generation
     const { accessToken, refreshToken } = await generateAccessAndRefreshTokens(user._id)
 
+    // 6. Secured user fetch
     const loggedInUser = await User.findById(user._id).select("-password -refreshToken")
 
+    // Cookie configuration (Production ready)
     const options = {
         httpOnly: true,
         secure: true,
@@ -152,15 +154,14 @@ const loginUser = asyncHandler(async (req, res) => {
         .json(
             new ApiResponse(200,
                 {
-                    user: loggedInUser, accessToken, refreshToken
+                    user: loggedInUser, 
+                    accessToken, 
+                    refreshToken
                 },
-                "user logged in successfully",
-                true,
-            ),
+                "User logged in successfully"
+            )
         )
-
 })
-
 // logout
 
 const logoutUser = asyncHandler(async (req, res) => {

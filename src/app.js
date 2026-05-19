@@ -5,11 +5,12 @@ import cookieParser from "cookie-parser";
 const app = express();
 
 app.use(cors({
-    origin: "https://full-stack-project-mrje.vercel.app",
+    origin: "https://full-stack-project-mrje.vercel.app" || "http://localhost:5173/",
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "Accept"]
 }));
+
 
 app.use(express.json({limit: "20kb"}));
 app.use(express.urlencoded({extended: true , limit: "20kb"} ));
