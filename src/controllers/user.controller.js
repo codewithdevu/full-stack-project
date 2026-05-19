@@ -27,74 +27,76 @@ const generateAccessAndRefreshTokens = async (userId) => {
 
 
 const registerUser = asyncHandler(async (req, res) => {
-    // get user details from frontend 
-    // validation - not empty
-    // check if user already exists : username, email 
-    // check for images , check for avatar 
-    // upload them to couldinary , avatar 
-    // create user object- create entry token field from response
-    // check for user creation 
-    // return response
-
-    // console.log("req.body: ", req.body);
+    // 1. Get user details from frontend 
     const { email, username, fullName, password } = req.body
 
-    console.log("email: ", email);
-
+    // 2. Validation - not empty
     if (
         [fullName, email, username, password].some((field) => field?.trim() === "")
     ) {
-        throw new ApiError(400, "all fields are reqiured")
+        throw new ApiError(400, "All fields are required")
     }
 
     if (!email.includes("@")) {
-        throw new ApiError(400, "@ is reqiured in email")
+        throw new ApiError(400, "@ is required in email")
     }
 
+    // 3. Lowercase normalization (taaki duplicate letters se conflict na ho)
+    const sanitizedEmail = email.trim().toLowerCase();
+    const sanitizedUsername = username.trim().toLowerCase();
+
+    // 4. Check if user already exists
     const existedUser = await User.findOne({
-        $or: [{ email }, { username }]
+        $or: [{ email: sanitizedEmail }, { username: sanitizedUsername }]
     })
 
     if (existedUser) {
-        throw new ApiError(409, "User with email or username is already exists ")
+        throw new ApiError(409, "User with email or username already exists")
     }
 
-
-    const avatarLocalPath = req.files?.avatar[0]?.path;
-    const coverImageLocalPath = req.files?.coverImage?.[0]?.path
-    // console.log(req.files);
-
+    // 5. Check for files safely using optional chaining
+    const avatarLocalPath = req.files?.avatar?.[0]?.path;
+    const coverImageLocalPath = req.files?.coverImage?.[0]?.path;
 
     if (!avatarLocalPath) {
         throw new ApiError(400, "Avatar file is required")
     }
 
+    // 6. Upload to Cloudinary with safe condition checks
     const avatar = await uploadOncloudinary(avatarLocalPath);
-    const coverImage = await uploadOncloudinary(coverImageLocalPath)
-
-    if (!avatar) {
-        throw new ApiError(400, "Avatar file is required")
+    
+    // Cover image optional h, toh tabhi upload karo jab uska path physically exist kare!
+    let coverImage = null;
+    if (coverImageLocalPath) {
+        coverImage = await uploadOncloudinary(coverImageLocalPath);
     }
 
+    if (!avatar) {
+        throw new ApiError(400, "Avatar upload failed. Please try again.")
+    }
+
+    // 7. Create user object in Database
     const user = await User.create({
-        username: username,
-        email,
-        fullName,
+        username: sanitizedUsername,
+        email: sanitizedEmail,
+        fullName: fullName.trim(),
         avatar: avatar.url,
-        coverImage: coverImage?.url || "",
+        coverImage: coverImage?.url || "", // Agar upload nahi hua toh khali string save hogi
         password,
     })
 
+    // 8. Check for user creation and exclude secure fields
     const createdUser = await User.findById(user._id).select(
         "-password -refreshToken"
     )
 
     if (!createdUser) {
-        throw new ApiError(500, "something went wrong while registering the user")
+        throw new ApiError(500, "Something went wrong while registering the user")
     }
 
-    res.status(201).json(
-        new ApiResponse(200, createdUser, "user registered successfully")
+    // 9. Return clean successful response
+    return res.status(201).json(
+        new ApiResponse(201, createdUser, "User registered successfully")
     )
 })
 

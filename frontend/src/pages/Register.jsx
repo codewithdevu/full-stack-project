@@ -15,22 +15,42 @@ const Register = () => {
     const [coverImage, setCoverImage] = useState(null);
     const navigate = useNavigate()
 
+    
     const handleSubmit = async (e) => {
         e.preventDefault();
         const data = new FormData();
-        // Append text fields
-        Object.keys(formData).forEach(key => data.append(key, formData[key]));
-        //Append file
-        if (avatar) data.append("avatar", avatar);
-        if (coverImage) data.append("coverImage", coverImage);
+
+        // 1. Text fields append karein safely
+        Object.keys(formData).forEach(key => {
+            data.append(key, formData[key].trim()); // Spaces hatane ke liye trim
+        });
+
+        // 2. Files append karein exact backend keys se match karke
+        if (avatar) {
+            data.append("avatar", avatar);
+        }
+
+        if (coverImage) {
+            data.append("coverImage", coverImage);
+        }
 
         try {
-            await apiClient.post("/users/register", data);
-            alert("Registration Succesfully!")
-            navigate("/login")
-        } catch (error) {
-            console.error("Register Error", error);
+            console.log("Sending registration data...");
 
+            // 3. CRITICAL PRODUCTION FIX: Axios ko explicitly Headers batayein
+            const response = await apiClient.post("/users/register", data, {
+                headers: {
+                    "Content-Type": "multipart/form-data",
+                },
+            });
+
+            console.log("Register response:", response.data);
+            alert("Registration Successful!");
+            navigate("/login");
+
+        } catch (error) {
+            console.error("Register Error full details:", error.response?.data || error.message);
+            alert(error.response?.data?.message || "Registration failed! Check your input fields.");
         }
     };
 
@@ -59,7 +79,7 @@ const Register = () => {
                 <div className="mb-6">
                     <label className="block text-sm text-slate-400 mb-2">Cover Image</label>
                     <input type="file" className="text-sm text-slate-400 file:mr-4 file:py-2 file:px-4 file:rounded file:border-0 file:bg-purple-600 file:text-white hover:file:bg-purple-700"
-                        onChange={(e) => setCoverImage (e.target.files[0])} required />
+                        onChange={(e) => setCoverImage(e.target.files[0])} required />
                 </div>
 
                 <button type="submit" className="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 rounded transition duration-200">Register</button>
