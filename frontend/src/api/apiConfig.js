@@ -1,11 +1,10 @@
 import axios from "axios";
 
-// Base URL configuration
-const BASE_URL = import.meta.env.VITE_API_BASE_URL || "http://localhost:3000/api/v1";
-
 const apiClient = axios.create({
-    baseURL: BASE_URL,
-    withCredentials: true,
+    baseURL: window.location.hostname === "localhost" 
+        ? "http://localhost:3000/api/v1" 
+        : "https://full-stack-project-eight-pi.vercel.app/api/v1",
+    withCredentials: true, // 🟢 CRITICAL PRODUCTION FIX: Cookie read/write lock open karega
 });
 
 let navigateRef = null;
