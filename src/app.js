@@ -1,40 +1,68 @@
 import express from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
+import connectDb from "./database/connection.js"; // Hamara core database module
 
 const app = express();
 
+// 1. 🟢 DYNAMIC CORS LOGIC: Dono Localhost aur Vercel links ko array me wrap kiya h
+const allowedOrigins = [
+    "https://full-stack-project-mrje.vercel.app",
+    "http://localhost:5173" // End ka slash hata diya h strict matching ke liye
+];
+
 app.use(cors({
-    origin: "https://full-stack-project-mrje.vercel.app" || "http://localhost:5173/",
+    origin: function (origin, callback) {
+        // Agar request local browser app se bina origin headers ke h (jaise Postman) ya allowed list me h
+        if (!origin || allowedOrigins.indexOf(origin) !== -1) {
+            callback(null, true);
+        } else {
+            callback(new Error("Not allowed by CORS policy"));
+        }
+    },
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "Accept"]
 }));
 
-
-app.use(express.json({limit: "20kb"}));
-app.use(express.urlencoded({extended: true , limit: "20kb"} ));
+app.use(express.json({ limit: "20kb" }));
+app.use(express.urlencoded({ extended: true, limit: "20kb" }));
 app.use(express.static("public"));
 app.use(cookieParser());
 
-// routes import 
-import userRouter from "./routes/user.route.js"
-import commentRouter from "./routes/comment.route.js"
-import videoRouter from "./routes/video.route.js"
-import tweetRouter from "./routes/tweet.route.js"
-import subscriptionRouter from "./routes/subscription.route.js"
-import likeRouter from "./routes/like.route.js"
-import playlistRouter from "./routes/playlist.route.js"
-import dashboardRouter from "./routes/dashboard.route.js"
+// 2. 🚀 SERVERLESS DATABASE INSTANCE VALVE MIDDLEWARE:
+// Saare routes chalne se theek pehle database check trigger karega
+app.use(async (req, res, next) => {
+    try {
+        await connectDb();
+        next();
+    } catch (error) {
+        return res.status(500).json({
+            success: false,
+            message: "Database Connection Error in App Pipeline",
+            details: error.message
+        });
+    }
+});
 
-// route declaration
-app.use("/api/v1/users" , userRouter)
-app.use("/api/v1/comments", commentRouter)
-app.use("/api/v1/videos" , videoRouter)
-app.use("/api/v1/subscriptions" , subscriptionRouter)
-app.use("/api/v1/tweets" , tweetRouter)
-app.use("/api/v1/likes" , likeRouter)
-app.use("/api/v1/playlist" , playlistRouter)
-app.use("/api/v1/dashboard" , dashboardRouter)
+// Routes Import 
+import userRouter from "./routes/user.route.js";
+import commentRouter from "./routes/comment.route.js";
+import videoRouter from "./routes/video.route.js";
+import tweetRouter from "./routes/tweet.route.js";
+import subscriptionRouter from "./routes/subscription.route.js";
+import likeRouter from "./routes/like.route.js";
+import playlistRouter from "./routes/playlist.route.js";
+import dashboardRouter from "./routes/dashboard.route.js";
+
+// Routes Declaration
+app.use("/api/v1/users", userRouter);
+app.use("/api/v1/comments", commentRouter);
+app.use("/api/v1/videos", videoRouter);
+app.use("/api/v1/subscriptions", subscriptionRouter);
+app.use("/api/v1/tweets", tweetRouter);
+app.use("/api/v1/likes", likeRouter);
+app.use("/api/v1/playlist", playlistRouter);
+app.use("/api/v1/dashboard", dashboardRouter);
 
 export default app;

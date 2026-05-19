@@ -3,50 +3,37 @@ import path from "path";
 import connectDb from "./database/connection.js";
 import app from "./app.js";
 
-// Sirf local development ke liye .env config load karein
-if (process.env.NODE_ENV !== 'production') {
-    dotenv.config({
-        path: path.resolve(process.cwd(), ".env") // Foolproof path resolution
-    });
-}
-
-// Serverless DB Connection Pool Control
-let isConnected = false;
-
-app.use(async (req, res, next) => {
-    // Agar pehle se connect h toh seedha aage badhein
-    if (isConnected) {
-        return next();
-    }
-    
-    try {
-        console.log("🔄 Initializing serverless database connection...");
-        await connectDb();
-        isConnected = true;
-        console.log("✅ Database connected successfully in serverless context.");
-        next();
-    } catch (err) {
-        console.log("❌ MongoDB serverless connect ERROR: ", err);
-        return res.status(500).json({ 
-            error: "Database connection failed", 
-            details: err.message 
-        });
-    }
+// 1. Safely load env configurations (Dono platform par strict path integration ke sath)
+dotenv.config({
+    path: path.resolve(process.cwd(), ".env")
 });
 
-// Local testing handler (Vercel automatic is block ko bypass karega)
-if (process.env.NODE_ENV !== 'production') {
-    connectDb()
-        .then(() => {
-            const PORT = process.env.PORT || 8000;
-            app.listen(PORT, () => {
-                console.log(`🚀 Server started locally at: http://localhost:${PORT}`);
-            });
-        })
-        .catch((err) => {
-            console.log("❌ Local DB Connection Failed:", err);
-        });
-}
+const PORT = process.env.PORT || 8000;
 
-// Vercel ke liye application instance export
+// 2. Cross-Platform Database Initializer Logic
+const startServer = async () => {
+    try {
+        // Database connect karo (Hamari nayi connection file ready hai cached instance ke sath)
+        await connectDb();
+
+        // 3. LOCAL DEVELOPMENT HANDLER:
+        // Agar local context h ya Vercel environment nahi h, tabhi app.listen chalega
+        if (process.env.NODE_ENV !== 'production' && !process.env.VERCEL) {
+            app.listen(PORT, () => {
+                console.log(`🚀 Server running smoothly on Localhost: http://localhost:${PORT}`);
+            });
+        } else {
+            console.log("⚡ Serverless Cloud Context Initialized Successfully.");
+        }
+    } catch (err) {
+        console.error("❌ Critical System Boot FAILED:", err);
+        // Local par failure hone par system crash karein, vercel par function handle karega
+        if (!process.env.VERCEL) process.exit(1);
+    }
+};
+
+// Immediate Execution Trigger
+startServer();
+
+// Vercel Serverless requirements ke liye default app instances export
 export default app;
