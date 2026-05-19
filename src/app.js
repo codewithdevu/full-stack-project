@@ -7,7 +7,7 @@ const app = express();
 
 // 1. 🟢 DYNAMIC CORS LOGIC: Dono Localhost aur Vercel links ko array me wrap kiya h
 const allowedOrigins = [
-    "https://full-stack-project-mrje.vercel.app",
+    "https://divyansh-tube.vercel.app",
     "http://localhost:5173" // End ka slash hata diya h strict matching ke liye
 ];
 

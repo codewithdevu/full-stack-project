@@ -3,7 +3,7 @@ import axios from "axios";
 // 1. 🟢 THE FIX: BASE_URL ko explicitly define karo taaki interceptor crash na ho
 const BASE_URL = window.location.hostname === "localhost" 
     ? "http://localhost:3000/api/v1" 
-    : "https://full-stack-project-eight-pi.vercel.app/api/v1";
+    : "https://divyansh-tube-api.vercel.app/api/v1";
 
 const apiClient = axios.create({
     baseURL: BASE_URL,
