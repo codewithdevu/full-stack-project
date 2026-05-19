@@ -3,38 +3,41 @@ import apiClient from "../api/apiConfig";
 import { Link, useNavigate } from "react-router-dom";
 
 const Login = () => {
-    const [loginId , setLoginId] = useState("");
-    const [password , setPassword] = useState("");
+    const [loginId, setLoginId] = useState("");
+    const [password, setPassword] = useState("");
     const navigate = useNavigate();
 
     const handleLogin = async (e) => {
         e.preventDefault();
         try {
-            const response = await apiClient.post("/users/login" , {
-                email: loginId,
+            // Backend ko explicit batao ki hum 'emailOrUsername' bhej rahe hain
+            const response = await apiClient.post("/users/login", {
+                emailOrUsername: loginId.trim(), // Trim lagane se accidental spaces hat jate hain
                 password: password
             });
-            
-            console.log("response.data: " , response.data);
-            
-            if (response.data) {
-                navigate("/dashboard")
+
+            console.log("response.data: ", response.data);
+
+            // Response validation check
+            if (response.data?.success || response.data) {
+                navigate("/"); // Register/Login ke baad direct home (/) ya dashboard par bhejein
             }
         } catch (error) {
-            alert("Login failed! Check Email or Password")
+            console.error("Login error full details:", error.response?.data || error.message);
+            alert(error.response?.data?.message || "Login failed! Check Email or Password");
         }
-    }
+    };
 
-    return(
+    return (
         <div className="flex items-center justify-center min-h-screen bg-slate-900 text-white p-4">
             <form onSubmit={handleLogin} className="bg-slate-800 p-8 rounded-xl border border-slate-700 w-full max-w-md">
                 <h2 className="text-2xl font-bold mb-6 text-center text-blue-500">Welcome Back</h2>
 
                 <input type="text" placeholder="Email Or Username" className="w-full p-3 mb-4 bg-slate-900 border border-slate-700 rounded focus:border-blue-500 outline-none"
-                onChange={(e) => setLoginId(e.target.value)} required/>
+                    onChange={(e) => setLoginId(e.target.value)} required />
 
                 <input type="Password" placeholder="Password" className="w-full p-3 mb-6 bg-slate-900 border border-slate-700 rounded focus:border-blue-500 outline-none"
-                onChange={(e) => setPassword(e.target.value)} required/>
+                    onChange={(e) => setPassword(e.target.value)} required />
 
                 <button className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded transition duration-200">Login</button>
 
