@@ -1,10 +1,13 @@
 import axios from "axios";
 
+// 1. 🟢 THE FIX: BASE_URL ko explicitly define karo taaki interceptor crash na ho
+const BASE_URL = window.location.hostname === "localhost" 
+    ? "http://localhost:3000/api/v1" 
+    : "https://full-stack-project-eight-pi.vercel.app/api/v1";
+
 const apiClient = axios.create({
-    baseURL: window.location.hostname === "localhost" 
-        ? "http://localhost:3000/api/v1" 
-        : "https://full-stack-project-eight-pi.vercel.app/api/v1",
-    withCredentials: true, // 🟢 CRITICAL PRODUCTION FIX: Cookie read/write lock open karega
+    baseURL: BASE_URL,
+    withCredentials: true, // Cookies read/write lock open karega
 });
 
 let navigateRef = null;
@@ -41,7 +44,7 @@ apiClient.interceptors.response.use(
             try {
                 console.log("Refreshing token securely...");
                 
-                // CRITICAL FIX: Loop se bachne ke liye plain axios ka use karein, apiClient ka nahi!
+                // 🟢 THE FIX: Ab dynamic BASE_URL bina crash kiye sahi Vercel URL hit karega
                 await axios.post(`${BASE_URL}/users/refresh-token`, {}, {
                     withCredentials: true // Vercel par cookie send karne ke liye zaroori h
                 });
