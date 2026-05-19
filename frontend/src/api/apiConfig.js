@@ -1,7 +1,7 @@
 import axios from "axios";
 
 const apiClient = axios.create({
-    baseURL: "https://full-stack-project-eight-pi.vercel.app",
+    baseURL: "http://localhost:3000/api/v1",
     withCredentials: true,
 });
 
