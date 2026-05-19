@@ -4,8 +4,28 @@ import cookieParser from "cookie-parser";
 
 const app = express();
 
+// app.use(cors({
+//     origin: "https://full-stack-project-mrje.vercel.app",
+//     credentials: true,
+//     methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
+//     allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "Accept"]
+// }));
+
+const allowedOrigins = [
+    "http://localhost:5173",
+    "https://full-stack-project-mrje.vercel.app" // Aapka main production domain
+];
+
 app.use(cors({
-    origin: "https://full-stack-project-mrje.vercel.app",
+    origin: function (origin, callback) {
+        // 1. Localhost ya exact main production URL match ho jaye
+        // 2. Ya fir Vercel ka koi bhi dynamic preview URL ho (.vercel.app se end hone wala)
+        if (!origin || allowedOrigins.indexOf(origin) !== -1 || origin.endsWith(".vercel.app")) {
+            callback(null, true);
+        } else {
+            callback(new Error("Not allowed by CORS"));
+        }
+    },
     credentials: true,
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "Accept"]
