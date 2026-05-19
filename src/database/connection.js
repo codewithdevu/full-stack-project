@@ -1,34 +1,40 @@
 import mongoose from "mongoose";
 import { db_name } from "../constants.js";
 
-// Vercel serverless context me global promise hold karne ke liye variable
 let cachedConnectionPromise = null;
 
 const connectDb = async () => {
     try {
-        // 1. 🟢 CONNECTION CHECK: Agar connected h (readyState 1), toh turant aage badho
         if (mongoose.connection.readyState === 1) {
             return mongoose.connection;
         }
 
-        // 2. 🟢 CONNECTING STATE HANDLER: Agar background me pehle se connection chal raha h (readyState 2),
-        // toh naya connection mat banao, balki chal rahe connection ke complete hone ka wait karo
         if (mongoose.connection.readyState === 2 && cachedConnectionPromise) {
             console.log("⏳ Database connection is in progress, awaiting existing promise...");
             return await cachedConnectionPromise;
         }
 
-        const mongoUri = process.env.MONGO_URI || process.env.MONGODB_URI;
+        let mongoUri = process.env.MONGO_URI || process.env.MONGODB_URI;
 
         if (!mongoUri) {
             throw new Error("Database URI string is missing from environment variables.");
         }
 
-        console.log(`📡 Creating new database connection pool for: ${db_name}...`);
+        // 🟢 THE FIX: Check karo ki string ke end me pehle se database name h ya nahi
+        // Agar URI ke end me fullstack likha h, toh alag se name append mat karo!
+        let finalConnectionUri = mongoUri;
+        
+        if (!mongoUri.includes(`/${db_name}`)) {
+            // Agar string ke end me slash nahi h, toh use clean connect karo
+            finalConnectionUri = mongoUri.endsWith("/") 
+                ? `${mongoUri}${db_name}` 
+                : `${mongoUri}/${db_name}`;
+        }
 
-        // 3. 🟢 PROMISE CACHING: Connection promise ko cache me save kar rhe h taki race-condition na bane
-        cachedConnectionPromise = mongoose.connect(`${mongoUri}/${db_name}`, {
-            bufferCommands: false, // Serverless optimization kept active
+        console.log(`📡 Initializing secure connection instance...`);
+
+        cachedConnectionPromise = mongoose.connect(finalConnectionUri, {
+            bufferCommands: false, 
         });
 
         const connectionInstance = await cachedConnectionPromise;
@@ -38,7 +44,7 @@ const connectDb = async () => {
         
     } catch (error) {
         console.error("❌ MongoDB connection FAILED: ", error);
-        cachedConnectionPromise = null; // Error aane par cache saaf karein
+        cachedConnectionPromise = null; 
         throw error; 
     }
 }
