@@ -27,52 +27,54 @@ const generateAccessAndRefreshTokens = async (userId) => {
 
 
 const registerUser = asyncHandler(async (req, res) => {
-    // 1. Get user details from frontend 
-    const { email, username, fullName, password } = req.body
+    // 1. Get user details from frontend safely
+    const { email, username, fullName, password } = req.body;
 
-    // 2. Validation - not empty
-    if (
-        [fullName, email, username, password].some((field) => field?.trim() === "")
-    ) {
-        throw new ApiError(400, "All fields are required")
+    // 2. 🟢 ROBUST VALIDATION: Pehle check karo ki fields physically exist karti hain ya nahi
+    if (!fullName || !email || !username || !password) {
+        throw new ApiError(400, "All fields (fullName, email, username, password) are required");
+    }
+
+    if ([fullName, email, username, password].some((field) => String(field).trim() === "")) {
+        throw new ApiError(400, "Fields cannot be empty spaces");
     }
 
     if (!email.includes("@")) {
-        throw new ApiError(400, "@ is required in email")
+        throw new ApiError(400, "@ is required in email structure");
     }
 
-    // 3. Lowercase normalization (taaki duplicate letters se conflict na ho)
+    // 3. Lowercase normalization (Conflict safety)
     const sanitizedEmail = email.trim().toLowerCase();
     const sanitizedUsername = username.trim().toLowerCase();
 
-    // 4. Check if user already exists
+    // 4. Check if user already exists in MongoDB Atlas
     const existedUser = await User.findOne({
         $or: [{ email: sanitizedEmail }, { username: sanitizedUsername }]
-    })
+    });
 
     if (existedUser) {
-        throw new ApiError(409, "User with email or username already exists")
+        throw new ApiError(409, "User with this email or username already exists");
     }
 
-    // 5. Check for files safely using optional chaining
+    // 5. Check for files safely using optional chaining (Adapts to /tmp on Vercel or local path)
     const avatarLocalPath = req.files?.avatar?.[0]?.path;
     const coverImageLocalPath = req.files?.coverImage?.[0]?.path;
 
     if (!avatarLocalPath) {
-        throw new ApiError(400, "Avatar file is required")
+        throw new ApiError(400, "Avatar file is required to build a channel");
     }
 
-    // 6. Upload to Cloudinary with safe condition checks
+    // 6. Upload to Cloudinary with strict adaptive wrappers
     const avatar = await uploadOncloudinary(avatarLocalPath);
     
-    // Cover image optional h, toh tabhi upload karo jab uska path physically exist kare!
+    // Cover image optional h, tabhi hit karo jab path physical exist kare
     let coverImage = null;
     if (coverImageLocalPath) {
         coverImage = await uploadOncloudinary(coverImageLocalPath);
     }
 
     if (!avatar) {
-        throw new ApiError(400, "Avatar upload failed. Please try again.")
+        throw new ApiError(400, "Avatar upload failed on Cloudinary cloud server. Please try again.");
     }
 
     // 7. Create user object in Database
@@ -81,24 +83,24 @@ const registerUser = asyncHandler(async (req, res) => {
         email: sanitizedEmail,
         fullName: fullName.trim(),
         avatar: avatar.url,
-        coverImage: coverImage?.url || "", // Agar upload nahi hua toh khali string save hogi
-        password,
-    })
+        coverImage: coverImage?.url || "", // Fallback empty string if not provided
+        password, // Hashing standard model level pre-save hook handle karega
+    });
 
-    // 8. Check for user creation and exclude secure fields
+    // 8. Fetch clean user instance and exclude secure fields
     const createdUser = await User.findById(user._id).select(
         "-password -refreshToken"
-    )
+    );
 
     if (!createdUser) {
-        throw new ApiError(500, "Something went wrong while registering the user")
+        throw new ApiError(500, "Something went wrong while registering the user on MongoDB cloud database");
     }
 
     // 9. Return clean successful response
     return res.status(201).json(
         new ApiResponse(201, createdUser, "User registered successfully")
-    )
-})
+    );
+});
 
 // login user 
 
