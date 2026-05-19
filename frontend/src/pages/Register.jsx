@@ -102,7 +102,16 @@ const Register = () => {
                         onChange={(e) => setCoverImage(e.target.files[0])} required />
                 </div>
 
-                <button type="submit" className="w-full bg-purple-600 hover:bg-purple-700 text-white font-bold py-3 rounded transition duration-200">Register</button>
+                <button
+                    type="submit"
+                    disabled={isSubmitting} // 🟢 Button automatic disabled state me chala jayega
+                    className={`w-full py-3 rounded-xl text-sm font-extrabold transition ${isSubmitting
+                            ? "bg-purple-500/50 text-slate-400 cursor-not-allowed"
+                            : "bg-purple-600 text-white hover:bg-purple-700 active:scale-[0.98]"
+                        }`}
+                >
+                    {isSubmitting ? "Uploading Files & Registering..." : "Register"}
+                </button>
 
                 <p className="mt-4 text-center text-slate-400">Already have an account? <Link to="/login" className="text-purple-500">Login</Link></p>
             </form>
