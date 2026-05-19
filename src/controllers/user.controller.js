@@ -27,36 +27,49 @@ const generateAccessAndRefreshTokens = async (userId) => {
 
 
 const registerUser = asyncHandler(async (req, res) => {
-    // 1. Get user details from frontend safely
+    // 1. 🟢 DEBUG LOG: Isse Vercel dashboard logs me ekdam saaf dikhega ki frontend kya bhej rha h
+    console.log("=== REGISTER REQUEST BODY ===", req.body);
+    console.log("=== REGISTER REQUEST FILES ===", req.files);
+
     const { email, username, fullName, password } = req.body;
 
-    // 2. 🟢 ROBUST VALIDATION: Pehle check karo ki fields physically exist karti hain ya nahi
+    // 2. STricter Validation - Null, Undefined, aur Empty Strings ke liye
     if (!fullName || !email || !username || !password) {
-        throw new ApiError(400, "All fields (fullName, email, username, password) are required");
+        throw new ApiError(400, "All fields (fullName, email, username, password) are strictly required");
     }
 
-    if ([fullName, email, username, password].some((field) => String(field).trim() === "")) {
-        throw new ApiError(400, "Fields cannot be empty spaces");
-    }
-
-    if (!email.includes("@")) {
-        throw new ApiError(400, "@ is required in email structure");
-    }
-
-    // 3. Lowercase normalization (Conflict safety)
     const sanitizedEmail = email.trim().toLowerCase();
     const sanitizedUsername = username.trim().toLowerCase();
 
-    // 4. Check if user already exists in MongoDB Atlas
+    if (sanitizedEmail === "" || sanitizedUsername === "" || fullName.trim() === "" || password.trim() === "") {
+        throw new ApiError(400, "Fields cannot be empty or just spaces");
+    }
+
+    if (!sanitizedEmail.includes("@")) {
+        throw new ApiError(400, "Invalid email structure: '@' is required");
+    }
+
+    // 3. 🟢 THE FIX: Check ensure karega ki sirf valid sanitized strings hi query me jayein
+    console.log(`Checking MongoDB for existing User -> Email: ${sanitizedEmail}, Username: ${sanitizedUsername}`);
+
     const existedUser = await User.findOne({
-        $or: [{ email: sanitizedEmail }, { username: sanitizedUsername }]
+        $or: [
+            { email: sanitizedEmail },
+            { username: sanitizedUsername }
+        ]
     });
 
     if (existedUser) {
-        throw new ApiError(409, "User with this email or username already exists");
+        // Log me print hoga ki aakhir kis wajah se conflict aaya
+        console.log("❌ Conflict Found! Existed User Details:", {
+            id: existedUser._id,
+            username: existedUser.username,
+            email: existedUser.email
+        });
+        throw new ApiError(409, `User with email '${sanitizedEmail}' or username '${sanitizedUsername}' already exists`);
     }
 
-    // 5. Check for files safely using optional chaining (Adapts to /tmp on Vercel or local path)
+    // 4. Check for files safely using optional chaining
     const avatarLocalPath = req.files?.avatar?.[0]?.path;
     const coverImageLocalPath = req.files?.coverImage?.[0]?.path;
 
@@ -64,30 +77,29 @@ const registerUser = asyncHandler(async (req, res) => {
         throw new ApiError(400, "Avatar file is required to build a channel");
     }
 
-    // 6. Upload to Cloudinary with strict adaptive wrappers
+    // 5. Upload to Cloudinary
     const avatar = await uploadOncloudinary(avatarLocalPath);
     
-    // Cover image optional h, tabhi hit karo jab path physical exist kare
     let coverImage = null;
     if (coverImageLocalPath) {
         coverImage = await uploadOncloudinary(coverImageLocalPath);
     }
 
     if (!avatar) {
-        throw new ApiError(400, "Avatar upload failed on Cloudinary cloud server. Please try again.");
+        throw new ApiError(400, "Avatar upload failed on Cloudinary cloud server.");
     }
 
-    // 7. Create user object in Database
+    // 6. Create user object in Database
     const user = await User.create({
         username: sanitizedUsername,
         email: sanitizedEmail,
         fullName: fullName.trim(),
         avatar: avatar.url,
-        coverImage: coverImage?.url || "", // Fallback empty string if not provided
-        password, // Hashing standard model level pre-save hook handle karega
+        coverImage: coverImage?.url || "", 
+        password, 
     });
 
-    // 8. Fetch clean user instance and exclude secure fields
+    // 7. Fetch clean user instance
     const createdUser = await User.findById(user._id).select(
         "-password -refreshToken"
     );
@@ -96,7 +108,6 @@ const registerUser = asyncHandler(async (req, res) => {
         throw new ApiError(500, "Something went wrong while registering the user on MongoDB cloud database");
     }
 
-    // 9. Return clean successful response
     return res.status(201).json(
         new ApiResponse(201, createdUser, "User registered successfully")
     );
