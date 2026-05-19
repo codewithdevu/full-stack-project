@@ -1,38 +1,44 @@
 import mongoose from "mongoose";
 import { db_name } from "../constants.js";
 
+// Vercel serverless context me global promise hold karne ke liye variable
+let cachedConnectionPromise = null;
+
 const connectDb = async () => {
     try {
-        // 1. 🟢 CACHED INSTANCE: Agar serverless function pehle se connect h (readyState 1 mtlb connected), 
-        // toh dubara connection open mat karo, purana instance reuse karo.
-        if (mongoose.connection.readyState >= 1) {
-            console.log("MongoDB already connected (Cached Instance)");
-            return;
+        // 1. 🟢 CONNECTION CHECK: Agar connected h (readyState 1), toh turant aage badho
+        if (mongoose.connection.readyState === 1) {
+            return mongoose.connection;
         }
 
-        // 2. 🟢 ENVIRONMENT VARIABLE VALIDATION FALLBACK: 
-        // Agar Vercel par MONGO_URI ya MONGODB_URI dono me se koi bhi save hoga, ye use automatic pick kar lega.
+        // 2. 🟢 CONNECTING STATE HANDLER: Agar background me pehle se connection chal raha h (readyState 2),
+        // toh naya connection mat banao, balki chal rahe connection ke complete hone ka wait karo
+        if (mongoose.connection.readyState === 2 && cachedConnectionPromise) {
+            console.log("⏳ Database connection is in progress, awaiting existing promise...");
+            return await cachedConnectionPromise;
+        }
+
         const mongoUri = process.env.MONGO_URI || process.env.MONGODB_URI;
 
         if (!mongoUri) {
-            console.error("❌ ERROR: Neither MONGO_URI nor MONGODB_URI is defined in environment variables.");
-            throw new Error("Database URI string is missing from the server configuration.");
+            throw new Error("Database URI string is missing from environment variables.");
         }
 
-        console.log(`Connecting to database: ${db_name}...`);
+        console.log(`📡 Creating new database connection pool for: ${db_name}...`);
 
-        // 3. 🟢 SERVERLESS SAFE CONNECTION:
-        // bufferCommands: false lagaya h taaki delay hone par requests serverless queue me lambi na phasein
-        const connectionInstance = await mongoose.connect(`${mongoUri}/${db_name}`, {
-            bufferCommands: false, 
+        // 3. 🟢 PROMISE CACHING: Connection promise ko cache me save kar rhe h taki race-condition na bane
+        cachedConnectionPromise = mongoose.connect(`${mongoUri}/${db_name}`, {
+            bufferCommands: false, // Serverless optimization kept active
         });
 
-        console.log(`🚀 MongoDB Connected Successfully !! DB Host: ${connectionInstance.connection.host}`);
+        const connectionInstance = await cachedConnectionPromise;
+        
+        console.log(`🚀 MongoDB Connected !! Host: ${connectionInstance.connection.host}`);
+        return connectionInstance;
         
     } catch (error) {
-        console.error("❌ MongoDB connection FAILED Error: ", error);
-        // 4. Serverless context me process.exit(1) call karne se container break ho jata h, 
-        // isliye error throw karna hi professional standard h.
+        console.error("❌ MongoDB connection FAILED: ", error);
+        cachedConnectionPromise = null; // Error aane par cache saaf karein
         throw error; 
     }
 }
