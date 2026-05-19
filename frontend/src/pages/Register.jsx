@@ -1,7 +1,6 @@
-import React from "react";
+import React, { useState } from "react";
 import apiClient from "../api/apiConfig.js";
-import { Link, useNavigate } from "react-router-dom"
-import { useState } from "react";
+import { Link, useNavigate } from "react-router-dom";
 
 const Register = () => {
     const [formData, setFormData] = useState({
@@ -13,19 +12,27 @@ const Register = () => {
 
     const [avatar, setAvatar] = useState(null);
     const [coverImage, setCoverImage] = useState(null);
-    const navigate = useNavigate()
 
-    
+    // 1. 🟢 STATE LOCK: Double hit aur network resets firing ko block karne ke liye
+    const [isSubmitting, setIsSubmitting] = useState(false);
+    const navigate = useNavigate();
+
     const handleSubmit = async (e) => {
         e.preventDefault();
+
+        // 2. 🟢 SAFETY GATE: Agar request already network par h, toh doosra click yahin par block!
+        if (isSubmitting) return;
+
         const data = new FormData();
 
-        // 1. Text fields append karein safely
+        // Text fields append karein safely
         Object.keys(formData).forEach(key => {
-            data.append(key, formData[key].trim()); // Spaces hatane ke liye trim
+            if (formData[key]) {
+                data.append(key, formData[key].trim());
+            }
         });
 
-        // 2. Files append karein exact backend keys se match karke
+        // Files append karein exact backend keys se match karke
         if (avatar) {
             data.append("avatar", avatar);
         }
@@ -35,13 +42,16 @@ const Register = () => {
         }
 
         try {
+            // 3. LOCK SET: Connection start hote hi guard band kar do
+            setIsSubmitting(true);
             console.log("Sending registration data...");
 
-            // 3. CRITICAL PRODUCTION FIX: Axios ko explicitly Headers batayein
+            // Axios ko explicitly Headers aur network wait timeout batayein
             const response = await apiClient.post("/users/register", data, {
                 headers: {
                     "Content-Type": "multipart/form-data",
                 },
+                timeout: 60000 // 60 seconds ka extra window serverless cloud parsing ke liye
             });
 
             console.log("Register response:", response.data);
@@ -50,7 +60,17 @@ const Register = () => {
 
         } catch (error) {
             console.error("Register Error full details:", error.response?.data || error.message);
-            alert(error.response?.data?.message || "Registration failed! Check your input fields.");
+
+            // 4. 🟢 CLOUD LAG FALLBACK: Agar Vercel slow hone par pehle hi background me user bana chuka h
+            if (error.response?.status === 409) {
+                alert("This account has already been registered successfully just now! Redirecting to login...");
+                navigate("/login");
+            } else {
+                alert(error.response?.data?.message || "Registration failed! Check your input fields.");
+            }
+        } finally {
+            // 5. 🔓 UNLOCK: Chahe success ho ya network fail, loader saaf karo
+            setIsSubmitting(false);
         }
     };
 
