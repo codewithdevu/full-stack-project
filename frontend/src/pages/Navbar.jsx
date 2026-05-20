@@ -43,9 +43,7 @@ const Navbar = () => {
                     value={searchQuery} // 🟢 FIXED: 'query' ko badal kar 'searchQuery' kiya
                     onChange={(e) => setSearchQuery(e.target.value)}
                 />
-                {/* Left Side Icon Layout */}
-                <Search className="absolute left-3 text-slate-500 pointer-events-none" size={18} />
-                
+                             
                 {/* Right Side Clickable Search Submission Button */}
                 <button 
                     type="submit" 
