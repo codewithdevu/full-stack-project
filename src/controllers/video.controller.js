@@ -351,12 +351,38 @@ const togglePublishStatus = asyncHandler(async (req, res) => {
         .json(new ApiResponse(200, updatedVideo, "updated ispublished video successfullyy"))
 })
 
+const searchVideos = asyncHandler(async (req , res) => {
+    // 
+    const {query} = req.query ;
+
+    if(!query || query.trim() === "") {
+        throw new ApiError(400 , "Search query text is required");
+    }
+
+    const searchReitgex = new RegExp(query.trim(), "i") // i ka matalb Case-Insensitive (Capital/Small ka farq nahi padega)
+
+    // databse me query chalao title aur description dono par
+    const videos = await Video.find({
+        $or: [
+            {title: {$regex: searchRegex}},
+            {description: {$regex: searchRegex}}
+        ]
+    }).populate("owner" , "username fullName avatar") // Owner ki details bhi sath me fetch ho jayengi
+
+    return res
+        .status(200)
+        .json(new ApiResponse(200, videos, "Videos searched successfully"));
+});
+
+
+
 export {
     getAllVideos,
     publishVideo,
     getVideoById,
     updateVideo,
     deleteVideo,
-    togglePublishStatus
+    togglePublishStatus,
+    searchVideos
 
 }

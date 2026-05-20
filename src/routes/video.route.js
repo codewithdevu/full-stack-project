@@ -40,4 +40,6 @@ router.route("/:videoId")
 router.route("/toggle/publish/:videoId")
     .patch(togglePublishStatus);
 
+router.route("/search").get(searchVideos);
+
 export default router
