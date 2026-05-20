@@ -387,7 +387,7 @@ const VideoDetail = () => {
                                     </div>
                                     <div className="flex flex-col min-w-0 justify-center">
                                         <h4 className="text-xs sm:text-sm font-bold text-slate-200 line-clamp-2 leading-snug group-hover:text-blue-400 transition">{rec.title}</h4>
-                                        <p className="text-[11px] text-slate-400 mt-1 truncate">@{rec.owner?.username || rec.owner?.fullName}</p>
+                                        <p className="text-[11px] text-slate-400 mt-1 truncate">@{rec.ownerDetails?.username || rec.owner?.fullName}</p>
                                         <p className="text-[10px] text-slate-500 mt-0.5">{rec.views} views</p>
                                     </div>
                                 </div>
