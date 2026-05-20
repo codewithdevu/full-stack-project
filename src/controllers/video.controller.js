@@ -359,7 +359,7 @@ const searchVideos = asyncHandler(async (req , res) => {
         throw new ApiError(400 , "Search query text is required");
     }
 
-    const searchReitgex = new RegExp(query.trim(), "i") // i ka matalb Case-Insensitive (Capital/Small ka farq nahi padega)
+    const searchRegex = new RegExp(query.trim(), "i") // i ka matalb Case-Insensitive (Capital/Small ka farq nahi padega)
 
     // databse me query chalao title aur description dono par
     const videos = await Video.find({

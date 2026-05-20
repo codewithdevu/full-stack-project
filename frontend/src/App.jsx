@@ -16,6 +16,7 @@ import Tweet from './pages/Tweet.jsx'
 import { useNavigate } from 'react-router-dom'
 import { setupInterceptor } from './api/apiConfig.js'
 import Library from './pages/Library.jsx'
+import SearchResults from './pages/SearchResult.jsx'
 
 
 function App() {
@@ -44,6 +45,7 @@ function App() {
       {/* Auth pages without layout */}
       <Route path='/login' element={<Login />} />
       <Route path='/register' element={<Register />} />
+      <Route path="/search" element={<SearchResults />} />
     </Routes>
   )
 }

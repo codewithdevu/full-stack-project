@@ -30,6 +30,8 @@ router.route("/")
         publishVideo
     );
 
+router.route("/search").get(searchVideos);
+
 router.route("/:videoId")
     .get(getVideoById)
     .delete(deleteVideo)
@@ -41,6 +43,5 @@ router.route("/:videoId")
 router.route("/toggle/publish/:videoId")
     .patch(togglePublishStatus);
 
-router.route("/search").get(searchVideos);
 
 export default router
