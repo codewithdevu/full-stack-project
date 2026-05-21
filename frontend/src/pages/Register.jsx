@@ -48,7 +48,6 @@ const Register = () => {
                 timeout: 60000 
             });
             
-            alert("Register succesfully")
             // console.log("Register response:", response.data);
             navigate("/login");
 
