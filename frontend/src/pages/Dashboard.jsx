@@ -111,7 +111,7 @@ const Dashboard = () => {
 
     return (
         // Wrapper container ko strict layout widths ke andar secure kiya hai
-        <div className="min-h-screen bg-slate-900 text-white p-4 pb-24 lg:pb-8 select-none w-full max-w-93.75 sm:max-w-7xl mx-auto overflow-hidden box-border">
+        <div className="min-h-screen bg-slate-800 text-white p-4 pb-24 lg:pb-8 select-none w-full max-w-93.75 sm:max-w-7xl mx-auto overflow-hidden box-border">
             <div className="w-full space-y-6 min-w-0">
 
                 {/* PROFILE CARD */}

@@ -1,6 +1,6 @@
 import React from "react";
 import { NavLink } from "react-router-dom";
-import { Home, LayoutDashboard, MessageSquare, User } from "lucide-react"; // User icon library ke liye
+import { Home, LayoutDashboard, MessageSquare, User } from "lucide-react"; 
 
 const BottomNav = () => {
     const mobileLinks = [
