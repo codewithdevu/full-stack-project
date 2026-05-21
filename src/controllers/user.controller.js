@@ -34,8 +34,8 @@ const generateAccessAndRefreshTokens = async (userId) => {
 
 // 1. REGISTER USER
 const registerUser = asyncHandler(async (req, res) => {
-    console.log("=== REGISTER REQUEST BODY ===", req.body);
-    console.log("=== REGISTER REQUEST FILES ===", req.files);
+    // console.log("REGISTER REQUEST BODY", req.body);
+    // console.log("REGISTER REQUEST FILES", req.files);
 
     const { email, username, fullName, password } = req.body;
 
@@ -64,7 +64,7 @@ const registerUser = asyncHandler(async (req, res) => {
     });
 
     if (existedUser) {
-        console.log("❌ Conflict Found! Existed User Details:", {
+        console.log(" Conflict Found! Existed User Details:", {
             id: existedUser._id,
             username: existedUser.username,
             email: existedUser.email

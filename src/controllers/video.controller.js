@@ -141,7 +141,6 @@ const getVideoById = asyncHandler(async (req, res) => {
 
     const userHasWatched = req.user?.watchHistory?.includes(videoId);
 
-    // Views badhao
     if (!userHasWatched) {
         await Video.findByIdAndUpdate(videoId, { $inc: { views: 1 } });
     }
@@ -359,15 +358,14 @@ const searchVideos = asyncHandler(async (req , res) => {
         throw new ApiError(400 , "Search query text is required");
     }
 
-    const searchRegex = new RegExp(query.trim(), "i") // i ka matalb Case-Insensitive (Capital/Small ka farq nahi padega)
+    const searchRegex = new RegExp(query.trim(), "i")
 
-    // databse me query chalao title aur description dono par
     const videos = await Video.find({
         $or: [
             {title: {$regex: searchRegex}},
             {description: {$regex: searchRegex}}
         ]
-    }).populate("owner" , "username fullName avatar") // Owner ki details bhi sath me fetch ho jayengi
+    }).populate("owner" , "username fullName avatar")
 
     return res
         .status(200)

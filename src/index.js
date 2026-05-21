@@ -13,11 +13,9 @@ const PORT = process.env.PORT || 8000;
 // 2. Cross-Platform Database Initializer Logic
 const startServer = async () => {
     try {
-        // Database connect karo (Hamari nayi connection file ready hai cached instance ke sath)
         await connectDb();
 
         // 3. LOCAL DEVELOPMENT HANDLER:
-        // Agar local context h ya Vercel environment nahi h, tabhi app.listen chalega
         if (process.env.NODE_ENV !== 'production' && !process.env.VERCEL) {
             app.listen(PORT, () => {
                 console.log(`🚀 Server running smoothly on Localhost: http://localhost:${PORT}`);
@@ -27,7 +25,6 @@ const startServer = async () => {
         }
     } catch (err) {
         console.error("❌ Critical System Boot FAILED:", err);
-        // Local par failure hone par system crash karein, vercel par function handle karega
         if (!process.env.VERCEL) process.exit(1);
     }
 };

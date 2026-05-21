@@ -1,19 +1,19 @@
 import express from "express";
 import cors from "cors";
 import cookieParser from "cookie-parser";
-import connectDb from "./database/connection.js"; // Hamara core database module
+import connectDb from "./database/connection.js"; 
 
 const app = express();
 
-// 1. 🟢 DYNAMIC CORS LOGIC: Dono Localhost aur Vercel links ko array me wrap kiya h
+// 1. 🟢 DYNAMIC CORS LOGIC
 const allowedOrigins = [
     "https://divyansh-tube.vercel.app",
-    "http://localhost:5173" // End ka slash hata diya h strict matching ke liye
+    "http://localhost:5173" 
 ];
 
 app.use(cors({
     origin: function (origin, callback) {
-        // Agar request local browser app se bina origin headers ke h (jaise Postman) ya allowed list me h
+
         if (!origin || allowedOrigins.indexOf(origin) !== -1) {
             callback(null, true);
         } else {
@@ -31,7 +31,6 @@ app.use(express.static("public"));
 app.use(cookieParser());
 
 // 2. 🚀 SERVERLESS DATABASE INSTANCE VALVE MIDDLEWARE:
-// Saare routes chalne se theek pehle database check trigger karega
 app.use(async (req, res, next) => {
     try {
         await connectDb();
