@@ -13,26 +13,22 @@ const Register = () => {
     const [avatar, setAvatar] = useState(null);
     const [coverImage, setCoverImage] = useState(null);
 
-    // 1. 🟢 STATE LOCK: Double hitting aur network resets error loops ko block karne ke liye
     const [isSubmitting, setIsSubmitting] = useState(false);
     const navigate = useNavigate();
 
     const handleSubmit = async (e) => {
         e.preventDefault();
 
-        // 2. 🟢 SAFETY GATE: Agar request already processing me h, toh doosra click block!
         if (isSubmitting) return;
 
         const data = new FormData();
 
-        // Text fields append karein safely
         Object.keys(formData).forEach(key => {
             if (formData[key]) {
                 data.append(key, formData[key].trim());
             }
         });
 
-        // Files append karein exact backend keys se match karke
         if (avatar) {
             data.append("avatar", avatar);
         }
@@ -42,16 +38,14 @@ const Register = () => {
         }
 
         try {
-            // 3. LOCK SET: Connection start hote hi state lock karo
             setIsSubmitting(true);
             console.log("Sending registration data...");
 
-            // Axios configuration with explicitly boundary headers and runtime safety window
             const response = await apiClient.post("/users/register", data, {
                 headers: {
                     "Content-Type": "multipart/form-data",
                 },
-                timeout: 60000 // 60 seconds ka extra window serverless cloud parsing ke liye
+                timeout: 60000 
             });
 
             console.log("Register response:", response.data);

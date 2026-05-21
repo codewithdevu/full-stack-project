@@ -10,9 +10,8 @@ const Login = () => {
     const handleLogin = async (e) => {
         e.preventDefault();
         try {
-            // Backend ko explicit batao ki hum 'emailOrUsername' bhej rahe hain
             const response = await apiClient.post("/users/login", {
-                emailOrUsername: loginId.trim(), // Trim lagane se accidental spaces hat jate hain
+                emailOrUsername: loginId.trim(), 
                 password: password
             });
 
@@ -20,7 +19,7 @@ const Login = () => {
 
             // Response validation check
             if (response.data?.success || response.data) {
-                navigate("/"); // Register/Login ke baad direct home (/) ya dashboard par bhejein
+                navigate("/");
             }
         } catch (error) {
             console.error("Login error full details:", error.response?.data || error.message);
