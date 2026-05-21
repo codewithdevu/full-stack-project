@@ -115,7 +115,7 @@ const Dashboard = () => {
             <div className="w-full space-y-6 min-w-0">
 
                 {/* PROFILE CARD */}
-                <div className="bg-slate-800 p-5 rounded-2xl border border-slate-700/60 shadow-xl w-full box-border">
+                <div className="bg-slate-900 p-5 rounded-2xl border border-slate-700/60 shadow-xl w-full box-border">
                     <div className="flex flex-col md:flex-row items-center justify-between gap-5 w-full">
                         <div className="flex flex-col md:flex-row items-center gap-4 md:gap-6 text-center md:text-left w-full md:w-auto">
                             <div className="relative shrink-0">
