@@ -49,7 +49,6 @@ const Register = () => {
             });
 
             console.log("Register response:", response.data);
-            alert("Registration Successful!");
             navigate("/login");
 
         } catch (error) {
