@@ -109,303 +109,282 @@ const Dashboard = () => {
         return <div className="text-white text-center mt-10 animate-pulse">Loading Dashboard...</div>
     }
 
-    return (
-        // Wrapper container ko strict layout widths ke andar secure kiya hai
-        <div className="min-h-screen bg-slate-800 text-white p-4 pb-24 lg:pb-8 select-none w-full max-w-93.75 sm:max-w-7xl mx-auto overflow-hidden box-border">
-            <div className="w-full space-y-6 min-w-0">
-
-                {/* PROFILE CARD */}
-                <div className="bg-slate-900 p-5 rounded-2xl border border-slate-700/60 shadow-xl w-full box-border">
-                    <div className="flex flex-col md:flex-row items-center justify-between gap-5 w-full">
-                        <div className="flex flex-col md:flex-row items-center gap-4 md:gap-6 text-center md:text-left w-full md:w-auto">
-                            <div className="relative shrink-0">
+return (
+    <div className="min-h-screen bg-[#0f172a] text-slate-200 font-sans selection:bg-indigo-500/30">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8 pb-24 lg:pb-12">
+            
+            {/* --- HEADER SECTION --- */}
+            <header className="mb-10">
+                <div className="relative overflow-hidden rounded-3xl bg-linear-to-r from-indigo-600 to-violet-700 p-1 shadow-2xl shadow-indigo-500/20">
+                    <div className="bg-slate-900/95 backdrop-blur-xl rounded-[22px] p-6 md:p-8 flex flex-col md:flex-row items-center justify-between gap-6">
+                        <div className="flex flex-col md:flex-row items-center gap-6 text-center md:text-left">
+                            <div className="relative group">
+                                <div className="absolute -inset-1 bg-linear-to-tr from-indigo-500 to-fuchsia-500 rounded-full blur opacity-40 group-hover:opacity-75 transition duration-500"></div>
                                 <img
                                     src={user?.avatar}
                                     alt="avatar"
-                                    className="w-20 h-20 md:w-24 md:h-24 rounded-full border-4 border-blue-500/80 object-cover shadow-md shadow-blue-500/10"
+                                    className="relative w-24 h-24 md:w-28 md:h-28 rounded-full border-2 border-slate-800 object-cover shadow-2xl"
                                 />
-                                <span className="absolute bottom-1 right-1 w-3.5 h-3.5 bg-green-500 border-2 border-slate-800 rounded-full animate-pulse md:hidden" />
                             </div>
-                            <div className="min-w-0 flex-1">
-                                <h1 className="text-xl md:text-2xl font-bold tracking-tight text-slate-100 truncate">{user?.fullName || "Hemantnath"}</h1>
-                                <p className="text-slate-400 text-xs md:text-sm font-medium truncate">@{user?.username || "hemantyogi"}</p>
+                            <div>
+                                <h1 className="text-3xl md:text-4xl font-extrabold text-white tracking-tight">
+                                    {user?.fullName || "Creator Studio"}
+                                </h1>
+                                <div className="flex items-center justify-center md:justify-start gap-2 mt-2">
+                                    <span className="text-indigo-400 font-medium">@{user?.username}</span>
+                                    <span className="h-1 w-1 rounded-full bg-slate-600"></span>
+                                    <span className="text-xs px-2 py-0.5 rounded-full bg-emerald-500/10 text-emerald-400 border border-emerald-500/20 font-bold uppercase tracking-wider">
+                                        Pro Channel
+                                    </span>
+                                </div>
                             </div>
                         </div>
 
-                        {/* Buttons & Status Row */}
-                        <div className="w-full md:w-auto flex flex-col gap-3 shrink-0">
+                        <div className="flex flex-col sm:flex-row gap-3 w-full md:w-auto">
                             <button
                                 onClick={() => setIsUploadModalOpen(true)}
-                                className="w-full md:w-auto bg-blue-600 hover:bg-blue-700 active:scale-[0.98] text-white px-5 py-2.5 rounded-xl text-sm font-bold flex items-center justify-center gap-2 transition-all shadow-lg shadow-blue-600/10"
+                                className="flex-1 md:flex-none inline-flex items-center justify-center gap-2 bg-indigo-600 hover:bg-indigo-500 text-white px-6 py-3 rounded-xl font-bold transition-all shadow-lg shadow-indigo-600/20 active:scale-95"
                             >
-                                <Plus size={16} /> Upload Video
+                                <Plus size={20} /> Upload New Video
                             </button>
-                            <div className="flex items-center justify-between px-3.5 py-2 bg-slate-900/40 border border-slate-700/40 rounded-xl text-[11px]">
-                                <span className="text-slate-400 font-medium">Account Status</span>
-                                <span className="text-green-400 font-semibold bg-green-500/10 px-2 py-0.5 rounded-md border border-green-500/20">Active</span>
-                            </div>
+                            <button
+                                onClick={handleLogout}
+                                className="flex-1 md:flex-none inline-flex items-center justify-center px-6 py-3 rounded-xl bg-slate-800 border border-slate-700 text-slate-300 hover:bg-red-500/10 hover:text-red-400 hover:border-red-500/30 transition-all font-semibold"
+                            >
+                                Logout
+                            </button>
                         </div>
                     </div>
                 </div>
+            </header>
 
-                {/* STATISTICS SECTION */}
-                <div className="w-full min-w-0 box-border">
-                    <h2 className="text-sm md:text-base font-bold text-slate-400 tracking-wider uppercase mb-3 pl-0.5">Channel Statistics</h2>
-
-                    {/* 🟢 FIXED GRID SYSTEM: Width elements locked using tight sizing guidelines */}
-                    <div className="grid grid-cols-2 lg:grid-cols-4 gap-3 w-full min-w-0 box-border">
-                        {/* Card 1 */}
-                        <div className="bg-slate-800 border border-slate-700/60 p-3.5 rounded-xl shadow-md flex flex-col justify-between h-24 min-w-0 overflow-hidden box-border">
-                            <div className="flex items-center justify-between w-full gap-1">
-                                <span className="text-[10px] md:text-xs text-slate-400 font-bold tracking-wider uppercase truncate">Subscribers</span>
-                                <div className="p-1 bg-purple-500/10 border border-purple-500/20 rounded-lg text-purple-500 shrink-0">
-                                    <Users size={14} />
+            {/* --- STATISTICS GRID --- */}
+            <section className="mb-12">
+                <div className="flex items-center justify-between mb-6">
+                    <h2 className="text-lg font-bold text-white flex items-center gap-2">
+                        <div className="h-5 w-1 bg-indigo-500 rounded-full"></div>
+                        Channel Analytics
+                    </h2>
+                </div>
+                
+                <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+                    {[
+                        { label: 'Subscribers', val: stats?.subscribers, icon: <Users />, color: 'text-blue-400', bg: 'bg-blue-500/10' },
+                        { label: 'Total Views', val: stats?.totalViews, icon: <Eye />, color: 'text-amber-400', bg: 'bg-amber-500/10' },
+                        { label: 'Videos', val: stats?.totalVideos, icon: <Video />, color: 'text-emerald-400', bg: 'bg-emerald-500/10' },
+                        { label: 'Total Likes', val: stats?.totalLikes, icon: <Heart />, color: 'text-rose-400', bg: 'bg-rose-500/10' },
+                    ].map((item, i) => (
+                        <div key={i} className="group bg-slate-900/50 border border-slate-800 p-5 rounded-2xl hover:border-indigo-500/50 transition-all duration-300 shadow-sm hover:shadow-indigo-500/10">
+                            <div className="flex items-center justify-between mb-4">
+                                <div className={`p-2 rounded-lg ${item.bg} ${item.color}`}>
+                                    {React.cloneElement(item.icon, { size: 20 })}
                                 </div>
+                                <span className="text-[10px] font-bold text-slate-500 uppercase tracking-widest">Global</span>
                             </div>
-                            <h3 className="text-2xl font-black text-slate-50 truncate">{stats?.subscribers?.toLocaleString() || 5}</h3>
+                            <div className="text-2xl md:text-3xl font-black text-white mb-1">
+                                {item.val?.toLocaleString() || '0'}
+                            </div>
+                            <p className="text-xs font-medium text-slate-400">{item.label}</p>
                         </div>
+                    ))}
+                </div>
+            </section>
 
-                        {/* Card 2 */}
-                        <div className="bg-slate-800 border border-slate-700/60 p-3.5 rounded-xl shadow-md flex flex-col justify-between h-24 min-w-0 overflow-hidden box-border">
-                            <div className="flex items-center justify-between w-full gap-1">
-                                <span className="text-[10px] md:text-xs text-slate-400 font-bold tracking-wider uppercase truncate">Total Views</span>
-                                <div className="p-1 bg-blue-500/10 border border-blue-500/20 rounded-lg text-blue-500 shrink-0">
-                                    <Eye size={14} />
-                                </div>
-                            </div>
-                            <h3 className="text-2xl font-black text-slate-50 truncate">{stats?.totalViews?.toLocaleString() || 284}</h3>
-                        </div>
-
-                        {/* Card 3 */}
-                        <div className="bg-slate-800 border border-slate-700/60 p-3.5 rounded-xl shadow-md flex flex-col justify-between h-24 min-w-0 overflow-hidden box-border">
-                            <div className="flex items-center justify-between w-full gap-1">
-                                <span className="text-[10px] md:text-xs text-slate-400 font-bold tracking-wider uppercase truncate">Total Videos</span>
-                                <div className="p-1 bg-green-500/10 border border-green-500/20 rounded-lg text-green-500 shrink-0">
-                                    <Video size={14} />
-                                </div>
-                            </div>
-                            <h3 className="text-2xl font-black text-slate-50 truncate">{stats?.totalVideos?.toLocaleString() || 2}</h3>
-                        </div>
-
-                        {/* Card 4 */}
-                        <div className="bg-slate-800 border border-slate-700/60 p-3.5 rounded-xl shadow-md flex flex-col justify-between h-24 min-w-0 overflow-hidden box-border">
-                            <div className="flex items-center justify-between w-full gap-1">
-                                <span className="text-[10px] md:text-xs text-slate-400 font-bold tracking-wider uppercase truncate">Total Likes</span>
-                                <div className="p-1 bg-red-500/10 border border-red-500/20 rounded-lg text-red-500 shrink-0">
-                                    <Heart size={14} />
-                                </div>
-                            </div>
-                            <h3 className="text-2xl font-black text-slate-50 truncate">{stats?.totalLikes?.toLocaleString() || 1}</h3>
-                        </div>
-                    </div>
+            {/* --- VIDEO MANAGEMENT TABLE --- */}
+            <section className="bg-slate-900/50 border border-slate-800 rounded-3xl overflow-hidden backdrop-blur-sm shadow-xl">
+                <div className="p-6 border-b border-slate-800 flex items-center justify-between">
+                    <h3 className="text-xl font-bold text-white">Latest Uploads</h3>
                 </div>
 
-                {/* Video Table / Cards Container */}
-                <div className="bg-slate-800 border border-slate-700/60 rounded-2xl overflow-hidden shadow-xl mt-4 w-full box-border">
-                    <div className="p-4 border-b border-slate-700/60 bg-slate-800/40">
-                        <h3 className="text-sm md:text-base font-bold text-slate-200">Manage Videos</h3>
-                    </div>
-
-                    {/* LAPTOP VIEW */}
-                    <div className="hidden md:block overflow-x-auto">
-                        <table className="w-full text-left">
-                            <thead className="bg-slate-900/40 text-slate-400 text-xs tracking-wider uppercase font-semibold">
-                                <tr>
-                                    <th className="px-6 py-4">Status</th>
-                                    <th className="px-6 py-4">Video</th>
-                                    <th className="px-6 py-4">Date Uploaded</th>
-                                    <th className="px-6 py-4">Views</th>
-                                    <th className="px-6 py-4">Actions</th>
-                                </tr>
-                            </thead>
-                            <tbody className="divide-y divide-slate-700/50">
-                                {videos.length > 0 ? videos.map((video) => (
-                                    <tr key={video._id} className="hover:bg-slate-700/20 transition">
-                                        <td className="px-6 py-4">
-                                            <button
-                                                type="button"
-                                                onClick={() => handleTogglePublish(video._id)}
-                                                className={`flex items-center gap-2 px-3 py-1 rounded-full text-xs font-bold ${video.isPublished ? "bg-green-500/10 text-green-500" : "bg-red-500/10 text-red-500"}`}
-                                            >
-                                                {video.isPublished ? <CheckCircle size={14} /> : <XCircle size={14} />}
-                                                {video.isPublished ? "Published" : "Private"}
-                                            </button>
-                                        </td>
-                                        <td className="px-6 py-4">
-                                            <div className="flex items-center gap-3">
-                                                <img src={video.thumbnail} alt="thumb" className="w-16 h-10 object-cover rounded-lg border border-slate-600 shrink-0" />
-                                                <span className="font-medium truncate max-w-50">{video.title}</span>
+                {/* DESKTOP TABLE */}
+                <div className="hidden md:block overflow-x-auto">
+                    <table className="w-full text-left border-collapse">
+                        <thead className="bg-slate-950/50 text-slate-500 text-xs font-bold uppercase tracking-wider">
+                            <tr>
+                                <th className="px-6 py-4">Status</th>
+                                <th className="px-6 py-4">Video Details</th>
+                                <th className="px-6 py-4 text-center">Date</th>
+                                <th className="px-6 py-4 text-center">Views</th>
+                                <th className="px-6 py-4 text-right">Actions</th>
+                            </tr>
+                        </thead>
+                        <tbody className="divide-y divide-slate-800">
+                            {videos.length > 0 ? videos.map((video) => (
+                                <tr key={video._id} className="group hover:bg-indigo-500/5 transition-colors">
+                                    <td className="px-6 py-4">
+                                        <button
+                                            onClick={() => handleTogglePublish(video._id)}
+                                            className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[11px] font-bold transition-all shadow-sm ${
+                                                video.isPublished 
+                                                ? "bg-emerald-500/10 text-emerald-500 border border-emerald-500/20" 
+                                                : "bg-slate-700/30 text-slate-400 border border-slate-700"
+                                            }`}
+                                        >
+                                            <span className={`w-1.5 h-1.5 rounded-full ${video.isPublished ? "bg-emerald-500 animate-pulse" : "bg-slate-500"}`}></span>
+                                            {video.isPublished ? "Published" : "Draft"}
+                                        </button>
+                                    </td>
+                                    <td className="px-6 py-4">
+                                        <div className="flex items-center gap-4">
+                                            <div className="relative shrink-0">
+                                                <img src={video.thumbnail} alt="thumb" className="w-24 h-14 object-cover rounded-xl shadow-lg border border-slate-700 group-hover:border-indigo-500/50 transition-colors" />
                                             </div>
-                                        </td>
-                                        <td className="px-6 py-4 text-slate-400 text-sm">
-                                            {new Date(video.createdAt).toLocaleDateString()}
-                                        </td>
-                                        <td className="px-6 py-4 font-semibold">{video.views}</td>
-                                        <td className="px-6 py-4">
-                                            <div className="flex items-center gap-4">
-                                                <button
-                                                    type="button"
-                                                    onClick={() => {
-                                                        setEditingVideo(video);
-                                                        setIsEditModalOpen(true);
-                                                    }}
-                                                    className="text-slate-400 hover:text-blue-500 transition"
-                                                >
-                                                    <Edit size={18} />
-                                                </button>
-                                                <button
-                                                    type="button"
-                                                    onClick={() => handleDeleteVideo(video._id)}
-                                                    className="text-slate-400 hover:text-red-500 transition"
-                                                >
-                                                    <Trash2 size={18} />
-                                                </button>
+                                            <div className="min-w-0">
+                                                <h4 className="font-bold text-slate-100 truncate w-48 lg:w-64">{video.title}</h4>
+                                                <p className="text-xs text-slate-500 truncate max-w-xs">{video.description || "No description provided."}</p>
                                             </div>
-                                        </td>
-                                    </tr>
-                                )) : (
-                                    <tr>
-                                        <td colSpan="5" className="px-6 py-10 text-center text-slate-500 text-sm">
-                                            No videos found. Upload your first video, bhai!
-                                        </td>
-                                    </tr>
-                                )}
-                            </tbody>
-                        </table>
-                    </div>
-
-                    {/* MOBILE VIEW */}
-                    <div className="block md:hidden p-4 space-y-4 divide-y divide-slate-700/40 w-full box-border">
-                        {videos.length > 0 ? videos.map((video, index) => (
-                            <div key={video._id} className={`flex flex-col gap-3 w-full min-w-0 ${index !== 0 ? "pt-4" : ""}`}>
-                                <div className="flex gap-3 w-full min-w-0">
-                                    <img src={video.thumbnail} alt="thumb" className="w-20 h-12 object-cover rounded-xl border border-slate-700 shrink-0" />
-                                    <div className="flex flex-col justify-between min-w-0 flex-1 py-0.5">
-                                        <span className="font-semibold text-xs text-slate-200 block truncate">{video.title}</span>
-                                        <div className="flex items-center justify-between text-[10px] text-slate-400 w-full min-w-0 gap-2">
-                                            <span className="shrink-0">{new Date(video.createdAt).toLocaleDateString()}</span>
-                                            <span className="font-semibold text-slate-300 bg-slate-900 px-1.5 py-0.5 rounded truncate">{video.views} views</span>
                                         </div>
-                                    </div>
-                                </div>
-                                <div className="flex items-center justify-between bg-slate-900/30 p-2 rounded-xl border border-slate-700/40 w-full box-border">
-                                    <button
-                                        type="button"
-                                        onClick={() => handleTogglePublish(video._id)}
-                                        className={`flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-bold ${video.isPublished ? "bg-green-500/10 text-green-400" : "bg-red-500/10 text-red-400"}`}
-                                    >
-                                        {video.isPublished ? <CheckCircle size={12} /> : <XCircle size={12} />}
-                                        {video.isPublished ? "Published" : "Private"}
-                                    </button>
-                                    <div className="flex items-center gap-1 shrink-0">
-                                        <button
-                                            type="button"
-                                            onClick={() => {
-                                                setEditingVideo(video);
-                                                setIsEditModalOpen(true);
-                                            }}
-                                            className="p-1.5 text-slate-400 hover:text-blue-400 transition"
-                                        >
-                                            <Edit size={15} />
-                                        </button>
-                                        <button
-                                            type="button"
-                                            onClick={() => handleDeleteVideo(video._id)}
-                                            className="p-1.5 text-slate-400 hover:text-red-400 transition"
-                                        >
-                                            <Trash2 size={15} />
-                                        </button>
+                                    </td>
+                                    <td className="px-6 py-4 text-center text-sm font-medium text-slate-400">
+                                        {new Date(video.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
+                                    </td>
+                                    <td className="px-6 py-4 text-center">
+                                        <span className="px-2.5 py-1 bg-slate-800 rounded-lg font-bold text-indigo-400 text-xs">
+                                            {video.views.toLocaleString()}
+                                        </span>
+                                    </td>
+                                    <td className="px-6 py-4">
+                                        <div className="flex items-center justify-end gap-2">
+                                            <button
+                                                onClick={() => { setEditingVideo(video); setIsEditModalOpen(true); }}
+                                                className="p-2 hover:bg-indigo-500/20 text-slate-400 hover:text-indigo-400 rounded-lg transition-all"
+                                                title="Edit Video"
+                                            >
+                                                <Edit size={18} />
+                                            </button>
+                                            <button
+                                                onClick={() => handleDeleteVideo(video._id)}
+                                                className="p-2 hover:bg-red-500/20 text-slate-400 hover:text-red-400 rounded-lg transition-all"
+                                                title="Delete Video"
+                                            >
+                                                <Trash2 size={18} />
+                                            </button>
+                                        </div>
+                                    </td>
+                                </tr>
+                            )) : (
+                                <tr>
+                                    <td colSpan="5" className="px-6 py-20 text-center">
+                                        <div className="flex flex-col items-center opacity-40">
+                                            <Video size={48} className="mb-4" />
+                                            <p className="text-lg font-medium">No videos found yet</p>
+                                            <p className="text-sm">Ready to share your story with the world?</p>
+                                        </div>
+                                    </td>
+                                </tr>
+                            )}
+                        </tbody>
+                    </table>
+                </div>
+
+                {/* MOBILE LIST */}
+                <div className="md:hidden divide-y divide-slate-800">
+                    {videos.map((video) => (
+                        <div key={video._id} className="p-4 bg-slate-900/30">
+                            <div className="flex gap-4 mb-4">
+                                <img src={video.thumbnail} alt="thumb" className="w-24 h-16 object-cover rounded-xl border border-slate-700" />
+                                <div className="min-w-0">
+                                    <h4 className="font-bold text-slate-100 text-sm truncate">{video.title}</h4>
+                                    <p className="text-[10px] text-slate-500 mt-1">{new Date(video.createdAt).toLocaleDateString()}</p>
+                                    <div className="flex items-center gap-2 mt-2">
+                                        <span className="text-[10px] font-bold text-indigo-400">{video.views} views</span>
                                     </div>
                                 </div>
                             </div>
-                        )) : (
-                            <div className="text-center py-8 text-slate-500 text-xs">
-                                No videos found. Upload your first video, bhai!
+                            <div className="flex items-center justify-between pt-2 border-t border-slate-800/50">
+                                <button
+                                    onClick={() => handleTogglePublish(video._id)}
+                                    className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-tighter ${video.isPublished ? "bg-emerald-500/20 text-emerald-400" : "bg-slate-800 text-slate-500"}`}
+                                >
+                                    {video.isPublished ? "Live" : "Draft"}
+                                </button>
+                                <div className="flex gap-1">
+                                    <button onClick={() => { setEditingVideo(video); setIsEditModalOpen(true); }} className="p-2 text-slate-400"><Edit size={16}/></button>
+                                    <button onClick={() => handleDeleteVideo(video._id)} className="p-2 text-red-400/70"><Trash2 size={16}/></button>
+                                </div>
                             </div>
-                        )}
-                    </div>
+                        </div>
+                    ))}
                 </div>
+            </section>
 
-                {/* Logout Button */}
-                <div className="w-full pt-2">
-                    <button
-                        type="button"
-                        onClick={() => handleLogout()}
-                        className="w-full sm:w-fit px-4 py-2 text-xs font-semibold text-red-400 border border-red-500/30 bg-red-500/5 hover:bg-red-500 hover:text-white rounded-xl transition-all duration-200 flex items-center gap-2 justify-center"
-                    >
-                        Logout from account
-                    </button>
-                </div>
+            {/* MODALS */}
+            <UploadVideo isOpen={isUploadModalOpen} onClose={() => setIsUploadModalOpen(false)} />
 
-                {/* UPLOAD MODAL COMPONENT */}
-                <UploadVideo
-                    isOpen={isUploadModalOpen}
-                    onClose={() => setIsUploadModalOpen(false)}
-                />
+            {isEditModalOpen && (
+                <div className="fixed inset-0 z-100 flex items-center justify-center p-4 bg-slate-950/80 backdrop-blur-md">
+                    <div className="bg-slate-900 border border-slate-800 w-full max-w-lg rounded-4xl p-8 shadow-2xl relative animate-in fade-in zoom-in duration-300">
+                        <button 
+                            onClick={() => setIsEditModalOpen(false)}
+                            className="absolute right-6 top-6 p-2 text-slate-500 hover:text-white transition-colors"
+                        >
+                            <XCircle size={24} />
+                        </button>
 
-                {/* EDIT MODAL COMPONENT */}
-                {isEditModalOpen && (
-                    <div className="fixed inset-0 bg-black/80 flex items-center justify-center z-50 p-4 backdrop-blur-sm">
-                        <div className="bg-slate-800 border border-slate-700 w-full max-w-sm rounded-2xl p-4 shadow-2xl mx-auto box-border">
-                            <h2 className="text-base font-bold mb-3 flex items-center gap-2 text-slate-100">
-                                <Edit size={16} className="text-blue-500" /> Edit Video Details
-                            </h2>
+                        <h2 className="text-2xl font-black mb-6 text-white flex items-center gap-3">
+                            <div className="p-2 bg-indigo-500/20 rounded-xl text-indigo-500">
+                                <Edit size={24} />
+                            </div>
+                            Edit Video
+                        </h2>
 
-                            <form onSubmit={handleUpdateVideo} className="space-y-3.5">
-                                <div>
-                                    <label className="text-[11px] text-slate-400 block mb-1">Title</label>
-                                    <input
-                                        type="text"
-                                        value={editingVideo?.title}
-                                        onChange={(e) => setEditingVideo({ ...editingVideo, title: e.target.value })}
-                                        className="w-full bg-slate-900 border border-slate-700 rounded-xl p-2 text-xs text-slate-100 outline-none focus:border-blue-500 transition"
-                                        required
-                                    />
-                                </div>
+                        <form onSubmit={handleUpdateVideo} className="space-y-5">
+                            <div>
+                                <label className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1 mb-2 block">Video Title</label>
+                                <input
+                                    type="text"
+                                    value={editingVideo?.title}
+                                    onChange={(e) => setEditingVideo({ ...editingVideo, title: e.target.value })}
+                                    className="w-full bg-slate-950 border border-slate-800 rounded-2xl p-4 text-sm text-slate-100 outline-none focus:border-indigo-500 transition-all focus:ring-4 focus:ring-indigo-500/10"
+                                    placeholder="Enter eye-catching title"
+                                    required
+                                />
+                            </div>
 
-                                <div>
-                                    <label className="text-[11px] text-slate-400 block mb-1">Description</label>
-                                    <textarea
-                                        value={editingVideo?.description}
-                                        onChange={(e) => setEditingVideo({ ...editingVideo, description: e.target.value })}
-                                        rows="2"
-                                        className="w-full bg-slate-900 border border-slate-700 rounded-xl p-2 text-xs text-slate-100 outline-none focus:border-blue-500 resize-none"
-                                    />
-                                </div>
+                            <div>
+                                <label className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1 mb-2 block">Description</label>
+                                <textarea
+                                    value={editingVideo?.description}
+                                    onChange={(e) => setEditingVideo({ ...editingVideo, description: e.target.value })}
+                                    rows="4"
+                                    className="w-full bg-slate-950 border border-slate-800 rounded-2xl p-4 text-sm text-slate-100 outline-none focus:border-indigo-500 transition-all focus:ring-4 focus:ring-indigo-500/10 resize-none"
+                                    placeholder="What is this video about?"
+                                />
+                            </div>
 
-                                <div>
-                                    <label className="text-[11px] text-slate-400 block mb-1.5">Change Thumbnail</label>
+                            <div>
+                                <label className="text-xs font-bold text-slate-400 uppercase tracking-widest ml-1 mb-2 block">New Thumbnail</label>
+                                <div className="relative group cursor-pointer">
                                     <input
                                         type="file"
                                         accept="image/*"
                                         onChange={(e) => setEditingVideo({ ...editingVideo, newThumbnail: e.target.files[0] })}
-                                        className="text-[10px] text-slate-500 file:mr-2.5 file:py-1 file:px-2.5 file:rounded-xl file:border-0 file:text-[10px] file:font-semibold file:bg-blue-600/10 file:text-blue-500 hover:file:bg-blue-600/20 w-full"
+                                        className="absolute inset-0 opacity-0 z-10 cursor-pointer"
                                     />
+                                    <div className="bg-slate-950 border-2 border-dashed border-slate-800 group-hover:border-indigo-500/50 rounded-2xl p-4 text-center transition-all">
+                                        <p className="text-xs text-slate-500 group-hover:text-indigo-400 font-medium">
+                                            {editingVideo?.newThumbnail ? editingVideo.newThumbnail.name : "Drag & drop or click to upload new thumbnail"}
+                                        </p>
+                                    </div>
                                 </div>
+                            </div>
 
-                                <div className="flex gap-2.5 pt-1">
-                                    <button
-                                        type="button"
-                                        onClick={() => setIsEditModalOpen(false)}
-                                        className="flex-1 py-2 rounded-xl border border-slate-700 hover:bg-slate-700 text-slate-300 transition font-medium text-xs"
-                                    >
-                                        Cancel
-                                    </button>
-                                    <button
-                                        type="submit"
-                                        disabled={loading}
-                                        className="flex-1 py-2 bg-blue-600 rounded-xl font-bold hover:bg-blue-700 text-white transition disabled:opacity-50 text-xs"
-                                    >
-                                        {loading ? "Updating..." : "Update"}
-                                    </button>
-                                </div>
-                            </form>
-                        </div>
+                            <div className="flex gap-4 pt-4">
+                                <button
+                                    type="submit"
+                                    disabled={loading}
+                                    className="flex-1 py-4 bg-indigo-600 rounded-2xl font-black text-white hover:bg-indigo-500 transition-all shadow-lg shadow-indigo-600/20 disabled:opacity-50"
+                                >
+                                    {loading ? "Saving Changes..." : "Update Video"}
+                                </button>
+                            </div>
+                        </form>
                     </div>
-                )}
-            </div>
+                </div>
+            )}
         </div>
-    );
+    </div>
+);
 };
 
 export default Dashboard;
