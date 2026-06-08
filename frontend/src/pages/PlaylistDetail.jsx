@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
+import apiClient from "../api/apiConfig";
 import { useParams, useNavigate } from "react-router-dom";
 import { Trash2, Play, Clock, LayoutGrid, ListVideo, Edit2, X, FileText, Compass, Sparkles } from "lucide-react";
-import apiClient from "../api/apiConfig.js";
 
 const PlaylistDetail = () => {
     const { playlistId } = useParams();
@@ -105,7 +105,7 @@ const PlaylistDetail = () => {
                     </div>
                     <h3 className="text-sm font-semibold text-slate-200">Collection Unreachable</h3>
                     <p className="text-xs text-slate-500 mt-2 leading-relaxed">
-                        The collection playlist details could not be find. Try returning to the dashboard.
+                        The collection playlist details could not be found. Try returning to the dashboard.
                     </p>
                 </div>
             </div>
@@ -113,8 +113,7 @@ const PlaylistDetail = () => {
     }
 
     return (
-        // Added pt-20 layout padding shifts and pb-24 clearance bars for mobile screens
-        <div className="min-h-screen bg-slate-950 text-slate-100 pt-20 px-3.5 md:p-10 pb-24 lg:pb-12 select-none relative overflow-x-hidden font-sans box-border w-full">
+        <div className="min-h-screen bg-slate-950 text-slate-100 pt-6 px-4 md:p-10 pb-24 lg:pb-12 relative z-10 overflow-x-hidden font-sans select-none selection:bg-indigo-500/30">
 
             {/* Ambient Background Lights */}
             <div className="absolute top-0 right-1/4 w-72 h-72 sm:w-100 sm:h-100 bg-indigo-500/5 rounded-full blur-[90px] sm:blur-[110px] pointer-events-none z-0" />
@@ -160,12 +159,11 @@ const PlaylistDetail = () => {
                 </div>
 
                 {/* --- 2. VIDEOS LIST CATALOG --- */}
-                <div className="space-y-3.5 animate-in fade-in duration-300 w-full box-border">
+                <div className="space-y-3.5 w-full box-border">
                     {playlist.videosDetails?.length > 0 ? (
                         playlist.videosDetails.map((video, index) => (
                             <div
                                 key={video._id || index}
-                                // Switched to column display patterns on small viewports
                                 className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 bg-slate-900/20 p-3 rounded-2xl border border-slate-900/80 group hover:border-indigo-500/20 hover:bg-slate-900/35 transition-all duration-300 shadow-sm w-full box-border overflow-hidden relative"
                             >
                                 <div className="flex items-center gap-3 min-w-0 flex-1 w-full">
@@ -197,7 +195,7 @@ const PlaylistDetail = () => {
                                     </div>
                                 </div>
 
-                                {/* Remove Video action - Aligned perfectly on mobile vs row split layouts */}
+                                {/* Remove Video action */}
                                 <div className="flex justify-end pt-2 sm:pt-0 border-t border-slate-900/60 sm:border-none w-full sm:w-auto shrink-0">
                                     <button
                                         onClick={() => handleRemoveVideo(video._id)}
@@ -210,7 +208,7 @@ const PlaylistDetail = () => {
                             </div>
                         ))
                     ) : (
-                        <div className="flex flex-col items-center justify-center text-center py-20 rounded-2xl border border-dashed border-slate-800/60 bg-slate-900/10 backdrop-blur-sm max-w-md mx-auto px-4 mt-4">
+                        <div className="flex flex-col items-center justify-center text-center py-20 px-4 rounded-2xl border border-dashed border-slate-800/60 bg-slate-900/10 backdrop-blur-sm max-w-md mx-auto mt-4">
                             <Compass className="w-8 h-8 text-slate-600 mb-3.5 shadow-inner" />
                             <h4 className="text-xs font-semibold text-slate-300">Collection Empty</h4>
                             <p className="text-[11px] text-slate-500 mt-1.5 leading-relaxed max-w-xs">This collection does not contain any videos yet.</p>
@@ -218,9 +216,9 @@ const PlaylistDetail = () => {
                     )}
                 </div>
 
-                {/* --- 3. BOTTOM OPERATIONS CONTROLS ROW --- */}
-                {/* Horizontal dynamic flex wrapping to look gorgeous at 375px window size */}
-                <div className="flex flex-col xs:flex-row items-center justify-center gap-3 pt-4 w-full border-t border-slate-900/80 box-border">
+                {/* --- 3. BOTTOM OPERATIONS CONTROLS ROW FIXED --- */}
+                {/* 🛠️ FIXED STRETCH: Changed flex-col xs:flex-row to absolute sm:flex-row with max-w-fit limits for desktop window viewports */}
+                <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-4 w-full border-t border-slate-900/80 box-border">
                     <button
                         onClick={() => {
                             setEditData({
@@ -229,16 +227,16 @@ const PlaylistDetail = () => {
                             });
                             setIsEditModelOpen(true);
                         }}
-                        className="relative w-full xs:flex-1 group overflow-hidden rounded-xl py-3 text-xs font-bold uppercase tracking-wider transition-all duration-300 active:scale-[0.97] shrink-0"
+                        className="relative w-full sm:w-auto sm:max-w-fit group overflow-hidden rounded-xl px-7 py-3 text-xs font-bold uppercase tracking-wider transition-all duration-300 active:scale-[0.97] shrink-0"
                     >
                         <span className="absolute inset-0 bg-linear-to-r from-indigo-500 via-purple-500 to-pink-500" />
-                        <span className="relative flex items-center justify-center gap-2 text-white">
+                        <span className="relative flex items-center justify-center gap-2 text-white whitespace-nowrap">
                             <Edit2 className="w-3.5 h-3.5 shrink-0" /> Edit Playlist
                         </span>
                     </button>
                     <button
                         onClick={handleDeletePlaylist}
-                        className="w-full xs:flex-1 bg-rose-500/15 text-rose-400 hover:text-white hover:bg-rose-600 border border-rose-500/20 hover:border-transparent py-3 rounded-xl font-bold text-xs uppercase tracking-wider transition-all duration-300 active:scale-[0.97] flex items-center justify-center gap-2 shadow-sm shrink-0"
+                        className="w-full sm:w-auto sm:max-w-fit bg-rose-500/15 text-rose-400 hover:text-white hover:bg-rose-600 border border-rose-500/20 hover:border-transparent px-7 py-3 rounded-xl font-bold text-xs uppercase tracking-wider transition-all duration-300 active:scale-[0.97] flex items-center justify-center gap-2 shadow-sm shrink-0 whitespace-nowrap"
                     >
                         <Trash2 className="w-3.5 h-3.5 shrink-0" /> Delete Playlist
                     </button>
@@ -249,78 +247,27 @@ const PlaylistDetail = () => {
             {isEditModelOpen && (
                 <div className="fixed inset-0 bg-slate-950/80 flex items-center justify-center z-50 p-3 xs:p-4 backdrop-blur-md">
                     <div className="bg-slate-950 border border-slate-800/80 w-full max-w-md rounded-2xl p-5 xs:p-6 shadow-2xl relative animate-in fade-in zoom-in-95 duration-200 box-border overflow-hidden">
-
-                        <button
-                            onClick={() => setIsEditModelOpen(false)}
-                            className="absolute right-4 top-4 p-1.5 bg-slate-900 border border-slate-800 rounded-xl text-slate-400 hover:text-slate-200 transition-all outline-none animate-in fade-in"
-                        >
-                            <X className="w-4 h-4" />
-                        </button>
-
-                        <h2 className="text-sm font-bold text-slate-100 tracking-wider uppercase mb-5 flex items-center gap-2.5">
-                            <div className="p-1.5 bg-indigo-500/10 border border-indigo-500/20 rounded-xl text-indigo-400 shrink-0">
-                                <Edit2 className="w-4 h-4" />
-                            </div>
-                            Update Archive Details
-                        </h2>
-
+                        <button onClick={() => setIsEditModelOpen(false)} className="absolute right-4 top-4 p-1.5 bg-slate-900 border border-slate-800 rounded-xl text-slate-400 hover:text-slate-200 transition-all outline-none"><X className="w-4 h-4" /></button>
+                        <h2 className="text-sm font-bold text-slate-100 tracking-wider uppercase mb-5 flex items-center gap-2.5"><div className="p-1.5 bg-indigo-500/10 border border-indigo-500/20 rounded-xl text-indigo-400 shrink-0"><Edit2 className="w-4 h-4" /></div>Update Archive Details</h2>
                         <form onSubmit={handleEditPlaylist} className="space-y-4 w-full">
-
-                            {/* Playlist Name Field */}
                             <div className="space-y-1.5 w-full">
                                 <label className="text-[10px] font-bold text-slate-400 tracking-wider uppercase ml-0.5">Playlist Name</label>
                                 <div className="relative group w-full">
-                                    <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-600 group-hover:text-slate-400 pointer-events-none transition-colors">
-                                        <Sparkles className="w-4 h-4" />
-                                    </span>
-                                    <input
-                                        type="text"
-                                        value={editData.name}
-                                        onChange={(e) => setEditData({ ...editData, name: e.target.value })}
-                                        className="w-full bg-slate-950 border border-slate-850 rounded-xl py-2.5 pl-10 pr-4 text-xs text-slate-100 placeholder-slate-600 transition-all duration-300
-                                            focus:outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/25 focus:bg-slate-900/60 box-border"
-                                        required
-                                    />
+                                    <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-600 group-hover:text-slate-400 pointer-events-none transition-colors"><Sparkles className="w-4 h-4" /></span>
+                                    <input type="text" value={editData.name} onChange={(e) => setEditData({ ...editData, name: e.target.value })} className="w-full bg-slate-950 border border-slate-850 rounded-xl py-2.5 pl-10 pr-4 text-xs text-slate-100 placeholder-slate-600 focus:outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/25 focus:bg-slate-900/60 box-border" required />
                                 </div>
                             </div>
-
-                            {/* Description area */}
                             <div className="space-y-1.5 w-full">
                                 <label className="text-[10px] font-bold text-slate-400 tracking-wider uppercase ml-0.5">Description</label>
                                 <div className="relative group w-full">
-                                    <span className="absolute top-3 left-3.5 flex text-slate-600 group-hover:text-slate-400 pointer-events-none transition-colors">
-                                        <FileText className="w-4 h-4" />
-                                    </span>
-                                    <textarea
-                                        value={editData.description}
-                                        onChange={(e) => setEditData({ ...editData, description: e.target.value })}
-                                        rows="3"
-                                        className="w-full bg-slate-950 border border-slate-850 rounded-xl py-2.5 pl-10 pr-4 text-xs text-slate-100 placeholder-slate-600 transition-all duration-300 resize-none h-20 box-border"
-                                    />
+                                    <span className="absolute top-3 left-3.5 flex text-slate-600 group-hover:text-slate-400 pointer-events-none transition-colors"><FileText className="w-4 h-4" /></span>
+                                    <textarea value={editData.description} onChange={(e) => setEditData({ ...editData, description: e.target.value })} rows="3" className="w-full bg-slate-950 border border-slate-850 rounded-xl py-2.5 pl-10 pr-4 text-xs text-slate-100 placeholder-slate-600 focus:outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/25 focus:bg-slate-900/60 h-20 box-border" />
                                 </div>
                             </div>
-
-                            {/* Action Buttons */}
                             <div className="flex gap-2.5 pt-1.5 w-full">
-                                <button
-                                    type="button"
-                                    onClick={() => setIsEditModelOpen(false)}
-                                    className="flex-1 py-2.5 rounded-xl border border-slate-800 text-slate-400 hover:text-slate-200 hover:bg-slate-900 text-xs font-semibold transition-all outline-none"
-                                >
-                                    Cancel
-                                </button>
-
-                                <button
-                                    type="submit"
-                                    className="relative flex-1 group overflow-hidden rounded-xl py-2.5 text-xs font-semibold text-white transition-all duration-300 active:scale-[0.97]"
-                                >
-                                    <span className="absolute inset-0 w-full h-full bg-linear-to-r from-indigo-500 to-purple-600 transition-all duration-300 group-hover:opacity-90" />
-                                    <span className="relative flex items-center justify-center">
-                                        Save Changes
-                                    </span>
-                                </button>
+                                <button type="button" onClick={() => setIsEditModelOpen(false)} className="flex-1 py-2.5 rounded-xl border border-slate-800 text-slate-400 hover:text-slate-200 hover:bg-slate-900 text-xs font-semibold transition-all outline-none">Cancel</button>
+                                <button type="submit" className="relative flex-1 group overflow-hidden rounded-xl py-2.5 text-xs font-semibold text-white transition-all duration-300 active:scale-[0.97]"><span className="absolute inset-0 w-full h-full bg-linear-to-r from-indigo-500 to-purple-600 transition-all duration-300 group-hover:opacity-90" /><span className="relative flex items-center justify-center">Save Changes</span></button>
                             </div>
-
                         </form>
                     </div>
                 </div>

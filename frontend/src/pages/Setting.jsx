@@ -80,8 +80,7 @@ const Settings = () => {
     };
 
     return (
-        // Added standard pt-20 navbar padding offsets and overflow control tracking layers
-        <div className="max-w-4xl mx-auto space-y-6 sm:space-y-8 pt-10 px-3.5 sm:p-8 pb-24 lg:pb-12 select-none relative overflow-x-hidden font-sans box-border w-full">
+        <div className="max-w-4xl mx-auto space-y-6 sm:space-y-8 pt-6 px-4 md:p-8 pb-24 lg:pb-12 select-none relative overflow-x-hidden font-sans box-border w-full">
             
             {/* Ambient Lighting Backdrops */}
             <div className="absolute top-0 right-1/4 w-72 h-72 sm:w-87.5 sm:h-87.5 bg-indigo-500/5 rounded-full blur-[90px] sm:blur-[100px] pointer-events-none z-0" />
@@ -207,14 +206,15 @@ const Settings = () => {
                     </div>
                 </div>
 
-                <div className="pt-1">
+                {/* 🛠️ FIXED STRETCH BLOCK (PERSONAL INFO BUTTON) */}
+                <div className="pt-1 w-full flex sm:justify-start">
                     <button 
                         type="submit" 
                         disabled={loading}
-                        className="relative w-full xs:w-auto group overflow-hidden rounded-xl px-6 py-2.5 text-xs font-semibold text-white transition-all duration-300 active:scale-[0.97] disabled:opacity-50 outline-none"
+                        className="relative w-full sm:w-44 group overflow-hidden rounded-xl py-2.5 text-xs font-bold transition-all duration-300 active:scale-[0.97] disabled:opacity-50 outline-none"
                     >
                         <span className="absolute inset-0 w-full h-full bg-linear-to-r from-indigo-500 via-purple-500 to-pink-500 transition-all duration-300 group-hover:opacity-90" />
-                        <span className="relative flex items-center justify-center uppercase tracking-wider">
+                        <span className="relative flex items-center justify-center uppercase tracking-wider text-white whitespace-nowrap">
                             Update Details
                         </span>
                     </button>
@@ -269,11 +269,12 @@ const Settings = () => {
                     </div>
                 </div>
 
-                <div className="pt-1">
+                {/* 🛠️ FIXED STRETCH BLOCK (PASSWORD BUTTON) */}
+                <div className="pt-1 w-full flex sm:justify-start">
                     <button 
                         type="submit" 
                         disabled={loading}
-                        className="inline-flex items-center justify-center gap-2 w-full xs:w-auto px-6 py-2.5 rounded-xl bg-rose-500/15 border border-rose-500/20 text-rose-400 hover:border-rose-500/40 hover:bg-rose-500/20 text-xs font-semibold transition-all duration-300 active:scale-[0.97] uppercase tracking-wider disabled:opacity-50 outline-none"
+                        className="inline-flex items-center justify-center gap-2 w-full sm:w-56 px-6 py-2.5 rounded-xl bg-rose-500/15 border border-rose-500/20 text-rose-400 hover:border-rose-500/40 hover:bg-rose-500/20 text-xs font-bold transition-all duration-300 active:scale-[0.97] uppercase tracking-wider disabled:opacity-50 outline-none whitespace-nowrap"
                     >
                         {loading && <Loader2 className="animate-spin w-3.5 h-3.5" />} 
                         Change Password Keys

@@ -164,10 +164,10 @@ const Dashboard = () => {
                             </div>
 
                             {/* Action controllers vertical grid mapping for mobile targets */}
-                            <div className="flex flex-col xs:flex-row gap-2.5 w-full md:w-auto shrink-0 mt-2 md:mt-0">
+                            <div className="flex flex-col sm:flex-row gap-2.5 w-full md:w-auto shrink-0 mt-2 md:mt-0">
                                 <button
                                     onClick={() => setIsUploadModalOpen(true)}
-                                    className="relative flex-1 xs:flex-none group overflow-hidden rounded-xl px-5 py-2.5 sm:py-3 text-xs font-semibold text-white transition-all duration-300 active:scale-[0.98]"
+                                    className="relative flex-1 sm:flex-none group overflow-hidden rounded-xl px-5 py-2.5 sm:py-3 text-xs font-semibold text-white transition-all duration-300 active:scale-[0.98]"
                                 >
                                     <span className="absolute inset-0 w-full h-full bg-linear-to-r from-indigo-500 via-purple-500 to-pink-500 transition-all duration-300 group-hover:opacity-90" />
                                     <span className="absolute -inset-px rounded-xl bg-linear-to-r from-indigo-400 to-pink-400 opacity-0 group-hover:opacity-40 blur-md transition-opacity duration-300" />
@@ -178,7 +178,7 @@ const Dashboard = () => {
 
                                 <button
                                     onClick={handleLogout}
-                                    className="inline-flex flex-1 xs:flex-none items-center justify-center gap-2 px-5 py-2.5 sm:py-3 rounded-xl bg-slate-900/60 border border-slate-800/80 text-slate-400 hover:text-rose-400 hover:border-rose-500/30 hover:bg-rose-500/5 transition-all duration-300 text-xs font-semibold"
+                                    className="inline-flex flex-1 sm:flex-none items-center justify-center gap-2 px-5 py-2.5 sm:py-3 rounded-xl bg-slate-900/60 border border-slate-800/80 text-slate-400 hover:text-rose-400 hover:border-rose-500/30 hover:bg-rose-500/5 transition-all duration-300 text-xs font-semibold"
                                 >
                                     <LogOut className="w-4 h-4" /> Logout
                                 </button>
@@ -254,8 +254,8 @@ const Dashboard = () => {
                                             <button
                                                 onClick={() => handleTogglePublish(video._id)}
                                                 className={`inline-flex items-center gap-1.5 px-3 py-1 rounded-full text-[10px] font-bold transition-all shadow-sm border active:scale-95 ${video.isPublished
-                                                        ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
-                                                        : "bg-slate-950 text-slate-500 border-slate-800"
+                                                    ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
+                                                    : "bg-slate-950 text-slate-500 border-slate-800"
                                                     }`}
                                             >
                                                 <span className={`w-1.5 h-1.5 rounded-full ${video.isPublished ? "bg-emerald-500 animate-pulse" : "bg-slate-500"}`} />
@@ -336,8 +336,8 @@ const Dashboard = () => {
                                     <button
                                         onClick={() => handleTogglePublish(video._id)}
                                         className={`px-3 py-1 rounded-full text-[9px] font-bold uppercase tracking-wider border ${video.isPublished
-                                                ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
-                                                : "bg-slate-950 text-slate-500 border-slate-800"
+                                            ? "bg-emerald-500/10 text-emerald-400 border-emerald-500/20"
+                                            : "bg-slate-950 text-slate-500 border-slate-800"
                                             }`}
                                     >
                                         {video.isPublished ? "Live" : "Draft"}
