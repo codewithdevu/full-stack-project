@@ -116,7 +116,7 @@ const UploadVideo = ({ isOpen, onClose }) => {
 
     return (
         /* GLOBAL FIXED OVERLAY */
-        <div className="fixed inset-0 w-screen h-screen bg-slate-950/80 backdrop-blur-md flex items-center justify-center z-50 p-4 select-none overflow-y-auto">
+        <div className="fixed inset-0 w-screen h-screen bg-slate-950/80 backdrop-blur-md flex items-center justify-center z-50 p-3 xs:p-4 select-none overflow-y-auto">
             
             <style dangerouslySetInnerHTML={{ __html: `
                 @keyframes fadeInUpModal {
@@ -135,13 +135,13 @@ const UploadVideo = ({ isOpen, onClose }) => {
             `}} />
 
             {/* COMPACT MODAL CONTAINER */}
-            <div className="relative w-full max-w-md my-auto group animate-modal-entry">
+            <div className="relative w-full max-w-md my-auto group animate-modal-entry box-border">
                 
                 {/* Back-glow outline effect */}
                 <div className="absolute -inset-0.5 bg-linear-to-r from-indigo-500/20 to-purple-500/20 rounded-2xl blur-md opacity-25 pointer-events-none" />
 
                 {/* MAIN MODAL BOX */}
-                <div className="relative bg-slate-950 border border-slate-900 shadow-[0_25px_60px_rgba(0,0,0,0.85)] rounded-2xl flex flex-col overflow-hidden max-h-[95vh]">
+                <div className="relative bg-slate-950 border border-slate-900 shadow-[0_25px_60px_rgba(0,0,0,0.85)] rounded-2xl flex flex-col overflow-hidden max-h-[92vh] w-full box-border">
                     
                     {/* Sticky Header */}
                     <div className="relative z-10 flex justify-between items-center p-4 border-b border-slate-900 shrink-0 bg-slate-950/80 backdrop-blur-md">
@@ -152,7 +152,7 @@ const UploadVideo = ({ isOpen, onClose }) => {
                             type="button"
                             disabled={uploading}
                             onClick={handleCloseAttempt} 
-                            className="p-1.5 text-slate-400 hover:text-slate-200 hover:bg-slate-900/60 border border-transparent hover:border-slate-800 rounded-lg transition-all duration-200"
+                            className="p-1.5 text-slate-400 hover:text-slate-200 hover:bg-slate-900/60 border border-transparent hover:border-slate-800 rounded-lg transition-all duration-200 outline-none"
                         >
                             <X className="w-4 h-4" />
                         </button>
@@ -169,44 +169,44 @@ const UploadVideo = ({ isOpen, onClose }) => {
                     )}
 
                     {/* VERTICAL FORM BODY */}
-                    <form onSubmit={handleSubmit} className="relative z-10 flex-1 p-5 space-y-4 overflow-y-auto no-scrollbar">
+                    <form onSubmit={handleSubmit} className="relative z-10 flex-1 p-4 xs:p-5 space-y-4 overflow-y-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden w-full box-border">
                         
-                        {/* --- COMPACT HORIZONTAL GRID (SIDE-BY-SIDE DESIGN) --- */}
-                        <div className="grid grid-cols-2 gap-3.5">
+                        {/* --- RESPONSIVE MEDIA DROPZONE GRID --- */}
+                        {/* Changed from fixed grid-cols-2 to column on mobile, row on sm screens */}
+                        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 w-full min-w-0">
                             
                             {/* Left Column: Video Dropzone */}
-                            <div className="min-w-0">
+                            <div className="min-w-0 w-full">
                                 {!videoPreview ? (
                                     <div 
                                         onDragOver={(e) => { e.preventDefault(); setIsDragVideo(true); }}
                                         onDragLeave={() => setIsDragVideo(false)}
                                         onDrop={(e) => { e.preventDefault(); setIsDragVideo(false); handleVideoSelect(e.dataTransfer.files[0]); }}
-                                        className={`relative border border-dashed rounded-xl p-3 flex flex-col items-center justify-center text-center cursor-pointer transition-all duration-300 bg-slate-900/10 h-24
+                                        className={`relative border border-dashed rounded-xl p-3 flex flex-col items-center justify-center text-center cursor-pointer transition-all duration-300 bg-slate-900/10 h-24 box-border w-full
                                             ${isDragVideo ? "border-indigo-500 bg-indigo-500/5" : "border-slate-900 hover:border-slate-800"}
                                         `}
                                     >
-                                        {/* title="" blocks native browser tooltips */}
                                         <input 
                                             type="file" accept="video/*" required title=""
                                             onChange={(e) => handleVideoSelect(e.target.files[0])}
-                                            className="absolute inset-0 opacity-0 cursor-pointer z-10"
+                                            className="absolute inset-0 opacity-0 cursor-pointer z-10 w-full h-full"
                                         />
                                         <Film className="w-4 h-4 text-slate-500 mb-1" />
                                         <p className="text-[10px] font-bold text-slate-200">Select Video File</p>
                                     </div>
                                 ) : (
                                     /* Video selected chip */
-                                    <div className="flex flex-col justify-between bg-slate-900/40 border border-slate-900 p-2.5 rounded-xl text-[10px] h-24">
-                                        <div className="flex items-center gap-1.5 min-w-0">
+                                    <div className="flex flex-col justify-between bg-slate-900/40 border border-slate-900 p-2.5 rounded-xl text-[10px] h-24 min-w-0 w-full box-border">
+                                        <div className="flex items-center gap-1.5 min-w-0 w-full">
                                             <Film className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
-                                            <span className="truncate text-slate-300 font-mono text-[9px]">{videoFile?.name}</span>
+                                            <span className="truncate text-slate-300 font-mono text-[9px] flex-1">{videoFile?.name}</span>
                                         </div>
-                                        <div className="flex justify-between items-center mt-2 pt-1.5 border-t border-slate-900/60">
+                                        <div className="flex justify-between items-center mt-2 pt-1.5 border-t border-slate-900/60 w-full">
                                             <span className="text-slate-500 font-mono text-[8px]">{(videoFile?.size / (1024 * 1024)).toFixed(2)} MB</span>
                                             <button 
                                                 type="button" disabled={uploading}
                                                 onClick={() => { setVideoFile(null); setVideoPreview(""); }}
-                                                className="text-[9px] text-rose-400 hover:text-rose-350 font-bold focus:outline-none"
+                                                className="text-[9px] text-rose-400 hover:text-rose-350 font-bold focus:outline-none shrink-0"
                                             >
                                                 Replace
                                             </button>
@@ -216,38 +216,37 @@ const UploadVideo = ({ isOpen, onClose }) => {
                             </div>
 
                             {/* Right Column: Thumbnail Dropzone */}
-                            <div className="min-w-0">
+                            <div className="min-w-0 w-full">
                                 {!thumbPreview ? (
                                     <div 
                                         onDragOver={(e) => { e.preventDefault(); setIsDragThumb(true); }}
                                         onDragLeave={() => setIsDragThumb(false)}
                                         onDrop={(e) => { e.preventDefault(); setIsDragThumb(false); handleThumbSelect(e.dataTransfer.files[0]); }}
-                                        className={`relative border border-dashed rounded-xl p-3 flex flex-col items-center justify-center text-center cursor-pointer transition-all duration-300 bg-slate-900/10 h-24
+                                        className={`relative border border-dashed rounded-xl p-3 flex flex-col items-center justify-center text-center cursor-pointer transition-all duration-300 bg-slate-900/10 h-24 box-border w-full
                                             ${isDragThumb ? "border-purple-500 bg-purple-500/5" : "border-slate-900 hover:border-slate-800"}
                                         `}
                                     >
-                                        {/* title="" blocks native browser tooltips */}
                                         <input 
                                             type="file" accept="image/*" required title=""
                                             onChange={(e) => handleThumbSelect(e.target.files[0])}
-                                            className="absolute inset-0 opacity-0 cursor-pointer z-10"
+                                            className="absolute inset-0 opacity-0 cursor-pointer z-10 w-full h-full"
                                         />
                                         <ImageIcon className="w-4 h-4 text-slate-500 mb-1" />
                                         <p className="text-[10px] font-bold text-slate-200">Select Thumbnail</p>
                                     </div>
                                 ) : (
                                     /* Thumbnail selected chip */
-                                    <div className="flex flex-col justify-between bg-slate-900/40 border border-slate-900 p-2.5 rounded-xl text-[10px] h-24">
-                                        <div className="flex items-center gap-1.5 min-w-0">
+                                    <div className="flex flex-col justify-between bg-slate-900/40 border border-slate-900 p-2.5 rounded-xl text-[10px] h-24 min-w-0 w-full box-border">
+                                        <div className="flex items-center gap-1.5 min-w-0 w-full">
                                             <ImageIcon className="w-3.5 h-3.5 text-purple-400 shrink-0" />
-                                            <span className="truncate text-slate-300 font-mono text-[9px]">{thumbnail?.name}</span>
+                                            <span className="truncate text-slate-300 font-mono text-[9px] flex-1">{thumbnail?.name}</span>
                                         </div>
-                                        <div className="flex justify-between items-center mt-2 pt-1.5 border-t border-slate-900/60">
+                                        <div className="flex justify-between items-center mt-2 pt-1.5 border-t border-slate-900/60 w-full">
                                             <span className="text-slate-500 font-mono text-[8px]">{(thumbnail?.size / 1024).toFixed(0)} KB</span>
                                             <button 
                                                 type="button" disabled={uploading}
                                                 onClick={() => { setThumbnail(null); setThumbPreview(""); }}
-                                                className="text-[9px] text-rose-400 hover:text-rose-350 font-bold focus:outline-none"
+                                                className="text-[9px] text-rose-400 hover:text-rose-350 font-bold focus:outline-none shrink-0"
                                             >
                                                 Replace
                                             </button>
@@ -258,11 +257,11 @@ const UploadVideo = ({ isOpen, onClose }) => {
 
                         </div>
 
-                        {/* --- 3. INPUT FIELDS (Tighter Padding) --- */}
-                        <div className="space-y-3.5">
+                        {/* --- 3. INPUT FIELDS --- */}
+                        <div className="space-y-3.5 w-full box-border">
                             
                             {/* Video Title */}
-                            <div className="space-y-1">
+                            <div className="space-y-1 w-full">
                                 <div className="flex justify-between items-center text-[10px] text-slate-500 font-bold px-0.5 uppercase tracking-wider">
                                     <span>Video Title</span>
                                     <span className="font-mono">{formData.title.length}/{MAX_TITLE_CHARS}</span>
@@ -270,14 +269,14 @@ const UploadVideo = ({ isOpen, onClose }) => {
                                 <input 
                                     type="text" required placeholder="Add video title..."
                                     maxLength={MAX_TITLE_CHARS}
-                                    className="w-full bg-slate-950 border border-slate-850 rounded-xl px-3 py-2 text-xs text-slate-100 placeholder-slate-600 outline-none focus:border-indigo-500/50 transition-all"
+                                    className="w-full bg-slate-950 border border-slate-850 rounded-xl px-3 py-2.5 text-xs text-slate-100 placeholder-slate-600 outline-none focus:border-indigo-500/50 transition-all box-border"
                                     value={formData.title}
                                     onChange={(e) => setFormData({...formData, title: e.target.value})}
                                 />
                             </div>
 
                             {/* Description Box */}
-                            <div className="space-y-1">
+                            <div className="space-y-1 w-full">
                                 <div className="flex justify-between items-center text-[10px] text-slate-500 font-bold px-0.5 uppercase tracking-wider">
                                     <span>Description</span>
                                     <span className="font-mono">{formData.description.length}/{MAX_DESC_CHARS}</span>
@@ -285,7 +284,7 @@ const UploadVideo = ({ isOpen, onClose }) => {
                                 <textarea 
                                     placeholder="Description" rows="3"
                                     maxLength={MAX_DESC_CHARS}
-                                    className="w-full bg-slate-950 border border-slate-850 rounded-xl px-3 py-2 text-xs text-slate-100 placeholder-slate-600 outline-none focus:border-indigo-500/50 transition-all resize-none no-scrollbar h-20"
+                                    className="w-full bg-slate-950 border border-slate-850 rounded-xl px-3 py-2.5 text-xs text-slate-100 placeholder-slate-600 outline-none focus:border-indigo-500/50 transition-all resize-none h-20 box-border"
                                     value={formData.description}
                                     onChange={(e) => setFormData({...formData, description: e.target.value})}
                                 />
@@ -294,11 +293,11 @@ const UploadVideo = ({ isOpen, onClose }) => {
                         </div>
 
                         {/* --- 4. SUBMIT ACTION BUTTON --- */}
-                        <div className="pt-2">
+                        <div className="pt-1.5 w-full">
                             <button 
                                 type="submit" 
                                 disabled={uploading}
-                                className="relative w-full group overflow-hidden rounded-xl py-2.5 text-xs font-bold transition-all duration-300 active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none"
+                                className="relative w-full group overflow-hidden rounded-xl py-2.5 sm:py-3 text-xs font-bold transition-all duration-300 active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none outline-none"
                             >
                                 {uploading ? (
                                     <span className="absolute inset-0 w-full h-full bg-slate-900 border border-slate-800" />
@@ -320,10 +319,10 @@ const UploadVideo = ({ isOpen, onClose }) => {
                     </form>
                 </div>
 
-                {/* --- DISCARD CONFIRMATION MODAL POPUP --- */}
+                {/* --- DISCARD CONFIRMATION POPUP --- */}
                 {showCloseConfirm && (
                     <div className="fixed inset-0 z-100 flex items-center justify-center p-4 bg-slate-950/95 backdrop-blur-md">
-                        <div className="bg-slate-950 border border-slate-900 w-full max-w-sm rounded-xl p-5 shadow-2xl space-y-4 text-center animate-in fade-in zoom-in-95 duration-200">
+                        <div className="bg-slate-950 border border-slate-900 w-full max-w-sm rounded-xl p-5 shadow-2xl space-y-4 text-center animate-in fade-in zoom-in-95 duration-200 box-border">
                             <div className="mx-auto p-2 bg-rose-500/10 text-rose-500 border border-rose-500/20 rounded-full w-fit">
                                 <AlertCircle className="w-5 h-5" />
                             </div>
@@ -336,13 +335,13 @@ const UploadVideo = ({ isOpen, onClose }) => {
                             <div className="flex gap-3 pt-2">
                                 <button
                                     onClick={() => setShowCloseConfirm(false)}
-                                    className="flex-1 py-2 rounded-xl bg-slate-900 border border-slate-800 text-slate-400 hover:text-slate-200 transition-colors"
+                                    className="flex-1 py-2 rounded-xl bg-slate-900 border border-slate-800 text-slate-400 hover:text-slate-200 transition-colors text-xs font-semibold"
                                 >
                                     Cancel
                                 </button>
                                 <button
                                     onClick={handleResetAndClose}
-                                    className="flex-1 py-2 bg-rose-500/15 text-rose-450 hover:bg-rose-600 hover:text-white border border-rose-500/20 hover:border-transparent rounded-xl transition duration-300 font-bold"
+                                    className="flex-1 py-2 bg-rose-500/15 text-rose-450 hover:bg-rose-600 hover:text-white border border-rose-500/20 hover:border-transparent rounded-xl transition duration-300 font-bold text-xs"
                                 >
                                     Discard
                                 </button>

@@ -60,23 +60,20 @@ const VideoCard = ({ video, onClick }) => {
     const seconds = Math.floor((video.duration || 0) % 60).toString().padStart(2, "0");
 
     return (
-        <div
+        <div 
             onClick={onClick}
             onMouseEnter={() => setIsHovered(true)}
             onMouseLeave={() => setIsHovered(false)}
-            className="group flex flex-col cursor-pointer w-full rounded-2xl border border-slate-900 bg-slate-900/20 backdrop-blur-md overflow-hidden transition-all duration-300 hover:border-indigo-500/30 hover:bg-slate-900/40 hover:shadow-xl hover:shadow-indigo-500/5 hover:-translate-y-1.5"
+            className="group flex flex-col cursor-pointer w-full max-w-full rounded-2xl border border-slate-900 bg-slate-900/20 backdrop-blur-md overflow-hidden transition-all duration-300 hover:border-indigo-500/30 hover:bg-slate-900/40 hover:shadow-xl hover:shadow-indigo-500/5 sm:hover:-translate-y-1.5"
         >
             {/* Thumbnail Box */}
             <div className="relative aspect-video w-full overflow-hidden bg-slate-950/80 border-b border-slate-900/80">
-
-                {/* Static Thumbnail with zoom overlay */}
                 <img
                     src={video.thumbnail}
                     alt={video.title}
-                    className={`w-full h-full object-cover transition-all duration-500 group-hover:scale-105 ${isHovered ? 'opacity-0' : 'opacity-100'}`}
+                    className={`w-full h-full object-cover transition-all duration-500 sm:group-hover:scale-105 ${isHovered ? 'opacity-0' : 'opacity-100'}`}
                 />
 
-                {/* Hover Auto-Play Video element */}
                 {isHovered && (
                     <video
                         ref={videoRef}
@@ -88,64 +85,51 @@ const VideoCard = ({ video, onClick }) => {
                     />
                 )}
 
-                {/* Gradient vignette for badges */}
                 <div className="absolute inset-0 bg-linear-to-t from-slate-950/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none z-15" />
 
-                {/* Video Duration Badge */}
                 {!isHovered && (
-                    <span className="absolute bottom-3 right-3 z-20 bg-slate-950/70 backdrop-blur-md text-slate-200 text-[10px] font-semibold tracking-wider font-mono px-2 py-0.5 rounded-lg border border-slate-800/80 shadow-md">
+                    <span className="absolute bottom-2 right-2 xs:bottom-3 xs:right-3 z-20 bg-slate-950/70 backdrop-blur-md text-slate-200 text-[10px] font-semibold tracking-wider font-mono px-1.5 py-0.5 rounded-md border border-slate-800/80 shadow-md">
                         {video.duration ? `${minutes}:${seconds}` : "10:00"}
                     </span>
                 )}
 
-                {/* Speaker Sound Icon (Only appears when video previews) */}
                 {isHovered && (
                     <button
                         onClick={handleMuteToggle}
-                        className="absolute bottom-3 right-3 z-30 flex items-center justify-center bg-slate-950/80 backdrop-blur-md border border-slate-800/80 text-slate-200 hover:text-white p-2 rounded-xl transition-all hover:scale-105 focus:outline-none"
+                        className="absolute bottom-2 right-2 xs:bottom-3 xs:right-3 z-30 flex items-center justify-center bg-slate-950/80 backdrop-blur-md border border-slate-800/80 text-slate-200 hover:text-white p-1.5 rounded-lg transition-all hover:scale-105 focus:outline-none"
                     >
                         {isMuted ? <VolumeX className="w-3.5 h-3.5" /> : <Volume2 className="w-3.5 h-3.5" />}
                     </button>
                 )}
-
-                {/* Absolute Play Button overlay on Hover */}
-                {!isHovered && (
-                    <div className="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none z-20">
-                        <div className="w-10 h-10 rounded-full bg-indigo-500/10 backdrop-blur-md border border-indigo-400/30 flex items-center justify-center text-indigo-400 shadow-lg shadow-indigo-500/20">
-                            <Play className="w-5 h-5 fill-indigo-400/30 translate-x-0.5" />
-                        </div>
-                    </div>
-                )}
             </div>
 
             {/* Title & Metadata Layout */}
-            <div className="flex gap-3 p-4 flex-1">
-                {/* Channel Profile */}
+            <div className="flex gap-3 p-3.5 xs:p-4 flex-1 min-w-0">
                 <div className="relative shrink-0">
                     <img
                         src={video.ownerDetails?.avatar || `https://api.dicebear.com/7.x/initials/svg?seed=${video.ownerDetails?.username}`}
                         alt="Channel profile"
-                        className="w-10 h-10 min-w-10 min-h-10 rounded-full object-cover border border-slate-700 bg-slate-900"
+                        className="w-8.5 h-8.5 xs:w-9 xs:h-9 rounded-full object-cover border border-slate-700 bg-slate-900"
                     />
                 </div>
 
                 <div className="flex flex-col min-w-0 flex-1">
-                    <h3 className="font-semibold text-sm text-slate-100 leading-snug line-clamp-2 transition-colors group-hover:text-indigo-400">
+                    <h3 className="font-semibold text-xs xs:text-sm text-slate-100 leading-snug line-clamp-2 transition-colors group-hover:text-indigo-400">
                         {video.title}
                     </h3>
 
-                    <p className="text-xs text-slate-400 mt-2 hover:text-slate-200 transition-colors truncate font-medium">
+                    <p className="text-[11px] xs:text-xs text-slate-400 mt-1 hover:text-slate-200 transition-colors truncate font-medium">
                         {video.ownerDetails?.username || "Channel Name"}
                     </p>
 
-                    <div className="flex items-center gap-2 mt-1 text-[11px] text-slate-500 font-medium">
+                    <div className="flex items-center gap-1.5 mt-0.5 xs:mt-1 text-[10px] xs:text-[11px] text-slate-500 font-medium">
                         <span className="flex items-center gap-1">
-                            <Eye className="w-3.5 h-3.5 opacity-80" />
+                            <Eye className="w-3 h-3 xs:w-3.5 xs:h-3.5 opacity-80" />
                             {video.views?.toLocaleString() || 0}
                         </span>
                         <span className="text-slate-700">•</span>
                         <span className="flex items-center gap-1">
-                            <Calendar className="w-3.5 h-3.5 opacity-80" />
+                            <Calendar className="w-3 h-3 xs:w-3.5 xs:h-3.5 opacity-80" />
                             {formatTimeAgo(video.createdAt)}
                         </span>
                     </div>
@@ -185,22 +169,21 @@ const Home = () => {
 
     if (loading) {
         return (
-            <div className="w-full min-h-screen p-4 md:p-6 space-y-8 bg-slate-950">
-                {/* Horizontal Category Pill Skeleton */}
-                <div className="flex space-x-3 overflow-hidden pb-2 border-b border-slate-900/40">
-                    {Array.from({ length: 6 }).map((_, idx) => (
-                        <div key={idx} className="h-8 w-20 bg-slate-900/60 border border-slate-800/30 rounded-xl animate-pulse" />
+            // Layout alignment safe fixes for loading state
+            <div className="w-full max-w-full min-h-screen pt-3 px-3.5 sm:px-6 pb-24 bg-slate-950 space-y-5 box-border overflow-hidden">
+                <div className="flex space-x-2 overflow-hidden pb-2 border-b border-slate-900/40">
+                    {Array.from({ length: 5 }).map((_, idx) => (
+                        <div key={idx} className="h-7 w-16 bg-slate-900/60 border border-slate-800/30 rounded-xl shrink-0 animate-pulse" />
                     ))}
                 </div>
-                {/* Grid Skeletons */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6">
-                    {Array.from({ length: 8 }).map((_, idx) => (
-                        <div key={idx} className="space-y-4 rounded-2xl border border-slate-900 bg-slate-900/10 p-4 animate-pulse">
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 xs:gap-5">
+                    {Array.from({ length: 4 }).map((_, idx) => (
+                        <div key={idx} className="space-y-4 rounded-2xl border border-slate-900 bg-slate-900/10 p-3.5 animate-pulse">
                             <div className="aspect-video bg-slate-900/80 rounded-xl w-full" />
                             <div className="flex gap-3">
-                                <div className="w-9 h-9 rounded-full bg-slate-900/80 shrink-0" />
+                                <div className="w-8 h-8 rounded-full bg-slate-900/80 shrink-0" />
                                 <div className="flex-1 space-y-2 py-1">
-                                    <div className="h-4 bg-slate-900/80 rounded w-5/6" />
+                                    <div className="h-3.5 bg-slate-900/80 rounded w-5/6" />
                                     <div className="h-3 bg-slate-900/80 rounded w-1/2" />
                                 </div>
                             </div>
@@ -212,15 +195,19 @@ const Home = () => {
     }
 
     return (
-        <div className="w-full min-h-screen p-4 md:p-6 space-y-8 bg-slate-950 text-slate-100 select-none relative z-10">
+        /* 🛠️ MASTER RE-ALIGNMENT CHANGES APPLIED BELOW:
+           1. Changed 'pt-20' to 'pt-3' to completely eliminate the giant double padding gap!
+           2. Changed 'px-4' to 'px-3.5' to give it premium responsive breathing room from mobile screens.
+        */
+        <div className="w-full max-w-full min-h-screen pt-3 px-3.5 sm:px-6 md:px-8 pb-24 bg-slate-950 text-slate-100 select-none relative z-10 box-border overflow-x-hidden">
 
-            {/* Category Pills Bar (Glass Premium Version) */}
-            <div className="flex items-center space-x-2.5 overflow-x-auto pb-3 scrollbar-none border-b border-slate-900/40">
+            {/* Category Pills Bar */}
+            <div className="flex items-center space-x-2 overflow-x-auto pb-2.5 [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden border-b border-slate-900/40 w-full">
                 {filters.map((filter) => (
                     <button
                         key={filter}
                         onClick={() => setActiveFilter(filter)}
-                        className={`px-4 py-1.5 rounded-xl text-xs font-semibold whitespace-nowrap transition-all duration-300 border active:scale-[0.98] ${activeFilter === filter
+                        className={`px-3.5 py-1 rounded-xl text-[11px] xs:text-xs font-semibold whitespace-nowrap transition-all duration-300 border active:scale-[0.96] ${activeFilter === filter
                                 ? "bg-linear-to-r from-indigo-500/15 to-purple-500/15 border-indigo-500/40 text-indigo-200 shadow-md shadow-indigo-500/5 font-bold"
                                 : "bg-slate-900/40 border-slate-800/80 text-slate-400 hover:border-slate-700/60 hover:text-slate-100 hover:bg-slate-900/60"
                             }`}
@@ -232,7 +219,7 @@ const Home = () => {
 
             {/* Video Cards Grid */}
             {videos.length > 0 ? (
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-6 animate-in fade-in-50 slide-in-from-bottom-2 duration-300">
+                <div className="w-full max-w-full grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 xs:gap-5 mt-4 sm:mt-5 animate-in fade-in-50 slide-in-from-bottom-2 duration-300 box-border">
                     {videos.map((video) => (
                         <VideoCard
                             key={video._id}
@@ -242,13 +229,12 @@ const Home = () => {
                     ))}
                 </div>
             ) : (
-                /* Empty Premium State */
-                <div className="flex flex-col items-center justify-center text-center py-32 rounded-2xl border border-dashed border-slate-800/60 bg-slate-900/10 backdrop-blur-sm max-w-xl mx-auto">
-                    <div className="w-12 h-12 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 mb-4">
-                        <Sparkles className="w-6 h-6" />
+                <div className="flex flex-col items-center justify-center text-center py-20 px-4 rounded-2xl border border-dashed border-slate-800/60 bg-slate-900/10 backdrop-blur-sm max-w-md mx-auto mt-6">
+                    <div className="w-10 h-10 rounded-2xl bg-indigo-500/10 border border-indigo-500/20 flex items-center justify-center text-indigo-400 mb-3.5 shadow-inner">
+                        <Sparkles className="w-5 h-5" />
                     </div>
-                    <h3 className="text-sm font-semibold text-slate-200">No Premium Streams Found</h3>
-                    <p className="text-xs text-slate-500 mt-2 max-w-xs leading-relaxed">
+                    <h3 className="text-xs font-semibold text-slate-200">No Premium Streams Found</h3>
+                    <p className="text-[11px] text-slate-500 mt-1.5 max-w-xs leading-relaxed">
                         Adjust your active category filter or check back later for high-performance HLS uploads.
                     </p>
                 </div>

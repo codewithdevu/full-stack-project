@@ -58,80 +58,98 @@ const Playlist = () => {
 
     if (loading && playlists.length === 0) {
         return (
-            <div className="w-full min-h-screen bg-slate-950 flex flex-col items-center justify-center p-4">
-                <div className="flex flex-col items-center gap-4 animate-pulse">
-                    <div className="w-10 h-10 rounded-xl bg-slate-900 border border-slate-800/85 flex items-center justify-center text-indigo-400 animate-spin">
-                        <Compass className="w-5 h-5" />
+            // Added 'pt-20' padding adjustments to balance loading skeletons below fixed navbar offsets
+            <div className="w-full min-h-screen bg-slate-950 pt-20 px-4 md:p-8 space-y-8 flex flex-col justify-start">
+                <div className="max-w-6xl mx-auto w-full space-y-6">
+                    <div className="flex flex-col xs:flex-row justify-between items-start xs:items-center gap-4 animate-pulse">
+                        <div className="space-y-2">
+                            <div className="h-6 bg-slate-900 rounded w-48" />
+                            <div className="h-3 bg-slate-900 rounded w-32" />
+                        </div>
+                        <div className="h-9 bg-slate-900 rounded-xl w-28 shrink-0" />
                     </div>
-                    <span className="text-xs font-semibold text-slate-400 tracking-wider uppercase animate-pulse">Retrieving archived archives...</span>
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5 sm:gap-6">
+                        {Array.from({ length: 4 }).map((_, idx) => (
+                            <div key={idx} className="space-y-4 rounded-2xl border border-slate-900 bg-slate-900/10 p-4 animate-pulse">
+                                <div className="aspect-video bg-slate-900/80 rounded-xl w-full" />
+                                <div className="space-y-2.5 py-0.5">
+                                    <div className="h-3.5 bg-slate-900/80 rounded w-5/6" />
+                                    <div className="h-3 bg-slate-900/80 rounded w-1/2" />
+                                </div>
+                            </div>
+                        ))}
+                    </div>
                 </div>
             </div>
         );
     }
 
     return (
-        <div className="min-h-screen bg-slate-950 text-slate-100 p-4 md:p-8 pb-24 lg:pb-12 relative overflow-hidden font-sans select-none selection:bg-indigo-500/30">
+        // Added standard pt-20 layer and pb-24 for absolute clearance on mobile devices
+        <div className="min-h-screen bg-slate-950 text-slate-100 pt-20 px-3.5 sm:px-6 lg:px-8 pb-24 lg:pb-12 select-none relative overflow-x-hidden font-sans box-border w-full">
             
             {/* Ambient Lighting Backdrops */}
-            <div className="absolute top-0 right-1/4 w-100 h-100indigo-500/5 rounded-full blur-[110px] pointer-events-none z-0" />
-            <div className="absolute bottom-1/4 left-1/4 w-100 h-100 bg-purple-500/5 rounded-full blur-[110px] pointer-events-none z-0" />
+            <div className="absolute top-0 right-1/4 w-72 h-72 sm:w-100 sm:h-100 bg-indigo-500/5 rounded-full blur-[90px] sm:blur-[110px] pointer-events-none z-0" />
+            <div className="absolute bottom-1/4 left-1/4 w-72 h-72 sm:w-100 sm:h-100 bg-purple-500/5 rounded-full blur-[90px] sm:blur-[110px] pointer-events-none z-0" />
 
-            <div className="max-w-6xl mx-auto relative z-10 space-y-8">
+            <div className="max-w-6xl mx-auto relative z-10 space-y-6 sm:space-y-8 box-border w-full">
                 
                 {/* --- HEADER BLOCK --- */}
-                <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center gap-4 border-b border-slate-900 pb-5">
+                {/* Fixed column row alignments under 480px screen widths */}
+                <div className="flex flex-col xs:flex-row xs:items-center justify-between gap-4 border-b border-slate-900/80 pb-4 sm:pb-5 pl-0.5 w-full">
                     <div className="space-y-1">
-                        <h1 className="text-xl md:text-2xl font-bold tracking-tight text-slate-100 flex items-center gap-2.5">
-                            <ListVideo className="w-5 h-5 text-indigo-400" /> Curated Collections
+                        <h1 className="text-lg sm:text-xl md:text-2xl font-bold tracking-tight text-slate-100 flex items-center gap-2.5">
+                            <ListVideo className="w-5 h-5 text-indigo-400 shrink-0" /> Curated Collections
                         </h1>
-                        <p className="text-xs text-slate-400">Compile and organize digital stream catalogs inside customized profiles</p>
+                        <p className="text-[11px] sm:text-xs text-slate-400 mt-1 hidden xs:block">Compile and organize digital stream catalogs inside customized profiles</p>
                     </div>
                     
                     <button 
                         onClick={() => setShowCreateModal(true)} 
-                        className="relative group overflow-hidden rounded-xl px-5 py-3 text-xs font-semibold text-white transition-all duration-300 active:scale-[0.98] shrink-0"
+                        className="relative group overflow-hidden rounded-xl px-4.5 py-2.5 sm:py-3 text-xs font-semibold text-white transition-all duration-300 active:scale-[0.97] shrink-0 w-full xs:w-auto"
                     >
                         <span className="absolute inset-0 w-full h-full bg-linear-to-r from-indigo-500 via-purple-500 to-pink-500 transition-all duration-300 group-hover:opacity-95" />
                         <span className="absolute -inset-px rounded-xl bg-linear-to-r from-indigo-400 to-pink-400 opacity-0 group-hover:opacity-40 blur-md transition-opacity duration-300" />
                         <span className="relative flex items-center justify-center gap-2">
-                            <FolderPlus className="w-4 h-4" /> Create Collection
+                            <FolderPlus className="w-4 h-4 shrink-0" /> Create Collection
                         </span>
                     </button>
                 </div>
 
                 {/* --- NULL STATE FALLBACK --- */}
                 {playlists.length === 0 && !loading && (
-                    <div className="flex flex-col items-center justify-center text-center py-24 rounded-2xl border border-dashed border-slate-800/60 bg-slate-900/10 backdrop-blur-sm max-w-xl mx-auto">
-                        <div className="w-11 h-11 rounded-xl bg-slate-950 border border-slate-900 flex items-center justify-center mb-4 text-slate-500">
-                            <FolderPlus className="w-5 h-5" />
+                    <div className="flex flex-col items-center justify-center text-center py-20 px-4 rounded-2xl border border-dashed border-slate-800/60 bg-slate-900/10 backdrop-blur-sm max-w-md mx-auto mt-6">
+                        <div className="w-10 h-10 rounded-xl bg-slate-950 border border-slate-900 flex items-center justify-center mb-3.5 text-slate-500 shadow-inner">
+                            <FolderPlus className="w-4.5 h-4.5" />
                         </div>
                         <h3 className="text-xs font-semibold text-slate-300">No Playlists Configured</h3>
-                        <p className="text-[11px] text-slate-500 mt-2 max-w-xs leading-relaxed">
+                        <p className="text-[11px] text-slate-500 mt-1.5 max-w-xs leading-relaxed">
                             Start categorizing catalog uploads by configuring a new stream playlist using the creation module.
                         </p>
                     </div>
                 )}
 
                 {/* --- COLLECTIONS CARD GRID --- */}
-                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6 animate-in fade-in duration-300">
+                {/* Gap values corrected for horizontal stability at 375px boundaries */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 sm:gap-6 animate-in fade-in duration-300 w-full box-border">
                     {playlists.map((pl) => (
                         <div
                             key={pl._id}
                             onClick={() => navigate(`/playlist/${pl._id}`)}
-                            className="group flex flex-col cursor-pointer rounded-2xl border border-slate-900 bg-slate-900/20 backdrop-blur-md p-4 transition-all duration-300 hover:border-indigo-500/30 hover:bg-slate-900/40 hover:shadow-xl hover:shadow-indigo-500/5 hover:-translate-y-1.5 shadow-md"
+                            className="group flex flex-col cursor-pointer rounded-2xl border border-slate-900 bg-slate-900/20 backdrop-blur-md p-3.5 transition-all duration-300 hover:border-indigo-500/30 hover:bg-slate-900/40 hover:shadow-xl hover:shadow-indigo-500/5 sm:hover:-translate-y-1.5 shadow-md w-full box-border"
                         >
-                            {/* physical physical-style cover stack */}
-                            <div className="aspect-video bg-slate-950 rounded-xl mb-4.5 flex items-center justify-center relative overflow-hidden border border-slate-900">
-                                <ListVideo className="w-8 h-8 text-slate-500 group-hover:text-indigo-400 group-hover:scale-105 transition-all duration-300" />
+                            {/* physical-style cover stack */}
+                            <div className="aspect-video bg-slate-950 rounded-xl mb-3 flex items-center justify-center relative overflow-hidden border border-slate-900 w-full">
+                                <ListVideo className="w-8 h-8 text-slate-500 group-hover:text-indigo-400 group-hover:scale-105 transition-all duration-300 shrink-0" />
                                 
                                 {/* Monospace Glass Badging counter */}
-                                <div className="absolute bottom-3 right-3 bg-slate-950/70 backdrop-blur-md px-2.5 py-0.5 rounded-md text-[9px] font-bold text-slate-300 font-mono border border-slate-800/80 shadow-md">
+                                <div className="absolute bottom-2 right-2 bg-slate-950/70 backdrop-blur-md px-2 py-0.5 rounded-md text-[9px] font-bold text-slate-300 font-mono border border-slate-800/80 shadow-md">
                                     {pl.videos?.length || 0} Streams
                                 </div>
                             </div>
                             
-                            <div className="px-1 min-w-0 flex-1 flex flex-col justify-between space-y-1">
-                                <h3 className="font-semibold text-xs text-slate-100 truncate group-hover:text-indigo-400 transition-colors">
+                            <div className="px-0.5 min-w-0 flex-1 flex flex-col justify-between space-y-1 w-full">
+                                <h3 className="font-semibold text-xs sm:text-sm text-slate-100 truncate group-hover:text-indigo-400 transition-colors w-full">
                                     {pl.name}
                                 </h3>
                                 <p className="text-slate-500 text-[11px] leading-relaxed line-clamp-2 min-h-10">
@@ -145,30 +163,30 @@ const Playlist = () => {
 
             {/* --- CREATE COLLECTION MODAL DIALOG --- */}
             {showCreateModal && (
-                <div className="fixed inset-0 bg-slate-950/80 flex items-center justify-center z-50 p-4 backdrop-blur-md">
-                    <div className="bg-slate-950 border border-slate-800/80 w-full max-w-md rounded-2xl p-6 shadow-2xl relative animate-in fade-in zoom-in-95 duration-200">
+                <div className="fixed inset-0 bg-slate-950/80 flex items-center justify-center z-50 p-3 xs:p-4 backdrop-blur-md">
+                    <div className="bg-slate-950 border border-slate-800/80 w-full max-w-md rounded-2xl p-5 xs:p-6 shadow-2xl relative animate-in fade-in zoom-in-95 duration-200 box-border overflow-hidden">
                         
                         {/* Close Action */}
                         <button 
                             onClick={() => setShowCreateModal(false)}
-                            className="absolute right-6 top-6 p-1.5 bg-slate-900 border border-slate-800 rounded-xl text-slate-400 hover:text-slate-200 transition-all"
+                            className="absolute right-4 top-4 p-1.5 bg-slate-900 border border-slate-800 rounded-xl text-slate-400 hover:text-slate-200 transition-all outline-none"
                         >
                             <X className="w-4 h-4" />
                         </button>
 
-                        <h2 className="text-sm font-bold text-slate-100 tracking-wider uppercase mb-6 flex items-center gap-2.5">
-                            <div className="p-2 bg-indigo-500/10 border border-indigo-500/20 rounded-xl text-indigo-400">
+                        <h2 className="text-sm font-bold text-slate-100 tracking-wider uppercase mb-5 flex items-center gap-2.5">
+                            <div className="p-1.5 bg-indigo-500/10 border border-indigo-500/20 rounded-xl text-indigo-400 shrink-0">
                                 <FolderPlus className="w-4 h-4" />
                             </div>
                             New Collection
                         </h2>
 
-                        <form onSubmit={handleCreatePlaylist} className="space-y-4">
+                        <form onSubmit={handleCreatePlaylist} className="space-y-4 w-full">
                             
                             {/* Name Input */}
-                            <div className="space-y-1.5">
+                            <div className="space-y-1.5 w-full">
                                 <label className="text-[10px] font-bold text-slate-400 tracking-wider uppercase ml-0.5">Playlist Title</label>
-                                <div className="relative group">
+                                <div className="relative group w-full">
                                     <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-600 group-hover:text-slate-400 transition-colors pointer-events-none">
                                         <Sparkles className="w-4 h-4" />
                                     </span>
@@ -178,17 +196,17 @@ const Playlist = () => {
                                         value={newPlaylistData.name}
                                         onChange={(e) => setNewPlaylistData({ ...newPlaylistData, name: e.target.value })}
                                         placeholder="e.g. My Favorite Streams"
-                                        className="w-full bg-slate-950 border border-slate-850 rounded-xl py-3 pl-10 pr-4 text-xs text-slate-100 placeholder-slate-550 transition-all duration-300
-                                            focus:outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/25 focus:bg-slate-900/60"
+                                        className="w-full bg-slate-950 border border-slate-850 rounded-xl py-2.5 pl-10 pr-4 text-xs text-slate-100 placeholder-slate-600 transition-all duration-300
+                                            focus:outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/25 focus:bg-slate-900/60 box-border"
                                     />
                                 </div>
                             </div>
 
                             {/* Description textarea */}
-                            <div className="space-y-1.5">
+                            <div className="space-y-1.5 w-full">
                                 <label className="text-[10px] font-bold text-slate-400 tracking-wider uppercase ml-0.5">Description</label>
-                                <div className="relative group">
-                                    <span className="absolute top-3.5 left-3.5 flex text-slate-600 group-hover:text-slate-400 transition-colors pointer-events-none">
+                                <div className="relative group w-full">
+                                    <span className="absolute top-3 left-3.5 flex text-slate-600 group-hover:text-slate-400 transition-colors pointer-events-none">
                                         <FileText className="w-4 h-4" />
                                     </span>
                                     <textarea
@@ -196,18 +214,18 @@ const Playlist = () => {
                                         onChange={(e) => setNewPlaylistData({ ...newPlaylistData, description: e.target.value })}
                                         placeholder="What type of streams are curated here?"
                                         rows="3"
-                                        className="w-full bg-slate-950 border border-slate-850 rounded-xl py-3 pl-10 pr-4 text-xs text-slate-100 placeholder-slate-550 transition-all duration-300 resize-none
-                                            focus:outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/25 focus:bg-slate-900/60 h-24"
+                                        className="w-full bg-slate-950 border border-slate-850 rounded-xl py-2.5 pl-10 pr-4 text-xs text-slate-100 placeholder-slate-600 transition-all duration-300 resize-none
+                                            focus:outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/25 focus:bg-slate-900/60 h-20 box-border"
                                     />
                                 </div>
                             </div>
 
                             {/* Action Operations */}
-                            <div className="flex gap-3 pt-3">
+                            <div className="flex gap-2.5 pt-1.5 w-full">
                                 <button
                                     type="button"
                                     onClick={() => setShowCreateModal(false)}
-                                    className="flex-1 py-3 rounded-xl border border-slate-800 text-slate-400 hover:text-slate-200 hover:bg-slate-900 text-xs font-semibold transition-all"
+                                    className="flex-1 py-2.5 rounded-xl border border-slate-800 text-slate-400 hover:text-slate-200 hover:bg-slate-900 text-xs font-semibold transition-all outline-none"
                                 >
                                     Cancel
                                 </button>
@@ -215,9 +233,9 @@ const Playlist = () => {
                                 <button
                                     type="submit"
                                     disabled={loading}
-                                    className="relative flex-1 group overflow-hidden rounded-xl py-3 text-xs font-semibold text-white transition-all duration-300 active:scale-[0.98] disabled:opacity-50"
+                                    className="relative flex-1 group overflow-hidden rounded-xl py-2.5 text-xs font-semibold text-white transition-all duration-300 active:scale-[0.97] disabled:opacity-50 outline-none"
                                 >
-                                    <span className="absolute inset-0 w-full h-full bg-linear-to-r from-indigo-500 to-purple-600 transition-all duration-300 group-hover:opacity-90 animate-pulse" />
+                                    <span className="absolute inset-0 w-full h-full bg-linear-to-r from-indigo-500 to-purple-600 transition-all duration-300 group-hover:opacity-90" />
                                     <span className="relative flex items-center justify-center">
                                         {loading ? "Compiling..." : "Build Archive"}
                                     </span>
