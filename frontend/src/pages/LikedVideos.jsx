@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import apiClient from "../api/apiConfig";
 import { useNavigate } from "react-router-dom";
-import { ThumbsUp } from "lucide-react";
+import { ThumbsUp, Eye, Sparkles } from "lucide-react";
 
 const LikedVideos = () => {
     const [likedVideos, setLikedVideos] = useState([]);
@@ -24,36 +24,99 @@ const LikedVideos = () => {
         fetchLikedVideos();
     }, [])
 
-    if (loading) return <div className="text-white text-center mt-20">Loading Liked Videos...</div>;
+    if (loading) {
+        return (
+            <div className="w-full min-h-screen bg-slate-950 p-4 md:p-8 space-y-8">
+                {/* Header Skeleton */}
+                <div className="flex items-center gap-3 animate-pulse">
+                    <div className="w-10 h-10 rounded-xl bg-slate-900 border border-slate-800" />
+                    <div className="h-6 bg-slate-900 rounded w-48" />
+                </div>
+                {/* Video Grid Skeletons */}
+                <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                    {Array.from({ length: 6 }).map((_, idx) => (
+                        <div key={idx} className="space-y-4 rounded-2xl border border-slate-900 bg-slate-900/10 p-4 animate-pulse">
+                            <div className="aspect-video bg-slate-900/80 rounded-xl w-full" />
+                            <div className="space-y-2 py-1">
+                                <div className="h-4 bg-slate-900/80 rounded w-5/6" />
+                                <div className="h-3 bg-slate-900/80 rounded w-1/2" />
+                            </div>
+                        </div>
+                    ))}
+                </div>
+            </div>
+        );
+    }
 
     return (
-        <div className="min-h-screen bg-slate-900 text-white p-4 md:p-8">
-            <div className="max-w-6xl mx-auto">
-                <h1 className="text-2xl font-bold mb-8 flex items-center gap-3">
-                    <ThumbsUp className="text-blue-500" /> Liked Videos
+        <div className="min-h-screen bg-slate-950 text-slate-100 p-4 md:p-8 relative overflow-hidden font-sans selection:bg-indigo-500/30">
+
+            {/* Ambient Background Glow */}
+            <div className="absolute top-0 right-1/4 w-1004h-100indigo-500/5 rounded-full blur-[110px] pointer-events-none z-0" />
+
+            <div className="max-w-6xl mx-auto relative z-10 space-y-8">
+
+                {/* --- HEADER BLOCK --- */}
+                <h1 className="text-xl font-bold tracking-tight text-slate-100 flex items-center gap-3">
+                    <div className="inline-flex items-center justify-center w-10 h-10 rounded-xl bg-indigo-500/10 border border-indigo-500/20 text-indigo-400 shadow-inner">
+                        <ThumbsUp className="w-4.5 h-4.5" />
+                    </div>
+                    Liked Streams
                 </h1>
 
+                {/* --- CONTENT AREA --- */}
                 {likedVideos.length === 0 ? (
-                    <div className="text-center text-slate-500 mt-20">No liked videos yet.</div>
+                    <div className="flex flex-col items-center justify-center text-center py-32 rounded-2xl border border-dashed border-slate-800/60 bg-slate-900/10 backdrop-blur-sm max-w-xl mx-auto">
+                        <div className="w-11 h-11 rounded-xl bg-slate-950 border border-slate-900 flex items-center justify-center mb-4 text-slate-500">
+                            <ThumbsUp className="w-5 h-5" />
+                        </div>
+                        <h3 className="text-xs font-semibold text-slate-300">No Liked Streams Found</h3>
+                        <p className="text-[11px] text-slate-500 mt-2 max-w-xs leading-relaxed">
+                            Discover high-quality creators and like their videos to compile them in your personal reference list.
+                        </p>
+                    </div>
                 ) : (
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-6 animate-in fade-in duration-300">
                         {likedVideos.map((item) => (
                             <div
                                 key={item._id}
-                                // Agar item.video undefined hai toh navigate nahi karega
                                 onClick={() => item.video?._id && navigate(`/video/${item.video._id}`)}
-                                className="cursor-pointer group"
+                                className="group flex flex-col cursor-pointer rounded-2xl border border-slate-900 bg-slate-900/20 backdrop-blur-md overflow-hidden transition-all duration-300 hover:border-indigo-500/30 hover:bg-slate-900/40 hover:shadow-xl hover:shadow-indigo-500/5 hover:-translate-y-1"
                             >
-                                <img
-                                    src={item.video?.thumbnail || "https://via.placeholder.com/160x90"}
-                                    className="aspect-video rounded-xl object-cover border border-slate-800 group-hover:border-blue-500 transition"
-                                />
-                                <h3 className="font-semibold mt-2 line-clamp-2">
-                                    {item.video?.title || "Deleted Video"}
-                                </h3>
-                                <p className="text-xs text-slate-400 mt-1">
-                                    {item.video?.ownerDetails?.fullName || "Unknown Creator"}
-                                </p>
+                                {/* Thumbnail Frame */}
+                                <div className="relative aspect-video bg-slate-950 border-b border-slate-900/80 overflow-hidden">
+                                    <img
+                                        src={item.video?.thumbnail || "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=640"}
+                                        alt={item.video?.title}
+                                        className="w-full h-full object-cover transition-transform duration-500 group-hover:scale-105"
+                                    />
+
+                                    {/* Overlay on hover */}
+                                    <div className="absolute inset-0 bg-linear-to-t from-slate-950/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
+                                </div>
+
+                                {/* Title & Creator Information */}
+                                <div className="p-4 flex flex-col flex-1">
+                                    <h3 className="font-semibold text-xs text-slate-100 leading-snug line-clamp-2 transition-colors group-hover:text-indigo-400">
+                                        {item.video?.title || "Deleted Video"}
+                                    </h3>
+                                    <div className="flex items-center gap-2 mt-3 pt-3 border-t border-slate-900/60">
+                                        <div className="w-8 h-8 rounded-full bg-slate-800 border border-slate-700 overflow-hidden shrink-0">
+                                            <img
+                                                src={
+                                                    item.video?.ownerDetails?.avatar ||
+                                                    `https://api.dicebear.com/7.x/initials/svg?seed=${item.video?.ownerDetails?.fullName}`
+                                                }
+                                                alt={item.video?.ownerDetails?.fullName || "Creator"}
+                                                className="w-full h-full object-cover"
+                                            />
+                                        </div>
+                                        <p className="text-[11px] text-slate-400 font-medium truncate">
+                                            {item.video?.ownerDetails?.fullName || "Unknown Creator"}
+                                        </p>
+                                    </div>
+                                </div>
+
                             </div>
                         ))}
                     </div>

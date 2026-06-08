@@ -1,14 +1,17 @@
 import React, { useState } from "react";
-import apiClient from "../api/apiConfig";
 import { Link, useNavigate } from "react-router-dom";
+import { Mail, Lock, ArrowRight, User, Sparkles } from "lucide-react";
+import apiClient from "../api/apiConfig";
 
 const Login = () => {
     const [loginId, setLoginId] = useState("");
     const [password, setPassword] = useState("");
+    const [isSubmitting, setIsSubmitting] = useState(false);
     const navigate = useNavigate();
 
     const handleLogin = async (e) => {
         e.preventDefault();
+        setIsSubmitting(true);
         try {
             const response = await apiClient.post("/users/login", {
                 emailOrUsername: loginId.trim(), 
@@ -17,34 +20,116 @@ const Login = () => {
 
             console.log("response.data: ", response.data);
 
-            // Response validation check
             if (response.data?.success || response.data) {
                 navigate("/");
             }
         } catch (error) {
             console.error("Login error full details:", error.response?.data || error.message);
             alert(error.response?.data?.message || "Login failed! Check Email or Password");
+        } finally {
+            setIsSubmitting(false);
         }
     };
 
     return (
-        <div className="flex items-center justify-center min-h-screen bg-slate-900 text-white p-4">
-            <form onSubmit={handleLogin} className="bg-slate-800 p-8 rounded-xl border border-slate-700 w-full max-w-md">
-                <h2 className="text-2xl font-bold mb-6 text-center text-blue-500">Welcome Back</h2>
+        <div className="relative min-h-screen bg-slate-950 text-slate-100 flex items-center justify-center p-4 overflow-hidden font-sans selection:bg-indigo-500/30">
+            
+            {/* 1. Global Visual Layers (Background Grid & Ambient Lighting) */}
+            <div className="absolute inset-0 bg-grid-pattern opacity-[0.12] pointer-events-none z-0" />
+            <div className="absolute top-1/4 left-1/4 w-112.5 h-112.5 bg-indigo-500/10 rounded-full blur-[110px] pointer-events-none z-0 animate-pulse" style={{ animationDuration: '6s' }} />
+            <div className="absolute bottom-1/4 right-1/4 w-112.5 h-112.5 bg-purple-500/10 rounded-full blur-[110px] pointer-events-none z-0 animate-pulse" style={{ animationDuration: '8s' }} />
 
-                <input type="text" placeholder="Email Or Username" className="w-full p-3 mb-4 bg-slate-900 border border-slate-700 rounded focus:border-blue-500 outline-none"
-                    onChange={(e) => setLoginId(e.target.value)} required />
+            {/* 2. Glassmorphic Auth Form Wrapper */}
+            <div className="relative w-full max-w-md bg-slate-900/40 backdrop-blur-xl border border-slate-800/80 rounded-2xl shadow-2xl p-8 z-10 overflow-hidden">
+                
+                {/* Visual Top Highlight Accent Strip */}
+                <div className="absolute top-0 inset-x-0 h-0.5 bg-linear-to-r from-indigo-500 via-purple-500 to-pink-500" />
 
-                <input type="Password" placeholder="Password" className="w-full p-3 mb-6 bg-slate-900 border border-slate-700 rounded focus:border-blue-500 outline-none"
-                    onChange={(e) => setPassword(e.target.value)} required />
+                {/* Header branding & intro */}
+                <div className="text-center mb-8">
+                    <div className="inline-flex items-center justify-center w-11 h-11 rounded-xl bg-slate-950 border border-slate-800/80 text-indigo-400 mb-4 shadow-inner">
+                        <Sparkles className="w-5 h-5" />
+                    </div>
+                    <h2 className="text-2xl font-bold tracking-tight text-slate-100">Login to Your Account</h2>
+                    <p className="text-xs text-slate-400 mt-1.5">Enter your credentials to access your account</p>
+                </div>
 
-                <button className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-3 rounded transition duration-200">Login</button>
+                {/* Authentication Form */}
+                <form onSubmit={handleLogin} className="space-y-5">
+                    
+                    {/* Identifier Input */}
+                    <div className="space-y-1.5">
+                        <label className="text-[10px] font-bold text-slate-400 tracking-wider uppercase">Email or Username</label>
+                        <div className="relative group">
+                            <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-500 group-hover:text-slate-400 transition-colors pointer-events-none">
+                                <User className="w-4 h-4" />
+                            </span>
+                            <input 
+                                type="text" 
+                                placeholder="Enter your email or username" 
+                                className="w-full bg-slate-950/45 border border-slate-800/80 rounded-xl py-3 pl-10 pr-4 text-xs text-slate-100 placeholder-slate-500 transition-all duration-300
+                                    focus:outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/25 focus:bg-slate-900/60
+                                    hover:border-slate-700"
+                                onChange={(e) => setLoginId(e.target.value)} 
+                                required 
+                            />
+                        </div>
+                    </div>
 
-                <p className="mt-4 text-center text-slate-400">Don't have an account? <Link to="/register" className="text-blue-500">Register</Link></p>
-            </form>
+                    {/* Password Input */}
+                    <div className="space-y-1.5">
+                        <div className="flex justify-between items-center">
+                            <label className="text-[10px] font-bold text-slate-400 tracking-wider uppercase">Password</label>
+                            <Link to="/change-password" className="text-[10px] font-medium text-slate-500 hover:text-indigo-400 transition-colors">
+                                Forgot password?
+                            </Link>
+                        </div>
+                        <div className="relative group">
+                            <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-500 group-hover:text-slate-400 transition-colors pointer-events-none">
+                                <Lock className="w-4 h-4" />
+                            </span>
+                            <input 
+                                type="password" 
+                                placeholder="••••••••••••" 
+                                className="w-full bg-slate-950/45 border border-slate-800/80 rounded-xl py-3 pl-10 pr-4 text-xs text-slate-100 placeholder-slate-500 transition-all duration-300
+                                    focus:outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/25 focus:bg-slate-900/60
+                                    hover:border-slate-700"
+                                onChange={(e) => setPassword(e.target.value)} 
+                                required 
+                            />
+                        </div>
+                    </div>
+
+                    {/* Submit Button */}
+                    <button 
+                        type="submit"
+                        disabled={isSubmitting}
+                        className="relative w-full group overflow-hidden rounded-xl py-3 text-xs font-semibold text-white transition-all duration-300 active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none mt-2"
+                    >
+                        {/* Background gradient layout */}
+                        <span className="absolute inset-0 w-full h-full bg-linear-to-r from-indigo-500 via-purple-500 to-pink-500 transition-all duration-300 group-hover:opacity-95" />
+                        <span className="absolute -inset-px rounded-xl bg-linear-to-r from-indigo-400 to-pink-400 opacity-0 group-hover:opacity-40 blur-md transition-opacity duration-300" />
+                        
+                        <span className="relative flex items-center justify-center gap-1.5">
+                            {isSubmitting ? "Authenticating session..." : "Continue to Dashboard"}
+                            {!isSubmitting && <ArrowRight className="w-4 h-4 transition-transform duration-300 group-hover:translate-x-0.5" />}
+                        </span>
+                    </button>
+                </form>
+
+                {/* Redirect Footer block */}
+                <div className="mt-8 pt-6 border-t border-slate-900/80 text-center">
+                    <p className="text-xs text-slate-400">
+                        Don't have a creator account?{" "}
+                        <Link to="/register" className="font-semibold text-indigo-400 hover:text-indigo-300 transition-colors ml-1">
+                            Register now
+                        </Link>
+                    </p>
+                </div>
+
+            </div>
         </div>
-    )
-
+    );
 };
 
 export default Login;
