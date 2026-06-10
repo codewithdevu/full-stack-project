@@ -1,7 +1,25 @@
 import React, { useEffect, useState } from "react";
 import { useSearchParams, useNavigate } from "react-router-dom";
-import { Search, Compass, Eye, Sparkles, Play, Video, Calendar } from "lucide-react";
+import { Search, Compass, Eye, Play, Video, Calendar, Clock } from "lucide-react";
 import apiClient from "../api/apiConfig.js";
+
+const formatTimeAgo = (dateString) => {
+    if (!dateString) return "";
+    const now = new Date();
+    const past = new Date(dateString);
+    const diffMs = now - past;
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMins / 60);
+    const diffDays = Math.floor(diffHours / 24);
+
+    if (diffMins < 1) return "Just now";
+    if (diffMins < 60) return `${diffMins}m ago`;
+    if (diffHours < 24) return `${diffHours}h ago`;
+    if (diffDays === 1) return "Yesterday";
+    if (diffDays < 30) return `${diffDays}d ago`;
+
+    return past.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+};
 
 const SearchResults = () => {
     const [searchParams] = useSearchParams();
@@ -29,7 +47,6 @@ const SearchResults = () => {
 
     if (loading) {
         return (
-            // Added 'pt-20' padding adjustments to balance navbar overlaps inside skeleton frames
             <div className="w-full min-h-screen bg-slate-950 pt-20 px-4 md:p-8 space-y-6 sm:space-y-8 flex flex-col justify-start">
                 <div className="max-w-6xl mx-auto w-full space-y-6">
                     <div className="flex items-center gap-3 animate-pulse">
@@ -57,8 +74,11 @@ const SearchResults = () => {
         );
     }
 
+    // 🟢 SECURE FILTER BLOCK: 
+    // Exclude any binary items stuck in cloud queues from general search outputs
+    const processedVideos = videos.filter(video => !video.status || video.status === "processed");
+
     return (
-        // Added standard pt-20 layout padding shifts and pb-24 clearance bars for 375px viewports
         <div className="min-h-screen bg-slate-950 text-slate-100 pt-20 px-3.5 sm:px-6 lg:px-8 pb-24 lg:pb-12 relative overflow-x-hidden font-sans select-none selection:bg-indigo-500/30">
             
             {/* Ambient Lighting Spots */}
@@ -71,13 +91,13 @@ const SearchResults = () => {
                 <div className="border-b border-slate-900 pb-4 sm:pb-5 pl-0.5">
                     <h2 className="text-xs sm:text-sm font-bold text-slate-400 tracking-wider uppercase flex items-center gap-2.5 max-w-full overflow-hidden">
                         <span className="h-4 w-1 bg-linear-to-b from-indigo-500 via-purple-500 to-pink-500 rounded-full shrink-0" />
-                        <span className="truncate">Results for:</span> 
+                        <span className="shrink-0">Results for:</span> 
                         <span className="text-indigo-400 lowercase font-mono truncate max-w-37.5 xs:max-w-none">"{query}"</span>
                     </h2>
                 </div>
 
                 {/* --- SEARCH RESULTS VIEW SHELF --- */}
-                {videos.length === 0 ? (
+                {processedVideos.length === 0 ? (
                     <div className="flex flex-col items-center justify-center text-center py-20 px-4 rounded-2xl border border-dashed border-slate-800/60 bg-slate-900/10 backdrop-blur-sm max-w-md mx-auto mt-6">
                         <div className="w-10 h-10 rounded-xl bg-slate-950 border border-slate-900 flex items-center justify-center mb-3.5 text-slate-500 shadow-inner">
                             <Search className="w-4.5 h-4.5" />
@@ -88,9 +108,8 @@ const SearchResults = () => {
                         </p>
                     </div>
                 ) : (
-                    // Balanced gaps to completely eliminate boundary leaks
                     <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 sm:gap-6 animate-in fade-in duration-300 w-full box-border">
-                        {videos.map((video) => (
+                        {processedVideos.map((video) => (
                             <div 
                                 key={video._id} 
                                 onClick={() => navigate(`/video/${video._id}`)}
@@ -124,12 +143,17 @@ const SearchResults = () => {
                                             {video.title}
                                         </h3>
                                         <p className="text-[11px] text-slate-400 font-semibold truncate pt-0.5">
-                                            {video.owner?.fullName || video.owner?.username}
+                                            {video.owner?.fullName || video.owner?.username || "Velocity Creator"}
                                         </p>
-                                        <div className="flex items-center gap-1.5 text-[10px] text-slate-500 font-semibold font-mono">
-                                            <span className="flex items-center gap-1">
+                                        <div className="flex items-center gap-2.5 text-[10px] text-slate-500 font-semibold font-mono flex-wrap">
+                                            <span className="flex items-center gap-1 shrink-0">
                                                 <Eye className="w-3 h-3 opacity-80 shrink-0" />
                                                 {video.views?.toLocaleString() || 0} views
+                                            </span>
+                                            <span className="text-slate-800 shrink-0">•</span>
+                                            <span className="flex items-center gap-1 shrink-0">
+                                                <Clock className="w-3 h-3 opacity-80 shrink-0" />
+                                                {formatTimeAgo(video.createdAt)}
                                             </span>
                                         </div>
                                     </div>

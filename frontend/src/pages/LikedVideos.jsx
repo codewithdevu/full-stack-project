@@ -1,7 +1,7 @@
 import React, { useEffect, useState } from "react";
 import apiClient from "../api/apiConfig";
 import { useNavigate } from "react-router-dom";
-import { ThumbsUp, Eye, Sparkles } from "lucide-react";
+import { ThumbsUp, Eye, Sparkles, Loader2 } from "lucide-react";
 
 const LikedVideos = () => {
     const [likedVideos, setLikedVideos] = useState([]);
@@ -13,7 +13,13 @@ const LikedVideos = () => {
             try {
                 setLoading(true);
                 const response = await apiClient.get(`/likes/videos`);
-                const validVideos = (response.data?.data || []).filter(item => item.video)
+                
+                // 🟢 Filter rules: Sirf unhi valid videos ko load karenge jo DB me hain aur processing state crash target nahi hain
+                const rawLikes = response.data?.data || [];
+                const validVideos = rawLikes.filter(item => 
+                    item && item.video && (!item.video.status || item.video.status === "processed")
+                );
+                
                 setLikedVideos(validVideos);
             } catch (error) {
                 console.error("Error fetching liked videos:", error);
@@ -26,7 +32,6 @@ const LikedVideos = () => {
 
     if (loading) {
         return (
-            // Added 'pt-20' and fixed padding rules to look consistent during loading state
             <div className="w-full min-h-screen bg-slate-950 pt-20 px-4 md:p-8 space-y-6 sm:space-y-8">
                 {/* Header Skeleton */}
                 <div className="flex items-center gap-3 animate-pulse">
@@ -50,7 +55,6 @@ const LikedVideos = () => {
     }
 
     return (
-        // Added 'pt-20' offset for sticky navbar safety and 'pb-24' for mobile bottom navigation clearance
         <div className="min-h-screen bg-slate-950 text-slate-100 pt-20 px-4 md:p-8 pb-24 lg:pb-12 relative overflow-x-hidden font-sans selection:bg-indigo-500/30">
 
             {/* Ambient Background Glow */}
@@ -78,49 +82,51 @@ const LikedVideos = () => {
                         </p>
                     </div>
                 ) : (
-                    // Gap optimization for 375px display blocks
                     <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-4 sm:gap-6 animate-in fade-in duration-300 w-full box-border">
-                        {likedVideos.map((item) => (
-                            <div
-                                key={item._id}
-                                onClick={() => item.video?._id && navigate(`/video/${item.video._id}`)}
-                                className="group flex flex-col cursor-pointer rounded-2xl border border-slate-900 bg-slate-900/20 backdrop-blur-md overflow-hidden transition-all duration-300 hover:border-indigo-500/30 hover:bg-slate-900/40 hover:shadow-xl hover:shadow-indigo-500/5 sm:hover:-translate-y-1 w-full box-border"
-                            >
-                                {/* Thumbnail Frame */}
-                                <div className="relative aspect-video bg-slate-950 border-b border-slate-900/80 overflow-hidden">
-                                    <img
-                                        src={item.video?.thumbnail || "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=640"}
-                                        alt={item.video?.title}
-                                        className="w-full h-full object-cover transition-transform duration-500 sm:group-hover:scale-105"
-                                        loading="lazy"
-                                    />
-                                    <div className="absolute inset-0 bg-linear-to-t from-slate-950/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
-                                </div>
+                        {likedVideos.map((item) => {
+                            if (!item || !item.video) return null;
+                            return (
+                                <div
+                                    key={item._id}
+                                    onClick={() => navigate(`/video/${item.video._id}`)}
+                                    className="group flex flex-col cursor-pointer rounded-2xl border border-slate-900 bg-slate-900/20 backdrop-blur-md overflow-hidden transition-all duration-300 hover:border-indigo-500/30 hover:bg-slate-900/40 hover:shadow-xl hover:shadow-indigo-500/5 sm:hover:-translate-y-1 w-full box-border"
+                                >
+                                    {/* Thumbnail Frame */}
+                                    <div className="relative aspect-video bg-slate-950 border-b border-slate-900/80 overflow-hidden">
+                                        <img
+                                            src={item.video.thumbnail}
+                                            alt={item.video.title}
+                                            className="w-full h-full object-cover transition-transform duration-500 sm:group-hover:scale-105"
+                                            loading="lazy"
+                                        />
+                                        <div className="absolute inset-0 bg-linear-to-t from-slate-950/60 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300 pointer-events-none" />
+                                    </div>
 
-                                {/* Title & Creator Information */}
-                                <div className="p-3.5 sm:p-4 flex flex-col flex-1 min-w-0">
-                                    <h3 className="font-semibold text-xs sm:text-sm text-slate-100 leading-snug line-clamp-2 transition-colors group-hover:text-indigo-400 min-h-8">
-                                        {item.video?.title || "Deleted Video"}
-                                    </h3>
-                                    <div className="flex items-center gap-2.5 mt-3 pt-2.5 border-t border-slate-900/60 w-full min-w-0">
-                                        <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-slate-800 border border-slate-700/80 overflow-hidden shrink-0">
-                                            <img
-                                                src={
-                                                    item.video?.ownerDetails?.avatar ||
-                                                    `https://api.dicebear.com/7.x/initials/svg?seed=${item.video?.ownerDetails?.fullName}`
-                                                }
-                                                alt={item.video?.ownerDetails?.fullName || "Creator"}
-                                                className="w-full h-full object-cover"
-                                            />
+                                    {/* Title & Creator Information */}
+                                    <div className="p-3.5 sm:p-4 flex flex-col flex-1 min-w-0">
+                                        <h3 className="font-semibold text-xs sm:text-sm text-slate-100 leading-snug line-clamp-2 transition-colors group-hover:text-indigo-400 min-h-8">
+                                            {item.video.title || "Untitled Video"}
+                                        </h3>
+                                        <div className="flex items-center gap-2.5 mt-3 pt-2.5 border-t border-slate-900/60 w-full min-w-0">
+                                            <div className="w-7 h-7 sm:w-8 sm:h-8 rounded-full bg-slate-900 border border-slate-700/80 overflow-hidden shrink-0">
+                                                <img
+                                                    src={
+                                                        item.video.ownerDetails?.avatar ||
+                                                        item.video.owner?.avatar ||
+                                                        `https://api.dicebear.com/7.x/initials/svg?seed=${item.video.ownerDetails?.username || "Channel"}`
+                                                    }
+                                                    alt="Creator"
+                                                    className="w-full h-full object-cover"
+                                                />
+                                            </div>
+                                            <p className="text-[11px] sm:text-xs text-slate-400 font-medium truncate flex-1 min-w-0">
+                                                {item.video.ownerDetails?.username || item.video.owner?.username || "Unknown Creator"}
+                                            </p>
                                         </div>
-                                        <p className="text-[11px] sm:text-xs text-slate-400 font-medium truncate flex-1 min-w-0">
-                                            {item.video?.ownerDetails?.fullName || "Unknown Creator"}
-                                        </p>
                                     </div>
                                 </div>
-
-                            </div>
-                        ))}
+                            );
+                        })}
                     </div>
                 )}
             </div>

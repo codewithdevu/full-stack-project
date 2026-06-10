@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
-import apiClient from "../api/apiConfig";
+import  apiClient  from "../api/apiConfig";
 import { useParams, useNavigate } from "react-router-dom";
-import { Trash2, Play, Clock, LayoutGrid, ListVideo, Edit2, X, FileText, Compass, Sparkles } from "lucide-react";
+import { Trash2, Play, Clock, LayoutGrid, ListVideo, Edit2, X, FileText, Compass, Sparkles, Loader2 } from "lucide-react";
 
 const PlaylistDetail = () => {
     const { playlistId } = useParams();
@@ -19,7 +19,16 @@ const PlaylistDetail = () => {
             try {
                 setLoading(true);
                 const response = await apiClient.get(`/playlist/${playlistId}`);
-                setPlaylist(response.data?.data);
+                
+                const rawPlaylist = response.data?.data;
+                if (rawPlaylist && Array.isArray(rawPlaylist.videosDetails)) {
+                    // 🟢 Filter rules: Adhuri transcode hone wali videos ko stream queue list se filterout kiya h
+                    rawPlaylist.videosDetails = rawPlaylist.videosDetails.filter(video =>
+                        video && (!video.status || video.status === "processed")
+                    );
+                }
+                
+                setPlaylist(rawPlaylist);
             } catch (error) {
                 console.error("Error fetching playlist videos:", error);
             } finally {
@@ -87,7 +96,7 @@ const PlaylistDetail = () => {
         return (
             <div className="w-full min-h-screen bg-slate-950 flex flex-col items-center justify-center p-4">
                 <div className="flex flex-col items-center gap-4 animate-pulse">
-                    <div className="w-10 h-10 rounded-xl bg-slate-900 border border-slate-800/85 flex items-center justify-center text-indigo-400 animate-spin">
+                    <div className="w-10 h-10 rounded-xl bg-slate-900/60 border border-slate-800/40 flex items-center justify-center text-indigo-400 animate-spin">
                         <Compass className="w-5 h-5" />
                     </div>
                     <span className="text-xs font-semibold text-slate-400 tracking-wider uppercase">Loading Collection Streams...</span>
@@ -113,7 +122,7 @@ const PlaylistDetail = () => {
     }
 
     return (
-        <div className="min-h-screen bg-slate-950 text-slate-100 pt-6 px-4 md:p-10 pb-24 lg:pb-12 relative z-10 overflow-x-hidden font-sans select-none selection:bg-indigo-500/30">
+        <div className="min-h-screen bg-slate-950 text-slate-100 pt-20 px-4 md:p-10 pb-24 lg:pb-12 relative z-10 overflow-x-hidden font-sans select-none selection:bg-indigo-500/30">
 
             {/* Ambient Background Lights */}
             <div className="absolute top-0 right-1/4 w-72 h-72 sm:w-100 sm:h-100 bg-indigo-500/5 rounded-full blur-[90px] sm:blur-[110px] pointer-events-none z-0" />
@@ -161,52 +170,53 @@ const PlaylistDetail = () => {
                 {/* --- 2. VIDEOS LIST CATALOG --- */}
                 <div className="space-y-3.5 w-full box-border">
                     {playlist.videosDetails?.length > 0 ? (
-                        playlist.videosDetails.map((video, index) => (
-                            <div
-                                key={video._id || index}
-                                className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 bg-slate-900/20 p-3 rounded-2xl border border-slate-900/80 group hover:border-indigo-500/20 hover:bg-slate-900/35 transition-all duration-300 shadow-sm w-full box-border overflow-hidden relative"
-                            >
-                                <div className="flex items-center gap-3 min-w-0 flex-1 w-full">
-                                    {/* Index Number */}
-                                    <span className="text-slate-500 text-xs font-bold text-center w-5 shrink-0 font-mono pl-0.5 sm:pl-1">{String(index + 1).padStart(2, '0')}</span>
+                        playlist.videosDetails.map((video, index) => {
+                            if (!video) return null;
+                            return (
+                                <div
+                                    key={video._id || index}
+                                    className="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 bg-slate-900/20 p-3 rounded-2xl border border-slate-900/80 group hover:border-indigo-500/20 hover:bg-slate-900/35 transition-all duration-300 shadow-sm w-full box-border overflow-hidden relative"
+                                >
+                                    <div className="flex items-center gap-3 min-w-0 flex-1 w-full">
+                                        <span className="text-slate-500 text-xs font-bold text-center w-5 shrink-0 font-mono pl-0.5 sm:pl-1">{String(index + 1).padStart(2, '0')}</span>
 
-                                    {/* Image Container */}
-                                    <div
-                                        className="relative w-28 xs:w-32 sm:w-36 md:w-44 aspect-video shrink-0 cursor-pointer rounded-xl overflow-hidden border border-slate-800/80 bg-slate-950"
-                                        onClick={() => navigate(`/video/${video._id}`)}
-                                    >
-                                        <img src={video.thumbnail} className="w-full h-full object-cover transition-transform duration-500 sm:group-hover:scale-105" alt="thumb" />
-                                        <div className="absolute inset-0 bg-slate-950/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300">
-                                            <div className="w-8 h-8 rounded-full bg-indigo-500/10 backdrop-blur-md border border-indigo-500/30 flex items-center justify-center text-indigo-400 shadow-md">
-                                                <Play className="w-4 h-4 fill-indigo-400/30 translate-x-0.5" />
+                                        <div
+                                            className="relative w-28 xs:w-32 sm:w-36 md:w-44 aspect-video shrink-0 cursor-pointer rounded-xl overflow-hidden border border-slate-800/80 bg-slate-950"
+                                            onClick={() => navigate(`/video/${video._id}`)}
+                                        >
+                                            <img src={video.thumbnail} className="w-full h-full object-cover transition-transform duration-500 sm:group-hover:scale-105" alt="thumb" />
+                                            <div className="absolute inset-0 bg-slate-950/40 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-all duration-300">
+                                                <div className="w-8 h-8 rounded-full bg-indigo-500/10 backdrop-blur-md border border-indigo-500/30 flex items-center justify-center text-indigo-400 shadow-md">
+                                                    <Play className="w-4 h-4 fill-indigo-400/30 translate-x-0.5" />
+                                                </div>
                                             </div>
+                                        </div>
+
+                                        <div className="flex-1 min-w-0 px-1">
+                                            <h3
+                                                className="font-semibold text-xs sm:text-sm text-slate-200 line-clamp-2 cursor-pointer hover:text-indigo-400 transition-colors leading-tight"
+                                                onClick={() => navigate(`/video/${video._id}`)}
+                                            >
+                                                {video.title || "Untitled Video"}
+                                            </h3>
+                                            <p className="text-[10px] text-slate-500 mt-1 font-semibold truncate">
+                                                @{video.userDetails?.username || video.ownerDetails?.username || video.owner?.username || "creator"}
+                                            </p>
                                         </div>
                                     </div>
 
-                                    {/* Video Titles details */}
-                                    <div className="flex-1 min-w-0 px-1">
-                                        <h3
-                                            className="font-semibold text-xs sm:text-sm text-slate-200 line-clamp-2 cursor-pointer hover:text-indigo-400 transition-colors leading-tight"
-                                            onClick={() => navigate(`/video/${video._id}`)}
+                                    <div className="flex justify-end pt-2 sm:pt-0 border-t border-slate-900/60 sm:border-none w-full sm:w-auto shrink-0">
+                                        <button
+                                            onClick={() => handleRemoveVideo(video._id)}
+                                            className="p-2 sm:p-2.5 text-slate-500 hover:text-rose-400 hover:bg-rose-500/5 rounded-xl border border-slate-800/40 sm:border-transparent hover:border-rose-500/10 transition-colors shrink-0 w-full sm:w-auto flex justify-center items-center gap-1.5 text-xs sm:text-sm font-semibold"
                                         >
-                                            {video.title}
-                                        </h3>
-                                        <p className="text-[10px] text-slate-500 mt-1 font-semibold truncate">@{video.userDetails?.username || "creator"}</p>
+                                            <Trash2 className="w-4 h-4 shrink-0" />
+                                            <span className="sm:hidden text-slate-400 font-medium">Remove Stream</span>
+                                        </button>
                                     </div>
                                 </div>
-
-                                {/* Remove Video action */}
-                                <div className="flex justify-end pt-2 sm:pt-0 border-t border-slate-900/60 sm:border-none w-full sm:w-auto shrink-0">
-                                    <button
-                                        onClick={() => handleRemoveVideo(video._id)}
-                                        className="p-2 sm:p-2.5 text-slate-500 hover:text-rose-400 hover:bg-rose-500/5 rounded-xl border border-slate-800/40 sm:border-transparent hover:border-rose-500/10 transition-colors shrink-0 w-full sm:w-auto flex justify-center items-center gap-1.5 text-xs sm:text-sm font-semibold"
-                                    >
-                                        <Trash2 className="w-4 h-4 shrink-0" />
-                                        <span className="sm:hidden text-slate-400 font-medium">Remove Stream</span>
-                                    </button>
-                                </div>
-                            </div>
-                        ))
+                            );
+                        })
                     ) : (
                         <div className="flex flex-col items-center justify-center text-center py-20 px-4 rounded-2xl border border-dashed border-slate-800/60 bg-slate-900/10 backdrop-blur-sm max-w-md mx-auto mt-4">
                             <Compass className="w-8 h-8 text-slate-600 mb-3.5 shadow-inner" />
@@ -216,8 +226,7 @@ const PlaylistDetail = () => {
                     )}
                 </div>
 
-                {/* --- 3. BOTTOM OPERATIONS CONTROLS ROW FIXED --- */}
-                {/* 🛠️ FIXED STRETCH: Changed flex-col xs:flex-row to absolute sm:flex-row with max-w-fit limits for desktop window viewports */}
+                {/* --- 3. BOTTOM OPERATIONS CONTROLS ROW --- */}
                 <div className="flex flex-col sm:flex-row items-center justify-center gap-3 pt-4 w-full border-t border-slate-900/80 box-border">
                     <button
                         onClick={() => {

@@ -1,13 +1,14 @@
 import axios from "axios";
 
-// 1. 🟢 THE FIX: BASE_URL ko explicitly define karo taaki interceptor crash na ho
+// 1. 🟢 PRODUCTION-READY BASE_URL LOGIC:
+// Local machine par chalte waqt direct local port ko hit karega bina kisi proxy choke ke
 const BASE_URL = window.location.hostname === "localhost" 
     ? "http://localhost:3000/api/v1" 
-    : "/api/v1";
+    : "https://mytube-backend.onrender.com/api/v1"; // 👈 Render par deploy karne ke baad apna actual backend link yahan daal dena!
 
 const apiClient = axios.create({
     baseURL: BASE_URL,
-    withCredentials: true, // Cookies read/write lock open karega
+    withCredentials: true, // Cookies read/write cross-origin support active karega
 });
 
 let navigateRef = null;
@@ -44,9 +45,9 @@ apiClient.interceptors.response.use(
             try {
                 console.log("Refreshing token securely...");
                 
-                // 🟢 THE FIX: Ab dynamic BASE_URL bina crash kiye sahi Vercel URL hit karega
+                // secure baseline call directly hitting core instance axios structure
                 await axios.post(`${BASE_URL}/users/refresh-token`, {}, {
-                    withCredentials: true // Vercel par cookie send karne ke liye zaroori h
+                    withCredentials: true // Cookies delivery support over proxy network
                 });
                 
                 console.log("Token refreshed successfully! Retrying original request...");
@@ -62,4 +63,7 @@ apiClient.interceptors.response.use(
     }
 );
 
+// 🟢 PERMANENT SAFEGUARD: Default aur Named dono exports ek sath de do!
+// Isse humare kisi bhi page me curly braces { apiClient } lga ho ya na lga ho, crash nahi hoga!
+export { apiClient };
 export default apiClient;

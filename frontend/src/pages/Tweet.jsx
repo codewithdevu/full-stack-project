@@ -45,9 +45,9 @@ const Tweet = () => {
     };
 
     useEffect(() => {
-        const fetchUserDataAndTweets = async () => {
+        const fetchOriginalNodes = async () => {
             try {
-                fetchTweets();
+                await fetchTweets();
                 const userResponse = await apiClient.get("/users/current-user");
                 if (userResponse.data?.data) {
                     setCurrentUser(userResponse.data.data);
@@ -56,7 +56,7 @@ const Tweet = () => {
                 console.error("Error fetching user details:", error);
             }
         };
-        fetchUserDataAndTweets();
+        fetchOriginalNodes();
     }, []);
 
     const handleCreateTweet = async (e) => {
@@ -67,7 +67,7 @@ const Tweet = () => {
             const response = await apiClient.post("/tweets", { content: newTweet });
             if (response.data?.success) {
                 setNewTweet("");
-                fetchTweets();
+                await fetchTweets();
             }
         } catch (error) {
             console.error("Error creating tweet:", error);
@@ -85,7 +85,7 @@ const Tweet = () => {
             const response = await apiClient.patch(`/tweets/${editingTweet._id}`, { content: editingTweet.content });
             if (response.data?.success) {
                 setEditingTweet(null);
-                fetchTweets();
+                await fetchTweets();
             }
         } catch (error) {
             console.error("Error updating tweet:", error);
@@ -99,7 +99,7 @@ const Tweet = () => {
         try {
             setLoading(true);
             await apiClient.delete(`/tweets/${id}`);
-            fetchTweets();
+            await fetchTweets();
         } catch (error) {
             console.error("Error deleting tweet:", error);
         } finally {
@@ -125,7 +125,7 @@ const Tweet = () => {
             await apiClient.post(`/likes/toggle/t/${tweetId}`);
         } catch (error) {
             console.error("Error toggling tweet like:", error);
-            fetchTweets();
+            await fetchTweets();
         }
     };
 
@@ -143,7 +143,6 @@ const Tweet = () => {
     }
 
     return (
-        // Added standard 'pt-20' and 'overflow-x-hidden' for layout isolation on 375px screens
         <div className="min-h-screen bg-slate-950 text-slate-100 pt-20 px-3.5 sm:p-8 pb-24 lg:pb-12 select-none relative overflow-x-hidden font-sans selection:bg-indigo-500/30">
             
             <style dangerouslySetInnerHTML={{ __html: `
@@ -181,7 +180,6 @@ const Tweet = () => {
                 <div className="relative group animate-tweet-fade w-full box-border">
                     <div className="absolute -inset-0.5 bg-linear-to-r from-indigo-500/30 to-purple-500/30 rounded-2xl blur-md opacity-25 group-hover:opacity-40 transition duration-500 pointer-events-none" />
 
-                    {/* Adjusted outer padding to p-4 for ultra-clean spacing at 375px */}
                     <div className="relative bg-slate-900/40 backdrop-blur-xl border border-slate-800/80 p-4 sm:p-5 rounded-2xl flex gap-3 sm:gap-4 shadow-[0_20px_50px_rgba(0,0,0,0.75)] overflow-hidden w-full box-border">
                         
                         {/* Author Avatar */}
@@ -222,108 +220,105 @@ const Tweet = () => {
                 {/* --- 2. TWEETS LIST FEED CONTAINER --- */}
                 <div className="space-y-3.5 sm:space-y-4 w-full box-border">
                     {tweets.length > 0 ? (
-                        tweets.map((tweet) => (
-                            <div 
-                                key={tweet._id} 
-                                className="bg-slate-900/35 border border-slate-900/80 p-4 sm:p-5 rounded-2xl flex gap-3 sm:gap-4 animate-tweet-fade transition-all duration-300 hover:border-slate-800/80 shadow-[0_15px_40px_rgba(0,0,0,0.6)] w-full box-border overflow-hidden"
-                            >
-                                {/* Creator Avatar */}
-                                <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full overflow-hidden bg-slate-950 border border-slate-800 shrink-0">
-                                    <img 
-                                        src={tweet.owner?.avatar || `https://api.dicebear.com/7.x/initials/svg?seed=${tweet.owner?.username}`} 
-                                        alt="owner avatar" 
-                                        className="w-full h-full object-cover"
-                                    />
-                                </div>
+                        tweets.map((tweet) => {
+                            if (!tweet) return null;
+                            const isOwner = currentUser && (currentUser._id === tweet.owner?._id || currentUser._id === tweet.owner);
+                            return (
+                                <div 
+                                    key={tweet._id} 
+                                    className="bg-slate-900/35 border border-slate-900/80 p-4 sm:p-5 rounded-2xl flex gap-3 sm:gap-4 animate-tweet-fade transition-all duration-300 hover:border-slate-800/80 shadow-[0_15px_40px_rgba(0,0,0,0.6)] w-full box-border overflow-hidden"
+                                >
+                                    {/* Creator Avatar */}
+                                    <div className="w-9 h-9 sm:w-10 sm:h-10 rounded-full overflow-hidden bg-slate-950 border border-slate-800 shrink-0">
+                                        <img 
+                                            src={tweet.owner?.avatar || `https://api.dicebear.com/7.x/initials/svg?seed=${tweet.owner?.username || "user"}`} 
+                                            alt="owner avatar" 
+                                            className="w-full h-full object-cover"
+                                        />
+                                    </div>
 
-                                <div className="flex-1 min-w-0 w-full">
-                                    {/* Inline Editing Form View */}
-                                    {editingTweet?._id === tweet._id ? (
-                                        <form onSubmit={handleUpdateTweet} className="space-y-3 w-full">
-                                            <textarea
-                                                value={editingTweet.content}
-                                                onChange={(e) => setEditingTweet({ ...editingTweet, content: e.target.value })}
-                                                className="w-full bg-slate-950 border border-slate-800/80 rounded-xl p-3 text-xs sm:text-sm text-slate-100 outline-none focus:border-indigo-500/50 transition-all focus:ring-1 focus:ring-indigo-500/25 resize-none h-20"
-                                                required
-                                            />
-                                            <div className="flex gap-2 justify-end">
-                                                <button 
-                                                    type="button" 
-                                                    onClick={() => setEditingTweet(null)} 
-                                                    className="px-3 py-1.5 rounded-xl border border-slate-800 text-[10px] font-bold uppercase tracking-wider text-slate-400 hover:bg-slate-900 transition-colors"
-                                                >
-                                                    Cancel
-                                                </button>
-                                                <button 
-                                                    type="submit" 
-                                                    className="px-4 py-1.5 bg-indigo-600 hover:bg-indigo-500 rounded-xl text-[10px] font-bold uppercase tracking-wider text-white transition-colors"
-                                                >
-                                                    Save
-                                                </button>
-                                            </div>
-                                        </form>
-                                    ) : (
-                                        /* Static Tweet Row View */
-                                        <div className="space-y-2.5 w-full min-w-0">
-                                            <div className="flex justify-between items-start gap-2 w-full">
-                                                <div className="min-w-0 flex-1">
-                                                    {/* Truncated Username safety to avoid breaking 375px width configurations */}
-                                                    <span className="font-semibold text-xs sm:text-sm text-slate-100 hover:text-indigo-400 transition-colors cursor-pointer block truncate">
-                                                        @{tweet.owner?.username || "user"}
-                                                    </span>
-                                                    <span className="text-[10px] text-slate-500 font-semibold font-mono mt-0.5 block">
-                                                        {formatTimeAgo(tweet.createdAt)}
-                                                    </span>
+                                    <div className="flex-1 min-w-0 w-full">
+                                        {editingTweet?._id === tweet._id ? (
+                                            <form onSubmit={handleUpdateTweet} className="space-y-3 w-full">
+                                                <textarea
+                                                    value={editingTweet.content}
+                                                    onChange={(e) => setEditingTweet({ ...editingTweet, content: e.target.value })}
+                                                    className="w-full bg-slate-950 border border-slate-800/80 rounded-xl p-3 text-xs sm:text-sm text-slate-100 outline-none focus:border-indigo-500/50 transition-all focus:ring-1 focus:ring-indigo-500/25 resize-none h-20"
+                                                    required
+                                                />
+                                                <div className="flex gap-2 justify-end">
+                                                    <button 
+                                                        type="button" 
+                                                        onClick={() => setEditingTweet(null)} 
+                                                        className="px-3 py-1.5 rounded-xl border border-slate-800 text-[10px] font-bold uppercase tracking-wider text-slate-400 hover:bg-slate-900 transition-colors"
+                                                    >
+                                                        Cancel
+                                                    </button>
+                                                    <button 
+                                                        type="submit" 
+                                                        className="px-4 py-1.5 bg-indigo-600 hover:bg-indigo-500 rounded-xl text-[10px] font-bold uppercase tracking-wider text-white transition-colors"
+                                                    >
+                                                        Save
+                                                    </button>
                                                 </div>
-
-                                                {/* Author Actions */}
-                                                {(currentUser?._id === tweet.owner?._id || currentUser?._id === tweet.owner) && (
-                                                    <div className="flex items-center gap-1 shrink-0 bg-slate-950/60 px-1.5 py-0.5 rounded-xl border border-slate-850">
-                                                        <button 
-                                                            onClick={() => setEditingTweet(tweet)} 
-                                                            className="p-1 text-slate-500 hover:text-indigo-400 transition-colors"
-                                                            title="Edit Tweet"
-                                                        >
-                                                            <Edit className="w-3.5 h-3.5" />
-                                                        </button>
-                                                        <button 
-                                                            onClick={() => handleDeleteTweet(tweet._id)} 
-                                                            className="p-1 text-slate-500 hover:text-rose-400 transition-colors"
-                                                            title="Delete Tweet"
-                                                        >
-                                                            <Trash2 className="w-3.5 h-3.5" />
-                                                        </button>
+                                            </form>
+                                        ) : (
+                                            <div className="space-y-2.5 w-full min-w-0">
+                                                <div className="flex justify-between items-start gap-2 w-full">
+                                                    <div className="min-w-0 flex-1">
+                                                        <span className="font-semibold text-xs sm:text-sm text-slate-100 hover:text-indigo-400 transition-colors cursor-pointer block truncate">
+                                                            @{tweet.owner?.username || "user"}
+                                                        </span>
+                                                        <span className="text-[10px] text-slate-500 font-semibold font-mono mt-0.5 block">
+                                                            {formatTimeAgo(tweet.createdAt)}
+                                                        </span>
                                                     </div>
-                                                )}
+
+                                                    {isOwner && (
+                                                        <div className="flex items-center gap-1 shrink-0 bg-slate-950/60 px-1.5 py-0.5 rounded-xl border border-slate-850">
+                                                            <button 
+                                                                onClick={() => setEditingTweet(tweet)} 
+                                                                className="p-1 text-slate-500 hover:text-indigo-400 transition-colors"
+                                                                title="Edit Tweet"
+                                                            >
+                                                                <Edit className="w-3.5 h-3.5" />
+                                                            </button>
+                                                            <button 
+                                                                onClick={() => handleDeleteTweet(tweet._id)} 
+                                                                className="p-1 text-slate-500 hover:text-rose-400 transition-colors"
+                                                                title="Delete Tweet"
+                                                            >
+                                                                <Trash2 className="w-3.5 h-3.5" />
+                                                            </button>
+                                                        </div>
+                                                    )}
+                                                </div>
+                                                
+                                                <p className="text-slate-200 text-xs sm:text-sm leading-relaxed wrap-break-word whitespace-pre-wrap font-medium pr-1">
+                                                    {tweet.content}
+                                                </p>
+                                                
+                                                <div className="flex items-center gap-6 pt-2.5 border-t border-slate-900/60">
+                                                    <button
+                                                        onClick={() => handleToggleTweetLike(tweet._id)}
+                                                        className={`flex items-center gap-1.5 text-xs font-semibold transition-all duration-150 group ${
+                                                            tweet.isLiked ? "text-rose-500" : "text-slate-500 hover:text-rose-500"
+                                                        }`}
+                                                    >
+                                                        <Heart
+                                                            className="w-3.5 h-3.5 group-active:scale-125 transition-transform duration-150"
+                                                            fill={tweet.isLiked ? "currentColor" : "none"}
+                                                        />
+                                                        <span className="text-slate-400 text-[10px] font-mono">{tweet.likesCount || 0}</span>
+                                                    </button>
+                                                </div>
                                             </div>
-                                            
-                                            {/* Text Content - Added break-words to ensure no layout overflows */}
-                                            <p className="text-slate-200 text-xs sm:text-sm leading-relaxed wrap-break-word whitespace-pre-wrap font-medium pr-1">
-                                                {tweet.content}
-                                            </p>
-                                            
-                                            {/* Responsive Like Row */}
-                                            <div className="flex items-center gap-6 pt-2.5 border-t border-slate-900/60">
-                                                <button
-                                                    onClick={() => handleToggleTweetLike(tweet._id)}
-                                                    className={`flex items-center gap-1.5 text-xs font-semibold transition-all duration-150 group ${
-                                                        tweet.isLiked ? "text-rose-500" : "text-slate-500 hover:text-rose-500"
-                                                    }`}
-                                                >
-                                                    <Heart
-                                                        className="w-3.5 h-3.5 group-active:scale-125 transition-transform duration-150"
-                                                        fill={tweet.isLiked ? "currentColor" : "none"}
-                                                    />
-                                                    <span className="text-slate-400 text-[10px] font-mono">{tweet.likesCount || 0}</span>
-                                                </button>
-                                            </div>
-                                        </div>
-                                    )}
+                                        )}
+                                    </div>
                                 </div>
-                            </div>
-                        ))
+                            );
+                        })
                     ) : (
-                        /* Empty Feed State */
                         <div className="flex flex-col items-center justify-center text-center py-20 px-4 rounded-2xl border border-dashed border-slate-800/60 bg-slate-900/10 backdrop-blur-sm max-w-md mx-auto">
                             <div className="w-10 h-10 rounded-xl bg-slate-950 border border-slate-900 flex items-center justify-center mb-3.5 text-slate-500 shadow-inner">
                                 <MessageSquare className="w-4.5 h-4.5" />

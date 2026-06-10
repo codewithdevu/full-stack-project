@@ -1,10 +1,11 @@
-import React, { useState } from "react";
+import React, { useState, useEffect } from "react";
 import apiClient from "../api/apiConfig";
 import { useNavigate } from "react-router-dom";
 import { User, Lock, Camera, Image as ImageIcon, Loader2, Sparkles, UploadCloud, ShieldCheck } from "lucide-react";
 
 const Settings = () => {
     const [loading, setLoading] = useState(false);
+    const navigate = useNavigate();
 
     // States for different Forms
     const [accountData, setAccountData] = useState({
@@ -18,9 +19,34 @@ const Settings = () => {
     const [avatar, setAvatar] = useState(null);
     const [coverImage, setCoverImage] = useState(null);
 
+    // 🟢 NEW: Component mount hote hi current information pre-load aur fill karein
+    useEffect(() => {
+        const fetchCurrentProfileMeta = async () => {
+            try {
+                setLoading(true);
+                const response = await apiClient.get("/users/current-user");
+                if (response.data?.data) {
+                    setAccountData({
+                        fullName: response.data.data.fullName || "",
+                        email: response.data.data.email || "",
+                    });
+                }
+            } catch (error) {
+                console.error("Error fetching settings profile node:", error);
+                if (error.response?.status === 401) navigate("/login");
+            } finally {
+                setLoading(false);
+            }
+        };
+        fetchCurrentProfileMeta();
+    }, [navigate]);
+
     // 1. Update Personal Info
     const handleUpdateAccount = async (e) => {
         e.preventDefault();
+        if (!accountData.fullName.trim() || !accountData.email.trim()) {
+            return alert("Fields cannot be empty!");
+        }
         try {
             setLoading(true);
             await apiClient.patch("/users/update-account", accountData);
@@ -80,7 +106,8 @@ const Settings = () => {
     };
 
     return (
-        <div className="max-w-4xl mx-auto space-y-6 sm:space-y-8 pt-6 px-4 md:p-8 pb-24 lg:pb-12 select-none relative overflow-x-hidden font-sans box-border w-full">
+        // ⚠️ FIXED: Updated top padding to pt-20 for navbar protection symmetry
+        <div className="max-w-4xl mx-auto space-y-6 sm:space-y-8 pt-20 px-4 md:p-8 pb-24 lg:pb-12 select-none relative overflow-x-hidden font-sans box-border w-full">
             
             {/* Ambient Lighting Backdrops */}
             <div className="absolute top-0 right-1/4 w-72 h-72 sm:w-87.5 sm:h-87.5 bg-indigo-500/5 rounded-full blur-[90px] sm:blur-[100px] pointer-events-none z-0" />
@@ -107,6 +134,7 @@ const Settings = () => {
                         <div className="relative group cursor-pointer border-2 border-dashed border-slate-800 hover:border-indigo-500/30 rounded-xl p-4 sm:p-5 text-center transition-colors bg-slate-950/20 w-full box-border overflow-hidden">
                             <input 
                                 type="file" 
+                                accept="image/*"
                                 onChange={(e) => setAvatar(e.target.files[0])} 
                                 className="absolute inset-0 opacity-0 z-10 cursor-pointer w-full h-full" 
                             />
@@ -122,8 +150,9 @@ const Settings = () => {
                     <button 
                         onClick={() => handleUpdateImages('avatar')} 
                         disabled={loading} 
-                        className="w-full mt-4 sm:mt-5 bg-slate-950 border border-slate-800 text-slate-300 hover:text-white hover:border-slate-700 hover:bg-slate-900 rounded-xl py-2.5 text-xs font-semibold transition-all duration-300 active:scale-[0.97] disabled:opacity-50 outline-none"
+                        className="w-full mt-4 sm:mt-5 bg-slate-950 border border-slate-800 text-slate-300 hover:text-white hover:border-slate-700 hover:bg-slate-900 rounded-xl py-2.5 text-xs font-semibold transition-all duration-300 active:scale-[0.97] disabled:opacity-50 outline-none flex items-center justify-center gap-1.5"
                     >
+                        {loading && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
                         Upload Avatar File
                     </button>
                 </div>
@@ -138,6 +167,7 @@ const Settings = () => {
                         <div className="relative group cursor-pointer border-2 border-dashed border-slate-800 hover:border-purple-500/30 rounded-xl p-4 sm:p-5 text-center transition-colors bg-slate-950/20 w-full box-border overflow-hidden">
                             <input 
                                 type="file" 
+                                accept="image/*"
                                 onChange={(e) => setCoverImage(e.target.files[0])} 
                                 className="absolute inset-0 opacity-0 z-10 cursor-pointer w-full h-full" 
                             />
@@ -153,8 +183,9 @@ const Settings = () => {
                     <button 
                         onClick={() => handleUpdateImages('coverImage')} 
                         disabled={loading} 
-                        className="w-full mt-4 sm:mt-5 bg-slate-950 border border-slate-800 text-slate-300 hover:text-white hover:border-slate-700 hover:bg-slate-900 rounded-xl py-2.5 text-xs font-semibold transition-all duration-300 active:scale-[0.97] disabled:opacity-50 outline-none"
+                        className="w-full mt-4 sm:mt-5 bg-slate-950 border border-slate-800 text-slate-300 hover:text-white hover:border-slate-700 hover:bg-slate-900 rounded-xl py-2.5 text-xs font-semibold transition-all duration-300 active:scale-[0.97] disabled:opacity-50 outline-none flex items-center justify-center gap-1.5"
                     >
+                        {loading && <Loader2 className="w-3.5 h-3.5 animate-spin" />}
                         Upload Cover File
                     </button>
                 </div>
@@ -179,10 +210,10 @@ const Settings = () => {
                             <input 
                                 type="text" 
                                 placeholder="Enter full name" 
-                                className="w-full bg-slate-950 border border-slate-850 rounded-xl py-2.5 pl-10 pr-4 text-xs text-slate-100 placeholder-slate-600 transition-all duration-300
-                                    focus:outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/25 focus:bg-slate-900/60 box-border" 
+                                className="w-full bg-slate-950 border border-slate-850 rounded-xl py-2.5 pl-10 pr-4 text-xs text-slate-100 placeholder-slate-600 transition-all duration-300 focus:outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/25 focus:bg-slate-900/60 box-border" 
                                 value={accountData.fullName} 
                                 onChange={(e) => setAccountData({...accountData, fullName: e.target.value})} 
+                                required
                             />
                         </div>
                     </div>
@@ -197,21 +228,20 @@ const Settings = () => {
                             <input 
                                 type="email" 
                                 placeholder="name@example.com" 
-                                className="w-full bg-slate-950 border border-slate-850 rounded-xl py-2.5 pl-10 pr-4 text-xs text-slate-100 placeholder-slate-600 transition-all duration-300
-                                    focus:outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/25 focus:bg-slate-900/60 box-border" 
+                                className="w-full bg-slate-950 border border-slate-850 rounded-xl py-2.5 pl-10 pr-4 text-xs text-slate-100 placeholder-slate-600 transition-all duration-300 focus:outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/25 focus:bg-slate-900/60 box-border" 
                                 value={accountData.email} 
                                 onChange={(e) => setAccountData({...accountData, email: e.target.value})} 
+                                required
                             />
                         </div>
                     </div>
                 </div>
 
-                {/* 🛠️ FIXED STRETCH BLOCK (PERSONAL INFO BUTTON) */}
                 <div className="pt-1 w-full flex sm:justify-start">
                     <button 
                         type="submit" 
                         disabled={loading}
-                        className="relative w-full sm:w-44 group overflow-hidden rounded-xl py-2.5 text-xs font-bold transition-all duration-300 active:scale-[0.97] disabled:opacity-50 outline-none"
+                        className="relative w-full group overflow-hidden rounded-xl py-2.5 text-xs font-bold transition-all duration-300 active:scale-[0.97] disabled:opacity-50 outline-none"
                     >
                         <span className="absolute inset-0 w-full h-full bg-linear-to-r from-indigo-500 via-purple-500 to-pink-500 transition-all duration-300 group-hover:opacity-90" />
                         <span className="relative flex items-center justify-center uppercase tracking-wider text-white whitespace-nowrap">
@@ -241,8 +271,7 @@ const Settings = () => {
                                 type="password" 
                                 placeholder="••••••••••••" 
                                 required 
-                                className="w-full bg-slate-950 border border-slate-850 rounded-xl py-2.5 pl-10 pr-4 text-xs text-slate-100 placeholder-slate-600 transition-all duration-300
-                                    focus:outline-none focus:border-rose-500/50 focus:ring-1 focus:ring-rose-500/25 focus:bg-slate-900/60 box-border" 
+                                className="w-full bg-slate-950 border border-slate-850 rounded-xl py-2.5 pl-10 pr-4 text-xs text-slate-100 placeholder-slate-600 transition-all duration-300 focus:outline-none focus:border-rose-500/50 focus:ring-1 focus:ring-rose-500/25 focus:bg-slate-900/60 box-border" 
                                 value={passwords.oldPassword} 
                                 onChange={(e) => setPasswords({...passwords, oldPassword: e.target.value})} 
                             />
@@ -260,8 +289,7 @@ const Settings = () => {
                                 type="password" 
                                 placeholder="••••••••••••" 
                                 required 
-                                className="w-full bg-slate-950 border border-slate-850 rounded-xl py-2.5 pl-10 pr-4 text-xs text-slate-100 placeholder-slate-600 transition-all duration-300
-                                    focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/25 focus:bg-slate-900/60 box-border" 
+                                className="w-full bg-slate-950 border border-slate-850 rounded-xl py-2.5 pl-10 pr-4 text-xs text-slate-100 placeholder-slate-600 transition-all duration-300 focus:outline-none focus:border-emerald-500/50 focus:ring-1 focus:ring-emerald-500/25 focus:bg-slate-900/60 box-border" 
                                 value={passwords.newPassword} 
                                 onChange={(e) => setPasswords({...passwords, newPassword: e.target.value})} 
                             />
@@ -269,7 +297,6 @@ const Settings = () => {
                     </div>
                 </div>
 
-                {/* 🛠️ FIXED STRETCH BLOCK (PASSWORD BUTTON) */}
                 <div className="pt-1 w-full flex sm:justify-start">
                     <button 
                         type="submit" 
