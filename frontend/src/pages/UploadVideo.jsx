@@ -1,10 +1,15 @@
 import React, { useState, useEffect } from "react";
 import { X, Upload, Film, Image as ImageIcon, Sparkles, AlertCircle, RefreshCw } from "lucide-react";
+import { useNavigate } from "react-router-dom"; // 🟢 INITIAL ROUTER BINDING
 import apiClient from "../api/apiConfig";
 
 const MAX_TITLE_CHARS = 100;
 const MAX_DESC_CHARS = 5000;
-const MAX_FILE_SIZE = 4.5 * 1024 * 1024; // 4.5MB Vercel limit
+
+// LOCAL DEPLOYMENT BARRIER CAP: 
+// 100MB limits set for full local docker containers streaming tests!
+const MAX_VIDEO_SIZE_ALLOCATION = 100 * 1024 * 1024; // 100 Megabytes max video size
+const MAX_THUMB_SIZE_ALLOCATION = 5 * 1024 * 1024;   // 5 Megabytes max thumbnail banner
 
 const UploadVideo = ({ isOpen, onClose }) => {
     const [formData, setFormData] = useState({ title: '', description: '' });
@@ -23,6 +28,8 @@ const UploadVideo = ({ isOpen, onClose }) => {
     const [uploading, setUploading] = useState(false);
     const [uploadProgress, setUploadProgress] = useState(0);
     const [showCloseConfirm, setShowCloseConfirm] = useState(false);
+
+    const navigate = useNavigate(); // 🟢 NAVIGATOR INSTANCE INITIALIZATION
 
     useEffect(() => {
         return () => {
@@ -58,10 +65,13 @@ const UploadVideo = ({ isOpen, onClose }) => {
 
     const handleVideoSelect = (file) => {
         if (!file) return;
-        if (file.size > MAX_FILE_SIZE) {
-            alert(`File exceeds Vercel's 4.5MB limit. Selected file is ${(file.size / (1024 * 1024)).toFixed(2)}MB.`);
+
+        // Validation against 100MB local barrier
+        if (file.size > MAX_VIDEO_SIZE_ALLOCATION) {
+            alert(`File size exceeds local limit! Core file is ${(file.size / (1024 * 1024)).toFixed(2)}MB. Max limit is 100MB.`);
             return;
         }
+
         if (videoPreview) URL.revokeObjectURL(videoPreview);
         setVideoFile(file);
         setVideoPreview(URL.createObjectURL(file));
@@ -74,6 +84,12 @@ const UploadVideo = ({ isOpen, onClose }) => {
 
     const handleThumbSelect = (file) => {
         if (!file) return;
+
+        if (file.size > MAX_THUMB_SIZE_ALLOCATION) {
+            alert(`Thumbnail image is too large! Max allowed local limit is 5MB.`);
+            return;
+        }
+
         if (thumbPreview) URL.revokeObjectURL(thumbPreview);
         setThumbnail(file);
         setThumbPreview(URL.createObjectURL(file));
@@ -83,31 +99,51 @@ const UploadVideo = ({ isOpen, onClose }) => {
         e.preventDefault();
         if (uploading) return;
 
+        if (!videoFile || !thumbnail) {
+            return alert("Please select both a video file and a thumbnail artwork!");
+        }
+
         setUploading(true);
-        setUploadProgress(15);
+        setUploadProgress(0); 
 
         const data = new FormData();
-        data.append("title", formData.title);
-        data.append("description", formData.description);
-        if (videoFile) data.append("videoFile", videoFile);
-        if (thumbnail) data.append("thumbnail", thumbnail);
+        data.append("title", formData.title.trim());
+        data.append("description", formData.description.trim());
+        data.append("videoFile", videoFile);
+        data.append("thumbnail", thumbnail);
 
         try {
-            const progressInterval = setInterval(() => {
-                setUploadProgress(prev => (prev >= 90 ? 90 : prev + 10));
-            }, 600);
-
-            await apiClient.post("/videos", data, {
-                headers: { "Content-Type": "multipart/form-data" }
+            // Core Axios execution endpoint hit
+            const response = await apiClient.post("/videos/publish", data, {
+                onUploadProgress: (progressEvent) => {
+                    const { loaded, total } = progressEvent;
+                    if (total) {
+                        const percentage = Math.round((loaded * 100) / total);
+                        setUploadProgress(percentage);
+                    }
+                }
             });
 
-            clearInterval(progressInterval);
             setUploadProgress(100);
-            alert("Video Uploaded Successfully! 🚀");
+            
+            // 🟢 REDIRECT LOCK PATTERNS: Safe check across standard wrappers object
+            const newVideoId = response.data?.data?._id || response.data?._id;
+
             handleResetAndClose(); 
+
+            if (newVideoId) {
+                console.log(`Navigating to cinema details loop: /video/${newVideoId}`);
+                // 🟢 NAVIGATE TRIGGER: Redirects directly to active streaming engine page template
+                navigate(`/video/${newVideoId}`);
+            } else {
+                console.warn("Could not parse dynamic entity ID parameter. Sending to dashboard layout.");
+                navigate("/dashboard");
+            }
+            
         } catch (error) {
             console.error("Error uploading video:", error);
-            alert("Upload failed. The server rejected the request payload.");
+            const serverErrorMessage = error.response?.data?.message || "The server rejected the request payload.";
+            alert(`Upload failed: ${serverErrorMessage}`);
             setUploadProgress(0);
         } finally {
             setUploading(false);
@@ -136,8 +172,6 @@ const UploadVideo = ({ isOpen, onClose }) => {
 
             {/* COMPACT MODAL CONTAINER */}
             <div className="relative w-full max-w-md my-auto group animate-modal-entry box-border">
-                
-                {/* Back-glow outline effect */}
                 <div className="absolute -inset-0.5 bg-linear-to-r from-indigo-500/20 to-purple-500/20 rounded-2xl blur-md opacity-25 pointer-events-none" />
 
                 {/* MAIN MODAL BOX */}
@@ -172,7 +206,6 @@ const UploadVideo = ({ isOpen, onClose }) => {
                     <form onSubmit={handleSubmit} className="relative z-10 flex-1 p-4 xs:p-5 space-y-4 overflow-y-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden w-full box-border">
                         
                         {/* --- RESPONSIVE MEDIA DROPZONE GRID --- */}
-                        {/* Changed from fixed grid-cols-2 to column on mobile, row on sm screens */}
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 w-full min-w-0">
                             
                             {/* Left Column: Video Dropzone */}
@@ -195,7 +228,6 @@ const UploadVideo = ({ isOpen, onClose }) => {
                                         <p className="text-[10px] font-bold text-slate-200">Select Video File</p>
                                     </div>
                                 ) : (
-                                    /* Video selected chip */
                                     <div className="flex flex-col justify-between bg-slate-900/40 border border-slate-900 p-2.5 rounded-xl text-[10px] h-24 min-w-0 w-full box-border">
                                         <div className="flex items-center gap-1.5 min-w-0 w-full">
                                             <Film className="w-3.5 h-3.5 text-indigo-400 shrink-0" />
@@ -235,7 +267,6 @@ const UploadVideo = ({ isOpen, onClose }) => {
                                         <p className="text-[10px] font-bold text-slate-200">Select Thumbnail</p>
                                     </div>
                                 ) : (
-                                    /* Thumbnail selected chip */
                                     <div className="flex flex-col justify-between bg-slate-900/40 border border-slate-900 p-2.5 rounded-xl text-[10px] h-24 min-w-0 w-full box-border">
                                         <div className="flex items-center gap-1.5 min-w-0 w-full">
                                             <ImageIcon className="w-3.5 h-3.5 text-purple-400 shrink-0" />
@@ -257,10 +288,8 @@ const UploadVideo = ({ isOpen, onClose }) => {
 
                         </div>
 
-                        {/* --- 3. INPUT FIELDS --- */}
+                        {/* --- INPUT FIELDS --- */}
                         <div className="space-y-3.5 w-full box-border">
-                            
-                            {/* Video Title */}
                             <div className="space-y-1 w-full">
                                 <div className="flex justify-between items-center text-[10px] text-slate-500 font-bold px-0.5 uppercase tracking-wider">
                                     <span>Video Title</span>
@@ -275,7 +304,6 @@ const UploadVideo = ({ isOpen, onClose }) => {
                                 />
                             </div>
 
-                            {/* Description Box */}
                             <div className="space-y-1 w-full">
                                 <div className="flex justify-between items-center text-[10px] text-slate-500 font-bold px-0.5 uppercase tracking-wider">
                                     <span>Description</span>
@@ -289,10 +317,9 @@ const UploadVideo = ({ isOpen, onClose }) => {
                                     onChange={(e) => setFormData({...formData, description: e.target.value})}
                                 />
                             </div>
-
                         </div>
 
-                        {/* --- 4. SUBMIT ACTION BUTTON --- */}
+                        {/* --- SUBMIT ACTION BUTTON --- */}
                         <div className="pt-1.5 w-full">
                             <button 
                                 type="submit" 
@@ -334,7 +361,7 @@ const UploadVideo = ({ isOpen, onClose }) => {
                             </div>
                             <div className="flex gap-3 pt-2">
                                 <button
-                                    onClick={() => setShowCloseConfirm(false)}
+                                    onClick={() => { setShowCloseConfirm(false); }}
                                     className="flex-1 py-2 rounded-xl bg-slate-900 border border-slate-800 text-slate-400 hover:text-slate-200 transition-colors text-xs font-semibold"
                                 >
                                     Cancel

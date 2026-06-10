@@ -1,7 +1,33 @@
-import React, { useState, useEffect } from "react";
-import apiClient from "../api/apiConfig.js";
+import React, { useState, useEffect, useRef } from "react";
+import apiClient from "../api/apiConfig";
 import { useParams, useNavigate } from "react-router-dom";
-import { ThumbsUp, Share2, MessageSquare, Trash2, Pencil, ListPlus, Play, Users, Clock, Compass, Sparkles, X, Heart } from "lucide-react";
+import Hls from "hls.js"; 
+import { ThumbsUp, Share2, MessageSquare, Trash2, Pencil, ListPlus, Play, Pause, Volume2, VolumeX, Maximize, Users, Clock, Compass, Sparkles, X, Heart, Video, Settings2, Cpu, RefreshCw } from "lucide-react";
+
+const formatTimeAgo = (dateString) => {
+    if (!dateString) return "";
+    const now = new Date();
+    const past = new Date(dateString);
+    const diffMs = now - past;
+    const diffMins = Math.floor(diffMs / 60000);
+    const diffHours = Math.floor(diffMins / 60);
+    const diffDays = Math.floor(diffHours / 24);
+
+    if (diffMins < 1) return "Just now";
+    if (diffMins < 60) return `${diffMins}m ago`;
+    if (diffHours < 24) return `${diffHours}h ago`;
+    if (diffDays === 1) return "Yesterday";
+    if (diffDays < 30) return `${diffDays}d ago`;
+
+    return past.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' });
+};
+
+const formatDuration = (secs) => {
+    if (isNaN(secs)) return "0:00";
+    const minutes = Math.floor(secs / 60);
+    const seconds = Math.floor(secs % 60).toString().padStart(2, "0");
+    return `${minutes}:${seconds}`;
+};
 
 const VideoDetail = () => {
     const { videoId } = useParams();
@@ -15,37 +41,222 @@ const VideoDetail = () => {
     const [userPlaylists, setUserPlaylists] = useState([]);
     const [editingCommentId, setEditingCommentId] = useState(null);
     const [editedContent, setEditedContent] = useState("");
+
+    // RESOLUTION SELECTOR STATES
+    const [resolutions, setResolutions] = useState([]); 
+    const [currentResIndex, setCurrentResIndex] = useState(-1); 
+    const [showResMenu, setShowResMenu] = useState(false);
+
+    // CUSTOM CONTROLS LAYER STATES
+    const [isPlaying, setIsPlaying] = useState(false);
+    const [currentTime, setCurrentTime] = useState(0);
+    const [totalDuration, setTotalDuration] = useState(0);
+    const [volume, setVolume] = useState(1);
+    const [isMuted, setIsMuted] = useState(false);
+
+    const videoRef = useRef(null); 
+    const playerContainerRef = useRef(null);
+    const hlsInstanceRef = useRef(null); 
     const navigate = useNavigate();
 
-    const fetchVideoDetail = async () => {
-        try {
-            setLoading(true)
-            const videoResponse = await apiClient.get(`/videos/${videoId}`);
+    // Dynamic state detection helpers
+    const isTranscoding = video?.status === "pending" || video?.status === "processing";
+    const isFailed = video?.status === "failed";
 
-            console.log("video data: ", videoResponse);
+    const fetchVideoDetail = async (showLoader = true) => {
+        try {
+            if (showLoader) setLoading(true);
+            const videoResponse = await apiClient.get(`/videos/${videoId}`);
 
             if (videoResponse.data?.data) {
                 setVideo(videoResponse.data.data);
             }
 
-            const commentResponse = await apiClient.get(`/comments/${videoId}`)
-
+            const commentResponse = await apiClient.get(`/comments/${videoId}`);
             if (commentResponse.data?.data) {
                 setComment(commentResponse.data.data.docs || commentResponse.data.data);
             }
         } catch (error) {
-            console.error("Error: fetching video details: ", error);
+            console.error("Error fetching video details: ", error);
         } finally {
-            setLoading(false);
+            if (showLoader) setLoading(false);
         }
     };
 
+    // 🟢 FIXED AUTOMATIC BACKGROUND POLLING HOOK
+    // React engine lifecycle bounds safe key updates logic injection
     useEffect(() => {
-        if (videoId) {
-            fetchVideoDetail();
-            fetchRecommendations();
+        if (!videoId) return;
+
+        // Initial full page skeletons loading layer fetch
+        fetchVideoDetail(true);
+        fetchRecommendations();
+
+        // Independent database checking interval ticker loop
+        const statusPollInterval = setInterval(() => {
+            setVideo((currentVideoState) => {
+                // Background quiet async processing tracking values check
+                if (!currentVideoState || currentVideoState.status === "pending" || currentVideoState.status === "processing") {
+                    console.log("Polling background pipeline active transcoder nodes...");
+                    apiClient.get(`/videos/${videoId}`)
+                        .then((res) => {
+                            if (res.data?.data) {
+                                setVideo(res.data.data);
+                            }
+                        })
+                        .catch(err => console.error("Silent sync background fetch check dropped: ", err));
+                }
+                return currentVideoState; 
+            });
+        }, 4000); // Polls database securely every 4 seconds
+
+        return () => clearInterval(statusPollInterval);
+    }, [videoId]); 
+
+    // HLS ENGINE LIFECYCLE HOOK:
+    useEffect(() => {
+        if (loading || !videoRef.current || !video || isTranscoding) return;
+
+        const videoElement = videoRef.current;
+        const streamUrl = video.hlsMasterUrl || video.videoFile;
+
+        if (streamUrl) {
+            if (videoElement.src && !videoElement.src.includes(".m3u8")) {
+                videoElement.pause();
+                videoElement.removeAttribute('src');
+                videoElement.load();
+            }
+
+            if (streamUrl.includes(".m3u8")) {
+                if (Hls.isSupported()) {
+                    if (hlsInstanceRef.current) {
+                        hlsInstanceRef.current.destroy();
+                        hlsInstanceRef.current = null;
+                    }
+
+                    const hls = new Hls({
+                        enableWorker: true,
+                        lowLatencyMode: true,
+                        backBufferLength: 30,
+                        maxBufferLength: 10 
+                    });
+
+                    hlsInstanceRef.current = hls;
+                    hls.loadSource(streamUrl);
+                    hls.attachMedia(videoElement);
+
+                    hls.on(Hls.Events.MANIFEST_PARSED, () => {
+                        const parsedLevels = hls.levels.map((level, idx) => ({
+                            index: idx,
+                            height: level.height,
+                            bitrate: level.bitrate
+                        })).reverse(); 
+                        
+                        setResolutions(parsedLevels);
+                        setCurrentResIndex(-1); 
+                        
+                        // 🟢 AUTOMATIC INSTANT PLAY ENGINE: Loads stream layout instantly
+                        videoElement.play().catch((err) => console.log("Autoplay context bypass: ", err));
+                    });
+
+                    hls.on(Hls.Events.ERROR, (event, data) => {
+                        if (data.fatal) {
+                            switch (data.type) {
+                                case Hls.ErrorTypes.NETWORK_ERROR:
+                                    hls.startLoad();
+                                    break;
+                                case Hls.ErrorTypes.MEDIA_ERROR:
+                                    hls.recoverMediaError();
+                                    break;
+                                default:
+                                    if (hlsInstanceRef.current) {
+                                        hlsInstanceRef.current.destroy();
+                                        hlsInstanceRef.current = null;
+                                    }
+                                    break;
+                            }
+                        }
+                    });
+                } 
+                else if (videoElement.canPlayType('application/vnd.apple.mpegurl')) {
+                    videoElement.src = streamUrl;
+                }
+            } else {
+                videoElement.src = streamUrl;
+                setResolutions([]); 
+            }
         }
-    }, [videoId]);
+
+        const handleTimeUpdate = () => setCurrentTime(videoElement.currentTime);
+        const handleDurationChange = () => setTotalDuration(videoElement.duration);
+        const handlePlayState = () => setIsPlaying(true);
+        const handlePauseState = () => setIsPlaying(false);
+
+        videoElement.addEventListener("timeupdate", handleTimeUpdate);
+        videoElement.addEventListener("durationchange", handleDurationChange);
+        videoElement.addEventListener("play", handlePlayState);
+        videoElement.addEventListener("pause", handlePauseState);
+
+        return () => {
+            videoElement.removeEventListener("timeupdate", handleTimeUpdate);
+            videoElement.removeEventListener("durationchange", handleDurationChange);
+            videoElement.removeEventListener("play", handlePlayState);
+            videoElement.removeEventListener("pause", handlePauseState);
+            if (hlsInstanceRef.current) {
+                hlsInstanceRef.current.destroy();
+                hlsInstanceRef.current = null;
+            }
+        };
+    }, [video, loading, isTranscoding]);
+
+    const togglePlay = () => {
+        if (isTranscoding || !videoRef.current) return;
+        if (isPlaying) videoRef.current.pause();
+        else videoRef.current.play().catch(e => console.log(e));
+    };
+
+    const handleTimelineChange = (e) => {
+        if (!videoRef.current) return;
+        const targetTime = parseFloat(e.target.value);
+        videoRef.current.currentTime = targetTime;
+        setCurrentTime(targetTime);
+    };
+
+    const handleVolumeSlider = (e) => {
+        if (!videoRef.current) return;
+        const targetVol = parseFloat(e.target.value);
+        videoRef.current.volume = targetVol;
+        setVolume(targetVol);
+        setIsMuted(targetVol === 0);
+        videoRef.current.muted = targetVol === 0;
+    };
+
+    const toggleMute = () => {
+        if (!videoRef.current) return;
+        const currentMuteState = !isMuted;
+        setIsMuted(currentMuteState);
+        videoRef.current.muted = currentMuteState;
+        if (!currentMuteState && volume === 0) {
+            setVolume(0.5);
+            videoRef.current.volume = 0.5;
+        }
+    };
+
+    const toggleFullScreen = () => {
+        if (!playerContainerRef.current) return;
+        if (!document.fullscreenElement) {
+            playerContainerRef.current.requestFullscreen().catch(err => console.log(err));
+        } else {
+            document.exitFullscreen();
+        }
+    };
+
+    const changeResolution = (levelIndex) => {
+        if (!hlsInstanceRef.current) return;
+        hlsInstanceRef.current.currentLevel = levelIndex;
+        setCurrentResIndex(levelIndex);
+        setShowResMenu(false);
+    };
 
     const openPlaylistModal = async () => {
         try {
@@ -57,32 +268,30 @@ const VideoDetail = () => {
             const response = await apiClient.get(`playlist/user/${currentUser._id}`);
             setUserPlaylists(response.data?.data || []);
         } catch (error) {
-            console.error("Error: fetching user playlists: ", error);
+            console.error("Error fetching user playlists: ", error);
         }
     };
 
     const addVideoToPlaylist = async (playlistId) => {
         try {
-            const response = await apiClient.patch(`/playlist/add/${videoId}/${playlistId}`);
+            await apiClient.patch(`/playlist/add/${videoId}/${playlistId}`);
             alert("Video added to playlist successfully!");
             setShowPlaylistModal(false);
         } catch (error) {
-            console.error("Error: adding video to playlist: ", error);
+            console.error("Error adding video to playlist: ", error);
         }
     };
 
     const handleLike = async () => {
         try {
-            const response = await apiClient.post(`/likes/toggle/v/${videoId}`);
-
+            await apiClient.post(`/likes/toggle/v/${videoId}`);
             setVideo((prev) => ({
                 ...prev,
                 isLiked: !prev.isLiked,
                 likesCount: prev.isLiked ? prev.likesCount - 1 : prev.likesCount + 1
             }));
-
         } catch (error) {
-            console.error("Error: liking video: ", error);
+            console.error("Error liking video: ", error);
         }
     };
 
@@ -104,23 +313,16 @@ const VideoDetail = () => {
             await apiClient.post(`/likes/toggle/c/${commentId}`);
         } catch (error) {
             console.error("Error toggling comment like:", error);
-            const commentResponse = await apiClient.get(`/comments/${videoId}`);
-            if (commentResponse.data?.data) {
-                setComment(commentResponse.data.data.docs || commentResponse.data.data);
-            }
         }
     };
 
     const toggleSubscribe = async () => {
         try {
             await apiClient.post(`/subscriptions/u/${video.owner?._id}`);
-
             setVideo((prev) => ({
                 ...prev,
                 isSubscribed: !prev.isSubscribed,
-                subscribersCount: prev.isSubscribed
-                    ? prev.subscribersCount - 1
-                    : prev.subscribersCount + 1
+                subscribersCount: prev.isSubscribed ? prev.subscribersCount - 1 : prev.subscribersCount + 1
             }));
         } catch (error) {
             console.error("Subscription failed:", error);
@@ -131,15 +333,14 @@ const VideoDetail = () => {
         if (!newComment.trim()) return;
         try {
             const response = await apiClient.post(`/comments/${videoId}`, { content: newComment });
-
             if (response.data?.data) {
                 setComment([response.data.data, ...comment]);
                 setNewComment("");
             }
         } catch (error) {
-            console.error("Error: posting comment: ", error);
+            console.error("Error posting comment: ", error);
         }
-    }
+    };
 
     const startEditing = (comment) => {
         setEditingCommentId(comment._id);
@@ -148,22 +349,10 @@ const VideoDetail = () => {
 
     const saveEdit = async (commentId) => {
         if (!editedContent.trim()) return;
-
         try {
-            const response = await apiClient.patch(
-                `/comments/c/${commentId}`,
-                { content: editedContent }
-            );
-
+            const response = await apiClient.patch(`/comments/c/${commentId}`, { content: editedContent });
             if (response.data?.data) {
-                setComment(prev =>
-                    prev.map(c =>
-                        c._id === commentId
-                            ? { ...c, content: editedContent }
-                            : c
-                    )
-                );
-
+                setComment(prev => prev.map(c => c._id === commentId ? { ...c, content: editedContent } : c));
                 setEditingCommentId(null);
                 setEditedContent("");
             }
@@ -176,12 +365,10 @@ const VideoDetail = () => {
         if (!window.confirm("Are you sure you want to delete this comment?")) return;
         try {
             await apiClient.delete(`/comments/c/${commentId}`);
-
             setComment(comment.filter(c => c._id !== commentId));
             alert("Comment deleted successfully");
         } catch (error) {
-            console.error("Error: deleting comment: ", error);
-            alert("Failed to delete comment");
+            console.error("Error deleting comment: ", error);
         }
     };
 
@@ -189,38 +376,15 @@ const VideoDetail = () => {
         try {
             const response = await apiClient.get("/videos");
             if (response.data?.data?.docs) {
-                const filteredVideos = response.data.data.docs.filter(v => v._id !== videoId);
-                setRecommendations(filteredVideos);
+                const processedRecs = response.data.data.docs.filter(v =>
+                    v._id !== videoId && (!v.status || v.status === "processed")
+                );
+                setRecommendations(processedRecs);
             }
         } catch (error) {
-            console.error("Error: fetching recommendations: ", error);
+            console.error("Error fetching recommendations: ", error);
         }
-    }
-
-    useEffect(() => {
-        const fetchUser = async () => {
-            try {
-                const response = await apiClient.get("/users/current-user");
-                setCurrentUser(response.data.data);
-            } catch (error) {
-                console.log("Not logged in");
-            }
-        };
-        fetchUser();
-    }, []);
-
-    useEffect(() => {
-        const addToHistory = async () => {
-            try {
-                await apiClient.post(`/users/history/${videoId}`);
-            } catch (error) {
-                console.error("Error: adding to history: ", error);
-            }
-        };
-        if (videoId) {
-            addToHistory();
-        }
-    }, [videoId]);
+    };
 
     if (loading) {
         return (
@@ -235,27 +399,9 @@ const VideoDetail = () => {
         );
     }
 
-    if (!video) {
-        return (
-            <div className="w-full min-h-screen bg-slate-950 flex flex-col items-center justify-center p-4">
-                <div className="flex flex-col items-center justify-center text-center max-w-sm mx-auto">
-                    <div className="w-11 h-11 rounded-xl bg-slate-900 border border-slate-800 flex items-center justify-center mb-4 text-rose-400">
-                        <Video className="w-5 h-5" />
-                    </div>
-                    <h3 className="text-sm font-semibold text-slate-200">Video Offline</h3>
-                    <p className="text-xs text-slate-500 mt-2 leading-relaxed">
-                        This video resource is offline or has been removed from velocity HLS transcoders.
-                    </p>
-                </div>
-            </div>
-        );
-    }
-
     return (
-        // Added standard pt-20 navbar offset alignment layer and overflow protection configurations
         <div className="min-h-screen bg-slate-950 text-slate-100 pt-20 px-3.5 md:p-8 pb-24 lg:pb-12 select-none relative overflow-x-hidden font-sans selection:bg-indigo-500/30">
 
-            {/* Ambient Background Spotlights */}
             <div className="absolute top-0 right-1/4 w-72 h-72 sm:w-100 sm:h-100 bg-indigo-500/5 rounded-full blur-[90px] sm:blur-[110px] pointer-events-none z-0" />
             <div className="absolute bottom-1/4 left-1/4 w-72 h-72 sm:w-100 bg-purple-500/5 rounded-full blur-[90px] sm:blur-[110px] pointer-events-none z-0" />
 
@@ -264,46 +410,177 @@ const VideoDetail = () => {
                 {/* LEFT COLUMN: Video Player & Meta & Comments */}
                 <div className="lg:col-span-2 space-y-4 sm:space-y-5 min-w-0 w-full">
 
-                    {/* Cinema Bezel Player Frame */}
-                    {/* Fixed edge spacing leakage parameter triggers for 375px screens */}
-                    <div className="aspect-video rounded-2xl overflow-hidden bg-slate-950 shadow-2xl border border-slate-900 w-full box-border">
-                        <video src={video.videoFile} controls poster={video.thumbnail} className="w-full h-full object-contain" autoPlay />
+                    {/* PREMIUM THEME CUSTOM HANDMADE CONTROLS ENGINE PLAYER BOX */}
+                    <div 
+                        ref={playerContainerRef}
+                        className="aspect-video rounded-2xl overflow-hidden bg-slate-950 shadow-2xl border border-slate-900 w-full box-border relative group/player cursor-pointer"
+                        onClick={togglePlay}
+                    >
+                        {/* 🟢 CONDITIONAL VIEW 1: ADVANCED LIVE ASYNC TRANSCODING SCREEN */}
+                        {isTranscoding ? (
+                            <div className="absolute inset-0 bg-slate-950 flex flex-col items-center justify-center p-6 text-center gap-4 animate-in fade-in duration-300">
+                                <div className="relative flex items-center justify-center">
+                                    <div className="absolute w-16 h-16 rounded-full border border-dashed border-indigo-500/40 border-t-indigo-500 animate-spin" style={{ animationDuration: '3s' }} />
+                                    <div className="absolute w-12 h-12 rounded-full border border-indigo-500/20 border-t-purple-500 animate-spin duration-700" />
+                                    <div className="w-9 h-9 rounded-xl bg-slate-900 border border-slate-800 flex items-center justify-center text-indigo-400 shadow-inner">
+                                        <Cpu className="w-4 h-4 animate-pulse" />
+                                    </div>
+                                </div>
+                                <div className="space-y-2 max-w-sm">
+                                    <h3 className="text-xs font-bold text-slate-200 uppercase tracking-widest animate-pulse flex items-center justify-center gap-2">
+                                        <RefreshCw className="w-3 h-3 animate-spin" />
+                                        {video.status === "pending" ? "Queue Pipeline Waiting" : "Compiling Adaptive Bitrates"}
+                                    </h3>
+                                    <p className="text-[11px] text-slate-500 leading-relaxed font-medium">
+                                        {video.status === "pending" 
+                                            ? "Video asset successfully caught in database queue nodes. Waiting for backend transcoder worker allotment..." 
+                                            : "FFmpeg is demuxing adaptive bitrates streams (1080p, 720p, 480p) and generating HLS master chunks playlist files to AWS S3 cluster storage."
+                                        }
+                                    </p>
+                                </div>
+                            </div>
+                        ) : isFailed ? (
+                            /* CONDITIONAL VIEW 2: PIPELINE FAILURE PACKET SHEET */
+                            <div className="absolute inset-0 bg-slate-950 flex flex-col items-center justify-center p-6 text-center gap-3 animate-in fade-in duration-300">
+                                <div className="w-10 h-10 rounded-xl bg-rose-500/10 border border-rose-500/20 flex items-center justify-center text-rose-400 shadow-inner">
+                                    <X className="w-4 h-4" />
+                                </div>
+                                <div className="space-y-1">
+                                    <h3 className="text-xs font-bold text-rose-400 uppercase tracking-wider">HLS Compilation Aborted</h3>
+                                    <p className="text-[11px] text-slate-500 max-w-xs leading-relaxed">
+                                        The worker instance nodes dropped the video rendering packet pipeline due to an internal encoding codec crash.
+                                    </p>
+                                </div>
+                            </div>
+                        ) : (
+                            /* CONDITIONAL VIEW 3: ACTIVE VIDEO INSTANT PLAYER LINK */
+                            <>
+                                <video
+                                    ref={videoRef}
+                                    poster={video.thumbnail}
+                                    className="w-full h-full object-contain pointer-events-none"
+                                    playsInline
+                                />
+
+                                {/* PREMIUM OVERLAY CONTROL SHEET BAR */}
+                                <div 
+                                    className="absolute inset-x-0 bottom-0 bg-linear-to-t from-slate-950/95 via-slate-950/75 to-transparent px-4 pt-10 pb-4 flex flex-col gap-3 opacity-0 group-hover/player:opacity-100 transition-opacity duration-300 z-30 select-none pointer-events-auto"
+                                    onClick={(e) => e.stopPropagation()} 
+                                >
+                                    {/* Timeline Slider Track Bar */}
+                                    <div className="w-full flex items-center group/slider relative">
+                                        <input 
+                                            type="range"
+                                            min={0}
+                                            max={totalDuration || 0}
+                                            value={currentTime}
+                                            onChange={handleTimelineChange}
+                                            className="w-full h-1 bg-slate-800 rounded-lg appearance-none cursor-pointer accent-indigo-500 hover:h-1.5 transition-all outline-none"
+                                        />
+                                    </div>
+
+                                    {/* Action Buttons Management Layer */}
+                                    <div className="flex items-center justify-between w-full">
+                                        
+                                        {/* LEFT ACTIONS SHELF: Play, Volume, and Time Duration */}
+                                        <div className="flex items-center gap-4">
+                                            <button onClick={togglePlay} className="text-slate-300 hover:text-white transition-colors active:scale-95 outline-none">
+                                                {isPlaying ? <Pause className="w-4 h-4 fill-current" /> : <Play className="w-4 h-4 fill-current" />}
+                                            </button>
+
+                                            <div className="flex items-center gap-1.5 group/vol max-w-fit">
+                                                <button onClick={toggleMute} className="text-slate-300 hover:text-white transition-colors active:scale-95 outline-none">
+                                                    {isMuted || volume === 0 ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
+                                                </button>
+                                                <input 
+                                                    type="range"
+                                                    min={0}
+                                                    max={1}
+                                                    step={0.05}
+                                                    value={isMuted ? 0 : volume}
+                                                    onChange={handleVolumeSlider}
+                                                    className="w-0 opacity-0 group-hover/vol:w-16 group-hover/vol:opacity-100 h-1 bg-slate-800 appearance-none rounded cursor-pointer accent-indigo-500 transition-all outline-none"
+                                                />
+                                            </div>
+
+                                            <div className="text-slate-400 text-[11px] font-semibold font-mono tracking-wide">
+                                                {formatDuration(currentTime)} / {formatDuration(totalDuration)}
+                                            </div>
+                                        </div>
+
+                                        {/* RIGHT ACTIONS SHELF: Resolution Selector Menu + Fullscreen */}
+                                        <div className="flex items-center gap-4 relative">
+                                            {resolutions.length > 0 && (
+                                                <div className="relative">
+                                                    <button 
+                                                        onClick={() => setShowResMenu(!showResMenu)}
+                                                        className="px-2 py-0.5 bg-slate-900/80 border border-slate-800 rounded-md text-slate-400 hover:text-indigo-400 font-bold font-mono text-[10px] tracking-wider transition-colors outline-none flex items-center gap-1"
+                                                    >
+                                                        <Settings2 className="w-3 h-3" />
+                                                        {currentResIndex === -1 ? "AUTO" : `${resolutions.find(r => r.index === currentResIndex)?.height}p`}
+                                                    </button>
+
+                                                    {showResMenu && (
+                                                        <div className="absolute bottom-full right-0 mb-2 w-24 bg-slate-950 border border-slate-900 rounded-xl shadow-2xl p-1 flex flex-col gap-0.5 z-40">
+                                                            <button
+                                                                onClick={() => changeResolution(-1)}
+                                                                className={`w-full text-left px-2 py-1 rounded-md text-[10px] font-bold font-mono ${currentResIndex === -1 ? "bg-indigo-600/20 text-indigo-400 border border-indigo-500/10" : "text-slate-400 hover:bg-slate-900 hover:text-slate-200"}`}
+                                                            >
+                                                                Auto
+                                                            </button>
+                                                            {resolutions.map((res) => (
+                                                                <button
+                                                                    key={res.index}
+                                                                    onClick={() => changeResolution(res.index)}
+                                                                    className={`w-full text-left px-2 py-1 rounded-md text-[10px] font-bold font-mono ${currentResIndex === res.index ? "bg-indigo-600/20 text-indigo-400 border border-indigo-500/10" : "text-slate-400 hover:bg-slate-900 hover:text-slate-200"}`}
+                                                                >
+                                                                    {res.height}p
+                                                                </button>
+                                                            ))}
+                                                        </div>
+                                                    )}
+                                                </div>
+                                            )}
+
+                                            <button onClick={toggleFullScreen} className="text-slate-300 hover:text-white transition-colors active:scale-95 outline-none">
+                                                <Maximize className="w-4 h-4" />
+                                            </button>
+                                        </div>
+
+                                    </div>
+                                </div>
+                            </>
+                        )}
                     </div>
 
                     {/* Video Titles */}
                     <div className="space-y-3 w-full">
                         <h1 className="text-sm sm:text-base md:text-xl font-bold tracking-tight text-slate-100 leading-snug px-0.5 wrap-break-word">
-                            {video.title}
+                            {video?.title}
                         </h1>
 
-                        {/* Views count and Actions Separator Row */}
                         <div className="flex flex-col sm:flex-row sm:justify-between sm:items-center pb-4 border-b border-slate-900 gap-3.5 w-full">
                             <span className="text-slate-500 text-[11px] md:text-xs font-semibold px-0.5 font-mono shrink-0">
-                                {video.views?.toLocaleString()} views • {new Date(video.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
+                                {video?.views?.toLocaleString() || 0} views • {video && new Date(video.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
                             </span>
 
-                            {/* Action Buttons Row */}
-                            {/* Hidden native browser horizontal layout track bars perfectly */}
                             <div className="flex items-center gap-2 overflow-x-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden py-1 px-0.5 w-full sm:w-auto shrink-0 box-border">
-                                {/* Like Action */}
                                 <button
                                     onClick={handleLike}
-                                    className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold transition-all duration-300 active:scale-95 shrink-0 border ${video.isLiked
+                                    className={`flex items-center gap-1.5 px-4 py-2 rounded-xl text-xs font-bold transition-all duration-300 active:scale-95 shrink-0 border ${video?.isLiked
                                         ? "bg-linear-to-r from-indigo-500/10 to-transparent border-indigo-500/30 text-indigo-300 shadow-md"
                                         : "bg-slate-900/40 border-slate-800/80 text-slate-400 hover:border-slate-700 hover:text-slate-200"
                                         }`}
                                 >
-                                    <ThumbsUp className={`w-3.5 h-3.5 ${video.isLiked ? "fill-indigo-400/30" : ""}`} />
-                                    <span>{video.likesCount || 0}</span>
+                                    <ThumbsUp className={`w-3.5 h-3.5 ${video?.isLiked ? "fill-indigo-400/30" : ""}`} />
+                                    <span>{video?.likesCount || 0}</span>
                                 </button>
 
-                                {/* Share Action */}
                                 <button className="flex items-center gap-1.5 bg-slate-900/40 border border-slate-800/80 hover:border-slate-700 hover:text-slate-200 px-4 py-2 rounded-xl text-xs font-semibold text-slate-400 transition-all duration-300 shrink-0">
                                     <Share2 className="w-3.5 h-3.5" />
                                     <span>Share</span>
                                 </button>
 
-                                {/* Save/Playlist Action */}
                                 <button
                                     onClick={openPlaylistModal}
                                     className="flex items-center gap-1.5 bg-slate-900/40 border border-slate-800/80 hover:border-slate-700 hover:text-slate-200 px-4 py-2 rounded-xl text-xs font-semibold text-slate-400 transition-all duration-300 shrink-0"
@@ -315,34 +592,34 @@ const VideoDetail = () => {
                         </div>
                     </div>
 
-                    {/* OWNER BOX: Responsive realignment */}
+                    {/* OWNER BOX */}
                     <div className="flex items-center justify-between p-3 rounded-2xl bg-slate-900/20 backdrop-blur-md border border-slate-900/80 gap-3 w-full box-border">
-                        <div className="flex items-center gap-2.5 cursor-pointer group min-w-0" onClick={() => navigate(`/c/${video.owner?.username}`)}>
+                        <div className="flex items-center gap-2.5 cursor-pointer group min-w-0" onClick={() => video?.owner?.username && navigate(`/c/${video.owner.username}`)}>
                             <div className="relative shrink-0">
-                                <img src={video.owner?.avatar} className="w-9 h-9 sm:w-10 sm:h-10 rounded-full object-cover border border-slate-800" alt="avatar" />
+                                <img src={video?.owner?.avatar || `https://api.dicebear.com/7.x/initials/svg?seed=${video?.owner?.username}`} className="w-9 h-9 sm:w-10 sm:h-10 rounded-full object-cover border border-slate-800" alt="avatar" />
                             </div>
                             <div className="min-w-0 flex-1">
-                                <h3 className="font-semibold text-xs sm:text-sm text-slate-100 truncate group-hover:text-indigo-400 transition-colors">{video.owner?.fullName}</h3>
+                                <h3 className="font-semibold text-xs sm:text-sm text-slate-100 truncate group-hover:text-indigo-400 transition-colors">{video?.owner?.fullName || "Channel Name"}</h3>
                                 <p className="text-slate-500 text-[10px] sm:text-[11px] truncate mt-0.5">
-                                    @{video.owner?.username} • {video.subscribersCount || 0} Subs
+                                    @{video?.owner?.username || "creator"} • {video?.subscribersCount || 0} Subs
                                 </p>
                             </div>
                         </div>
 
                         <button
                             onClick={toggleSubscribe}
-                            className={`px-3.5 py-2 rounded-xl text-[11px] xs:text-xs font-bold transition-all duration-300 active:scale-[0.98] shrink-0 border ${video.isSubscribed
+                            className={`px-3.5 py-2 rounded-xl text-[11px] xs:text-xs font-bold transition-all duration-300 active:scale-[0.98] shrink-0 border ${video?.isSubscribed
                                 ? "bg-slate-900 border-slate-800 text-slate-400 hover:text-slate-200"
                                 : "bg-linear-to-r from-indigo-500 to-purple-600 hover:opacity-95 text-white border-transparent shadow-lg shadow-indigo-500/10"
                                 }`}
                         >
-                            {video.isSubscribed ? "Subscribed" : "Subscribe"}
+                            {video?.isSubscribed ? "Subscribed" : "Subscribe"}
                         </button>
                     </div>
 
                     {/* Description Box */}
                     <div className="p-3.5 bg-slate-950/40 rounded-xl text-slate-400 text-xs leading-relaxed border border-slate-900/80 whitespace-pre-wrap font-medium wrap-break-word w-full box-border">
-                        {video.description || "No description provided."}
+                        {video?.description || "No description provided."}
                     </div>
 
                     {/* Comments Layout */}
@@ -351,7 +628,6 @@ const VideoDetail = () => {
                             <MessageSquare className="w-4 h-4 text-indigo-400" /> {comment.length} Discussion Logs
                         </h2>
 
-                        {/* Input Box */}
                         <div className="flex gap-2.5 items-center bg-slate-950/20 border-b border-slate-900 focus-within:border-indigo-500/50 pb-2 transition duration-300 w-full">
                             <input
                                 value={newComment}
@@ -362,57 +638,57 @@ const VideoDetail = () => {
                             <button onClick={postComment} className="bg-slate-900 border border-slate-800 hover:border-slate-700 px-3.5 py-1.5 rounded-xl text-[10px] font-bold text-slate-300 transition shrink-0">Comment</button>
                         </div>
 
-                        {/* Comments List Shelf */}
                         <div className="space-y-3 w-full box-border">
-                            {comment.map((c) => (
-                                <div key={c._id} className="flex gap-3 group relative items-start bg-slate-900/10 hover:bg-slate-900/20 p-3 rounded-2xl border border-transparent hover:border-slate-900/50 transition duration-300 w-full box-border overflow-hidden">
-                                    <img src={c.owner?.avatar || "https://api.dicebear.com/7.x/initials/svg?seed=fallback"} className="w-7 h-7 rounded-full object-cover shrink-0 border border-slate-900" alt="avatar" />
+                            {comment.map((c) => {
+                                if (!c) return null;
+                                return (
+                                    <div key={c._id} className="flex gap-3 group relative items-start bg-slate-900/10 hover:bg-slate-900/20 p-3 rounded-2xl border border-transparent hover:border-slate-900/50 transition duration-300 w-full box-border overflow-hidden">
+                                        <img src={c.owner?.avatar || `https://api.dicebear.com/7.x/initials/svg?seed=${c.owner?.username || "user"}`} className="w-7 h-7 rounded-full object-cover shrink-0 border border-slate-900" alt="avatar" />
 
-                                    <div className="flex-1 min-w-0 w-full pr-6 md:pr-0">
-                                        <div className="flex items-center gap-2 flex-wrap">
-                                            <span className="font-semibold text-xs text-indigo-400 truncate max-w-30 xs:max-w-none">@{c.owner?.username}</span>
-                                            <span className="text-[9px] text-slate-600 font-mono shrink-0">{new Date(c.createdAt).toLocaleDateString()}</span>
-                                        </div>
-                                        {editingCommentId === c._id ? (
-                                            <div className="mt-2 space-y-2 w-full">
-                                                <textarea
-                                                    value={editedContent}
-                                                    onChange={(e) => setEditedContent(e.target.value)}
-                                                    rows={2}
-                                                    className="w-full bg-slate-900 border border-slate-800 rounded-xl p-2.5 text-xs text-slate-200 outline-none focus:border-indigo-500 resize-none"
-                                                />
-                                                <div className="flex gap-1.5 justify-end">
-                                                    <button onClick={() => saveEdit(c._id)} className="px-2.5 py-1 rounded-lg bg-indigo-500 text-white text-[10px] font-semibold">Save</button>
-                                                    <button onClick={() => { setEditingCommentId(null); setEditedContent(""); }} className="px-2.5 py-1 rounded-lg bg-slate-800 text-slate-300 text-[10px] font-semibold">Cancel</button>
-                                                </div>
+                                        <div className="flex-1 min-w-0 w-full pr-6 md:pr-0">
+                                            <div className="flex items-center gap-2 flex-wrap">
+                                                <span className="font-semibold text-xs text-indigo-400 truncate max-w-30 xs:max-w-none">@{c.owner?.username || "user"}</span>
+                                                <span className="text-[9px] text-slate-600 font-mono shrink-0">{new Date(c.createdAt).toLocaleDateString()}</span>
                                             </div>
-                                        ) : (
-                                            <p className="text-xs mt-1 text-slate-300 leading-relaxed font-medium wrap-break-word pr-2">
-                                                {c.content}
-                                            </p>
+                                            {editingCommentId === c._id ? (
+                                                <div className="mt-2 space-y-2 w-full">
+                                                    <textarea
+                                                        value={editedContent}
+                                                        onChange={(e) => setEditedContent(e.target.value)}
+                                                        rows={2}
+                                                        className="w-full bg-slate-900 border border-slate-800 rounded-xl p-2.5 text-xs text-slate-200 outline-none focus:border-indigo-500 resize-none"
+                                                    />
+                                                    <div className="flex gap-1.5 justify-end">
+                                                        <button onClick={() => saveEdit(c._id)} className="px-2.5 py-1 rounded-lg bg-indigo-500 text-white text-[10px] font-semibold">Save</button>
+                                                        <button onClick={() => { setEditingCommentId(null); setEditedContent(""); }} className="px-2.5 py-1 rounded-lg bg-slate-800 text-slate-300 text-[10px] font-semibold">Cancel</button>
+                                                    </div>
+                                                </div>
+                                            ) : (
+                                                <p className="text-xs mt-1 text-slate-300 leading-relaxed font-medium wrap-break-word pr-2">
+                                                    {c.content}
+                                                </p>
+                                            )}
+
+                                            <div className="flex items-center gap-4 mt-2 pt-1.5 border-t border-slate-900/40">
+                                                <button
+                                                    onClick={() => handleToggleCommentLike(c._id)}
+                                                    className={`flex items-center gap-1 text-[10px] font-bold transition-all group ${c.isLiked ? "text-rose-500" : "text-slate-500 hover:text-rose-400"}`}
+                                                >
+                                                    <Heart className="w-3 h-3 transition-transform" fill={c.isLiked ? "currentColor" : "none"} />
+                                                    <span className="text-slate-400 font-mono">{c.likesCount || 0}</span>
+                                                </button>
+                                            </div>
+                                        </div>
+
+                                        {c.owner?._id === currentUser?._id && (
+                                            <div className="flex gap-1 absolute right-2 top-2 bg-slate-950 border border-slate-900 rounded-lg p-1 shadow-md shrink-0">
+                                                <button type="button" onClick={() => startEditing(c)} className="p-1 text-slate-500 hover:text-indigo-400"><Pencil className="w-3 h-3" /></button>
+                                                <button type="button" onClick={() => deleteComment(c._id)} className="p-1 text-slate-500 hover:text-rose-400"><Trash2 className="w-3 h-3" /></button>
+                                            </div>
                                         )}
-
-                                        {/* Comment Actions Like */}
-                                        <div className="flex items-center gap-4 mt-2 pt-1.5 border-t border-slate-900/40">
-                                            <button
-                                                onClick={() => handleToggleCommentLike(c._id)}
-                                                className={`flex items-center gap-1 text-[10px] font-bold transition-all group ${c.isLiked ? "text-rose-500" : "text-slate-500 hover:text-rose-400"}`}
-                                            >
-                                                <Heart className="w-3 h-3 transition-transform" fill={c.isLiked ? "currentColor" : "none"} />
-                                                <span className="text-slate-400 font-mono">{c.likesCount || 0}</span>
-                                            </button>
-                                        </div>
                                     </div>
-
-                                    {/* Edit / Delete Layer - Clean configuration mapping for 375px hits */}
-                                    {c.owner?._id === currentUser?._id && (
-                                        <div className="flex gap-1 absolute right-2 top-2 bg-slate-950 border border-slate-900 rounded-lg p-1 shadow-md shrink-0">
-                                            <button type="button" onClick={() => startEditing(c)} className="p-1 text-slate-500 hover:text-indigo-400"><Pencil className="w-3 h-3" /></button>
-                                            <button type="button" onClick={() => deleteComment(c._id)} className="p-1 text-slate-500 hover:text-rose-400"><Trash2 className="w-3 h-3" /></button>
-                                        </div>
-                                    )}
-                                </div>
-                            ))}
+                                );
+                            })}
                         </div>
                     </div>
                 </div>
@@ -429,19 +705,18 @@ const VideoDetail = () => {
                                     onClick={() => navigate(`/video/${rec._id}`)}
                                     className="flex gap-3 cursor-pointer bg-slate-900/15 hover:bg-slate-900/30 p-2 rounded-xl border border-transparent hover:border-indigo-500/10 transition duration-300 group shadow-sm w-full box-border min-w-0"
                                 >
-                                    {/* Thumbnail adaptive limits */}
                                     <div className="relative w-28 xs:w-32 aspect-video shrink-0 rounded-lg overflow-hidden border border-slate-900 bg-slate-950">
                                         <img src={rec.thumbnail} className="w-full h-full object-cover" alt="Suggested stream thumb" />
                                     </div>
                                     <div className="flex flex-col min-w-0 justify-center flex-1 pr-1">
                                         <h4 className="text-[11px] font-bold text-slate-200 line-clamp-2 leading-snug group-hover:text-indigo-400 transition-colors wrap-break-word">{rec.title}</h4>
-                                        <p className="text-[10px] text-slate-500 mt-0.5 truncate">@{rec.ownerDetails?.username || "creator"}</p>
-                                        <p className="text-[9px] text-slate-600 mt-0.5 font-mono">{rec.views?.toLocaleString()} views</p>
+                                        <p className="text-[10px] text-slate-500 mt-0.5 truncate">@{rec.ownerDetails?.username || rec.owner?.username || "creator"}</p>
+                                        <p className="text-[9px] text-slate-600 mt-0.5 font-mono">{rec.views?.toLocaleString() || 0} views</p>
                                     </div>
                                 </div>
                             ))
                         ) : (
-                            <div className="flex flex-col items-center justify-center text-center py-16 rounded-xl border border-dashed border-slate-900 bg-slate-950/10 text-slate-500 w-full">
+                            <div className="flex flex-col items-center justify-center text-center py-16 rounded-xl border border-dashed border-slate-950/10 text-slate-500 w-full">
                                 <Compass className="w-5 h-5 text-slate-700 mb-2" />
                                 <p className="text-[10px] font-semibold text-slate-400">Suggestions complete</p>
                             </div>
@@ -454,52 +729,32 @@ const VideoDetail = () => {
             {showPlaylistModal && (
                 <div className="fixed inset-0 bg-slate-950/80 flex items-center justify-center z-50 p-3 xs:p-4 backdrop-blur-md">
                     <div className="bg-slate-950 border border-slate-800/80 w-full max-w-md rounded-2xl p-5 xs:p-6 shadow-2xl relative animate-in fade-in zoom-in-95 duration-200 box-border overflow-hidden">
-
-                        <button
-                            onClick={() => setShowPlaylistModal(false)}
-                            className="absolute right-4 top-4 p-1.5 bg-slate-900 border border-slate-800 rounded-xl text-slate-400 hover:text-slate-200 transition-all"
-                        >
-                            <X className="w-4 h-4" />
-                        </button>
-
-                        <h2 className="text-xs sm:text-sm font-bold text-slate-100 tracking-wider uppercase mb-5 flex items-center gap-2">
-                            <ListPlus className="w-4 h-4 text-indigo-400" /> Save to Archive
-                        </h2>
-
+                        <button onClick={() => setShowPlaylistModal(false)} className="absolute right-4 top-4 p-1.5 bg-slate-900 border border-slate-800 rounded-xl text-slate-400 hover:text-slate-200 transition-all"><X className="w-4 h-4" /></button>
+                        <h2 className="text-sm font-bold text-slate-100 tracking-wider uppercase mb-5 flex items-center gap-2.5"><ListPlus className="w-4 h-4 text-indigo-400" /> Save to Archive</h2>
                         <div className="space-y-2.5 max-h-56 overflow-y-auto pr-1 [scrollbar-width:thin]">
                             {userPlaylists.length > 0 ? (
                                 userPlaylists.map(pl => (
                                     <div
-                                        pl-id={pl._id}
                                         key={pl._id}
                                         onClick={() => addVideoToPlaylist(pl._id)}
                                         className="p-3 bg-slate-900/30 rounded-xl border border-slate-900 hover:bg-indigo-600/15 hover:border-indigo-500/30 text-xs transition cursor-pointer flex justify-between items-center group duration-300 w-full box-border"
                                     >
                                         <span className="font-semibold text-slate-300 group-hover:text-indigo-200 truncate pr-2">{pl.name}</span>
-                                        <span className="text-[9px] bg-slate-950 border border-slate-850 px-2 py-0.5 rounded text-slate-500 font-mono shrink-0">
-                                            {pl.videos?.length || 0} streams
-                                        </span>
+                                        <span className="text-[9px] bg-slate-950 border border-slate-850 px-2 py-0.5 rounded text-slate-500 font-mono shrink-0">{pl.videos?.length || 0} streams</span>
                                     </div>
                                 ))
                             ) : (
                                 <p className="text-center text-slate-600 py-6 italic text-xs">No active collections found.</p>
                             )}
                         </div>
-
                         <div className="mt-5 pt-3 border-t border-slate-900 flex justify-end">
-                            <button
-                                onClick={() => setShowPlaylistModal(false)}
-                                className="px-4 py-1.5 rounded-xl text-xs font-semibold text-slate-400 hover:text-slate-200 transition-colors"
-                            >
-                                Close
-                            </button>
+                            <button onClick={() => setShowPlaylistModal(false)} className="px-4 py-1.5 rounded-xl text-xs font-semibold text-slate-400 hover:text-slate-200 transition-colors">Close</button>
                         </div>
-
                     </div>
                 </div>
             )}
         </div>
     );
-}
+};
 
 export default VideoDetail;
