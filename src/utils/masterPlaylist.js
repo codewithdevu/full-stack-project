@@ -1,0 +1,33 @@
+import fs from "fs";
+import path from "path";
+
+const createMasterPlaylist = (videoId) => {
+    const masterContent = `#EXTM3U
+
+    #EXT-X-STREAM-INF:BANDWIDTH=5000000,RESOLUTION=1920x1080
+1080p/index.m3u8
+
+#EXT-X-STREAM-INF:BANDWIDTH=2800000,RESOLUTION=1280x720
+720p/index.m3u8
+
+#EXT-X-STREAM-INF:BANDWIDTH=1400000,RESOLUTION=854x480
+480p/index.m3u8
+
+#EXT-X-STREAM-INF:BANDWIDTH=800000,RESOLUTION=640x360
+360p/index.m3u8
+`;
+
+    const masterPath = path.join(
+        process.cwd(),
+        "uploads",
+        "hls",
+        videoId,
+        "master.m3u8"
+    );
+    fs.writeFileSync(masterPath, masterContent);
+
+    return masterPath;
+
+};
+
+export { createMasterPlaylist };

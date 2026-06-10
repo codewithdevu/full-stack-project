@@ -16,19 +16,20 @@ router.use(verifyJWT);
 
 router.route("/")
     .get(getAllVideos)
-    .post(
-        upload.fields([
-            {
-                name: "videoFile",
-                maxCount: 1,
-            },
-            {
-                name: "thumbnail",
-                maxCount: 1,
-            }
-        ]),
-        publishVideo
-    );
+
+router.route("/publish").post(
+    upload.fields([
+        {
+            name: "videoFile",
+            maxCount: 1,
+        },
+        {
+            name: "thumbnail",
+            maxCount: 1,
+        }
+    ]),
+    publishVideo
+)
 
 router.route("/search").get(searchVideos);
 

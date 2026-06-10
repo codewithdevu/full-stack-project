@@ -2,9 +2,11 @@ import multer from "multer";
 import fs from "fs";
 import path from "path";
 
-// 1. 🟢 ENVIROMENT ADAPTIVE STORAGE LOGIC:
+// 1. 🟢 ENVIRONMENT ADAPTIVE STORAGE LOGIC:
 const isVercel = process.env.VERCEL === "true" || !!process.env.VERCEL;
-const tempDir = isVercel ? "/tmp" : "./public/temp";
+
+// ⚠️ PATH UPDATED FROM './public/temp' TO './uploads/temp'
+const tempDir = isVercel ? "/tmp" : "./uploads/temp"; 
 
 if (!isVercel && !fs.existsSync(tempDir)) {
     fs.mkdirSync(tempDir, { recursive: true });
@@ -26,5 +28,6 @@ const storage = multer.diskStorage({
 
 export const upload = multer({
     storage,
-    limits: { fileSize: 15 * 1024 * 1024 }
+    // 💡 Tip: Transcoding ke liye agar video bade size ki ho, toh requirement ke hisab se limit badha sakte hain
+    limits: { fileSize: 100 * 1024 * 1024 } // Example: Increased to 100MB for video testing
 });

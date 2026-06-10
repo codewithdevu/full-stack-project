@@ -5,11 +5,13 @@ import { ApiError } from "../utils/ApiError.js"
 import { ApiResponse } from "../utils/ApiResponse.js"
 import { uploadOncloudinary, deleteOnCloudinary } from "../utils/cloudinary.js"
 import fs from "fs"
-import { response } from "express";
+
+// 🟢 NEW IMPORTS FOR S3 & BULLMQ QUEUE
+import { uploadOnS3, deleteHLSFolderFromS3 } from "../utils/s3.js";
+import { videoQueue } from "../queues/video.queue.js"; // ⚠️ Apne files ke hisab se sahi relative path check kar lena
 
 const getAllVideos = asyncHandler(async (req, res) => {
     const { page = 1, limit = 10, query, sortBy, sortType, userId } = req.query
-    // Todo: get all videos based on query ,sort , pagination
 
     const pipeline = []
 
@@ -46,8 +48,6 @@ const getAllVideos = asyncHandler(async (req, res) => {
         })
     }
 
-
-    // learn after code is correct
     pipeline.push({
         $sort: {
             [sortBy || "createdAt"]: sortType === "asc" ? 1 : -1
@@ -84,7 +84,7 @@ const getAllVideos = asyncHandler(async (req, res) => {
     const result = await Video.aggregatePaginate(videoAggregate, options)
 
     if (!result) {
-        throw new ApiError(500, "Error:  while fetching videos")
+        throw new ApiError(500, "Error: while fetching videos")
     }
 
     return res
@@ -93,43 +93,80 @@ const getAllVideos = asyncHandler(async (req, res) => {
 
 })
 
+// 🟢 UPDATED: publishVideo (Cloudinary video upload hatakar S3 + Queue lagaya)
 const publishVideo = asyncHandler(async (req, res) => {
-    // Todo: get Video , upload to cloudinary, create video
+
+    console.log("--- DEBUG START ---");
+    console.log("BODY:", req.body);
+    console.log("FILES:", req.files);
+    console.log("--- DEBUG END ---");
     const { title, description } = req.body
 
     if ([title, description].some((field) => field?.trim() === "")) {
-        throw new ApiError(400, "title and descirption is required")
+        throw new ApiError(400, "title and description is required")
     }
 
     const videoLocalpath = req.files?.videoFile?.[0]?.path
     const thumbnailLocalpath = req.files?.thumbnail?.[0]?.path
 
     if (!(videoLocalpath && thumbnailLocalpath)) {
-        throw new ApiError(400, "videoFile or thumbnail is reqiured")
-    }
-
-
-    const videoFile = await uploadOncloudinary(videoLocalpath)
-    const thumbnail = await uploadOncloudinary(thumbnailLocalpath)
-
-    if (!(videoFile && thumbnail)) {
-        if (videoLocalpath) fs.unlinkSync(videoLocalpath)
-        if (thumbnailLocalpath) fs.unlinkSync(thumbnailLocalpath)
         throw new ApiError(400, "videoFile or thumbnail is required")
     }
 
-    const video = await Video.create({
-        title,
-        description,
-        videoFile: videoFile.url,
-        thumbnail: thumbnail.url,
-        duration: videoFile.duration,
-        owner: req.user?._id
-    })
+    try {
+        // 1. Thumbnail ko Cloudinary par bhejenge
+        const thumbnail = await uploadOncloudinary(thumbnailLocalpath)
+        if (!thumbnail) {
+            throw new ApiError(400, "failed to upload thumbnail on cloudinary")
+        }
 
-    return res
-        .status(200)
-        .json(new ApiResponse(200, video, "video is upload"))
+        console.log("Uploading original video to S3...");
+        // 2. Original high-quality video ko AWS S3 par bhejenge
+        const videoFileMimetype = req.files?.videoFile?.[0]?.mimetype || "video/mp4";
+        const s3UploadResult = await uploadOnS3(videoLocalpath, videoFileMimetype);
+
+        if (!s3UploadResult) {
+            if (thumbnailLocalpath) fs.unlinkSync(thumbnailLocalpath);
+            throw new ApiError(500, "failed to upload original video on S3");
+        }
+
+        // 3. DB me status "pending" ke sath data push karenge
+        const video = await Video.create({
+            title,
+            description,
+            thumbnail: thumbnail.url,
+            owner: req.user?._id,
+            status: "pending",               // Worker status ko update karta rahega
+            videoFile: s3UploadResult.videoUrl, // Original video link backups ke liye
+            hlsMasterUrl: ""                 // Worker task khatam karke ise fill karega
+        })
+
+        // 4. Redis Queue me transcoder job push karenge
+        console.log("Adding job to video-Transcoding queue...");
+        await videoQueue.add(
+            "transcode-job",
+            {
+                videoId: video._id,
+                s3Key: s3UploadResult.key // Worker isi key se file S3 se uthayega
+            },
+            {
+                attempts: 3,
+                backoff: 5000
+            }
+        );
+
+        // 5. Instantly success response return karenge
+        return res
+            .status(200)
+            .json(new ApiResponse(200, video, "Video uploaded successfully. Transcoding started in background."))
+
+    } catch (error) {
+        // Local files cleanup agar beech me process crash ho
+        if (videoLocalpath && fs.existsSync(videoLocalpath)) fs.unlinkSync(videoLocalpath);
+        if (thumbnailLocalpath && fs.existsSync(thumbnailLocalpath)) fs.unlinkSync(thumbnailLocalpath);
+
+        throw new ApiError(500, error?.message || "Internal Server Error during video publishing");
+    }
 })
 
 const getVideoById = asyncHandler(async (req, res) => {
@@ -151,7 +188,6 @@ const getVideoById = asyncHandler(async (req, res) => {
                 _id: new mongoose.Types.ObjectId(videoId)
             }
         },
-        // 1. Likes fetch karo
         {
             $lookup: {
                 from: "likes",
@@ -160,7 +196,6 @@ const getVideoById = asyncHandler(async (req, res) => {
                 as: "likes"
             }
         },
-        // 1. Subscriptions fetch karo
         {
             $lookup: {
                 from: "subscriptions",
@@ -169,7 +204,6 @@ const getVideoById = asyncHandler(async (req, res) => {
                 as: "subscribers"
             }
         },
-        // 2. Owner details fetch karo
         {
             $lookup: {
                 from: "users",
@@ -187,21 +221,18 @@ const getVideoById = asyncHandler(async (req, res) => {
                 ]
             }
         },
-        // 3. Sab calculate karo
         {
             $addFields: {
                 owner: { $first: "$owner" },
                 likesCount: { $size: "$likes" },
                 isLiked: { $in: [req.user?._id, "$likes.likedBy"] },
-
-                // 🟢 2. Subscribers ki details add karo
                 subscribersCount: { $size: "$subscribers" },
                 isSubscribed: {
                     $in: [req.user?._id, "$subscribers.subscriber"]
                 }
             }
         },
-        { $project: { likes: 0, subscribers: 0 } } // Extra kachra saaf
+        { $project: { likes: 0, subscribers: 0 } }
 
     ]);
 
@@ -215,7 +246,6 @@ const getVideoById = asyncHandler(async (req, res) => {
 });
 
 const updateVideo = asyncHandler(async (req, res) => {
-    // Todo:  update video details like -> title , descirption , thumbnail
     const { videoId } = req.params
     const { title, description } = req.body
 
@@ -254,10 +284,10 @@ const updateVideo = asyncHandler(async (req, res) => {
                 throw new ApiError(400, "failed to upload file on cloudinary")
             }
         } catch (error) {
-                if (fs.existsSync(thumbnailLocalpath)) {    
-                    fs.unlinkSync(thumbnailLocalpath)
-                }
-                throw new ApiError(400, "failed to upload file on cloudinary")
+            if (fs.existsSync(thumbnailLocalpath)) {
+                fs.unlinkSync(thumbnailLocalpath)
+            }
+            throw new ApiError(400, "failed to upload file on cloudinary")
         }
     }
 
@@ -280,6 +310,7 @@ const updateVideo = asyncHandler(async (req, res) => {
         .json(new ApiResponse(200, updatedVideo, "video updated succcessfully"))
 })
 
+// 🟢 UPDATED: deleteVideo (Cloudinary cleanup ke sath-sath AWS S3 se HLS assets hatayega)
 const deleteVideo = asyncHandler(async (req, res) => {
     const { videoId } = req.params
 
@@ -297,14 +328,25 @@ const deleteVideo = asyncHandler(async (req, res) => {
         throw new ApiError(400, "you can't delete the video")
     }
 
-    await deleteOnCloudinary(video.videoFile, "video")
-    await deleteOnCloudinary(video.thumbnail, "image")
+    // 1. Cloudinary se static resources hatayein
+    if (video.thumbnail) {
+        await deleteOnCloudinary(video.thumbnail, "image")
+    }
+    // Agar original file cloudinary par ho toh delete karein (purane videos ke liye fallback)
+    if (video.videoFile && video.videoFile.includes("cloudinary")) {
+        await deleteOnCloudinary(video.videoFile, "video")
+    }
 
+    // 2. AWS S3 se poore HLS stream folder ko saaf karein
+    console.log(`Cleaning up S3 assets for video ${videoId}...`);
+    await deleteHLSFolderFromS3(videoId);
+
+    // 3. Database se document udayein
     const result = await Video.findByIdAndDelete(videoId)
 
     return res
         .status(200)
-        .json(new ApiResponse(200, result, "deleted succcessfully"))
+        .json(new ApiResponse(200, result, "deleted successfully"))
 })
 
 const togglePublishStatus = asyncHandler(async (req, res) => {
@@ -350,29 +392,26 @@ const togglePublishStatus = asyncHandler(async (req, res) => {
         .json(new ApiResponse(200, updatedVideo, "updated ispublished video successfullyy"))
 })
 
-const searchVideos = asyncHandler(async (req , res) => {
-    // 
-    const {query} = req.query ;
+const searchVideos = asyncHandler(async (req, res) => {
+    const { query } = req.query;
 
-    if(!query || query.trim() === "") {
-        throw new ApiError(400 , "Search query text is required");
+    if (!query || query.trim() === "") {
+        throw new ApiError(400, "Search query text is required");
     }
 
     const searchRegex = new RegExp(query.trim(), "i")
 
     const videos = await Video.find({
         $or: [
-            {title: {$regex: searchRegex}},
-            {description: {$regex: searchRegex}}
+            { title: { $regex: searchRegex } },
+            { description: { $regex: searchRegex } }
         ]
-    }).populate("owner" , "username fullName avatar")
+    }).populate("owner", "username fullName avatar")
 
     return res
         .status(200)
         .json(new ApiResponse(200, videos, "Videos searched successfully"));
 });
-
-
 
 export {
     getAllVideos,
@@ -382,5 +421,4 @@ export {
     deleteVideo,
     togglePublishStatus,
     searchVideos
-
 }
