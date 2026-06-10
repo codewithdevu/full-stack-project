@@ -11,6 +11,8 @@ const Login = () => {
 
     const handleLogin = async (e) => {
         e.preventDefault();
+        if (isSubmitting) return;
+
         setIsSubmitting(true);
         try {
             const response = await apiClient.post("/users/login", {
@@ -18,14 +20,20 @@ const Login = () => {
                 password: password
             });
 
-            console.log("response.data: ", response.data);
+            console.log("Login response target payload: ", response.data);
 
-            if (response.data?.success || response.data) {
+            // 🟢 STRICT CHECK & RELOAD REDIRECT:
+            // Sahi login par navigate karne se pehle window reload ya standard hook trigger chalega
+            if (response.data?.success || response.status === 200) {
+                // Pehle dashboard path navigate set karo
                 navigate("/");
+                // Fast hard reload browser context taaki Navbar immediately session data fetch kar sake
+                window.location.reload();
             }
         } catch (error) {
             console.error("Login error full details:", error.response?.data || error.message);
-            alert(error.response?.data?.message || "Login failed! Check Email or Password");
+            const serverMessage = error.response?.data?.message || "Login failed! Check Email or Password";
+            alert(serverMessage);
         } finally {
             setIsSubmitting(false);
         }
@@ -36,12 +44,10 @@ const Login = () => {
             
             {/* 1. Global Visual Layers (Background Grid & Ambient Lighting) */}
             <div className="absolute inset-0 bg-grid-pattern opacity-[0.12] pointer-events-none z-0" />
-            {/* Mobile par background glow circles ka size thoda chhota kiya hai taaki overflow issue na ho */}
             <div className="absolute top-1/4 left-1/4 w-72 h-72 sm:w-112.5 sm:h-112.5 bg-indigo-500/10 rounded-full blur-[80px] sm:blur-[110px] pointer-events-none z-0 animate-pulse" style={{ animationDuration: '6s' }} />
             <div className="absolute bottom-1/4 right-1/4 w-72 h-72 sm:w-112.5 sm:h-112.5 bg-purple-500/10 rounded-full blur-[80px] sm:blur-[110px] pointer-events-none z-0 animate-pulse" style={{ animationDuration: '8s' }} />
 
             {/* 2. Glassmorphic Auth Form Wrapper */}
-            {/* Mobile (375px) ke liye padding aur width ko manage kiya hai */}
             <div className="relative w-full max-w-md bg-slate-900/40 backdrop-blur-xl border border-slate-800/80 rounded-2xl shadow-2xl p-6 sm:p-8 z-10 overflow-hidden">
                 
                 {/* Visual Top Highlight Accent Strip */}
@@ -52,7 +58,6 @@ const Login = () => {
                     <div className="inline-flex items-center justify-center w-10 h-10 sm:w-11 sm:h-11 rounded-xl bg-slate-950 border border-slate-800/80 text-indigo-400 mb-3 sm:mb-4 shadow-inner">
                         <Sparkles className="w-5 h-5" />
                     </div>
-                    {/* text-xl for small screens, text-2xl for larger screens */}
                     <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-100">Login to Your Account</h2>
                     <p className="text-[11px] sm:text-xs text-slate-400 mt-1.5 px-2">Enter your credentials to access your account</p>
                 </div>
@@ -107,9 +112,8 @@ const Login = () => {
                     <button 
                         type="submit"
                         disabled={isSubmitting}
-                        className="relative w-full group overflow-hidden rounded-xl py-2.5 sm:py-3 text-xs font-semibold text-white transition-all duration-300 active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none mt-2"
+                        className="relative w-full group overflow-hidden rounded-xl py-2.5 sm:py-3 text-xs font-semibold text-white transition-all duration-300 active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none mt-2 outline-none"
                     >
-                        {/* Background gradient layout */}
                         <span className="absolute inset-0 w-full h-full bg-linear-to-r from-indigo-500 via-purple-500 to-pink-500 transition-all duration-300 group-hover:opacity-95" />
                         <span className="absolute -inset-px rounded-xl bg-linear-to-r from-indigo-400 to-pink-400 opacity-0 group-hover:opacity-40 blur-md transition-opacity duration-300" />
                         
@@ -126,7 +130,7 @@ const Login = () => {
                 <div className="mt-6 sm:mt-8 pt-5 sm:pt-6 border-t border-slate-900/80 text-center">
                     <p className="text-xs text-slate-400 flex flex-col sm:flex-row items-center justify-center gap-1">
                         <span>Don't have a creator account?</span>
-                        <Link to="/register" className="font-semibold text-indigo-400 hover:text-indigo-300 transition-colors">
+                        <Link to="/register" className="font-semibold text-indigo-400 hover:text-indigo-300 transition-colors outline-none">
                             Register now
                         </Link>
                     </p>

@@ -1,13 +1,34 @@
-import React from "react";
+import React, { useEffect, useState } from "react";
 import { NavLink } from "react-router-dom";
 import { Home, LayoutDashboard, MessageSquare, User } from "lucide-react"; 
+import apiClient from "../api/apiConfig"; // 🟢 API CLIENT FOR USER SESSION CHECK
 
 const BottomNav = () => {
+    const [myUsername, setMyUsername] = useState(null);
+
+    // 🟢 CURRENT USER SESSION RESOLVER:
+    // Page load hote hi current user ka username nikal lega dynamically
+    useEffect(() => {
+        apiClient.get("/users/current-user") // Apne active route ke hisab se exact check kr lena
+            .then((res) => {
+                if (res.data?.data?.username) {
+                    setMyUsername(res.data.data.username);
+                }
+            })
+            .catch(() => {
+                console.log("User session not found on bottom nav binder. Fallback active.");
+            });
+    }, []);
+
+    // 🟢 DYNAMIC ROUTING PATH RESOLUTION:
+    // Agar logged-in hai toh uske active channel context link (/c/username) par bhejega, nahi toh /login par!
+    const profilePath = myUsername ? `/c/${myUsername}` : "/login";
+
     const mobileLinks = [
-        { name: "Home", path: "/", icon: <Home className="w-[18px] h-[18px]" /> },
+        { name: "Home", path: "/", icon: <Home className="w-4.5[18px]" /> },
         { name: "Dashboard", path: "/dashboard", icon: <LayoutDashboard className="w-4.5 h-4.5" /> },
         { name: "Tweet", path: "/tweet", icon: <MessageSquare className="w-4.5 h-4.5" /> },
-        { name: "You", path: "/library", icon: <User className="w-4.5 h-4.5" /> },
+        { name: "You", path: profilePath, icon: <User className="w-4.5 h-4.5" /> }, // 👈 FIXED DYNAMIC ROUTE BOUNDS
     ];
 
     return (

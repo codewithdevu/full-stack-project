@@ -6,25 +6,29 @@ import BottomNav from "./BottomNav";
 
 const Layout = () => {
     return (
-        // Added 'w-full overflow-x-hidden' to kill any horizontal layout leakage globally
-        <div className="min-h-screen w-full bg-slate-950 text-slate-100 font-sans select-none overflow-x-hidden">
+        // Global styling boundaries to completely drop any responsive layout width breakouts
+        <div className="min-h-screen w-full bg-slate-950 text-slate-100 font-sans select-none overflow-x-hidden box-border">
             
             {/* Top Fixed Navigation Header */}
             <Navbar />
 
             {/* Main Application Shell Flex Track */}
-            <div className="flex pt-16 w-full box-border">
+            {/* pt-16 ensures content stays safely below fixed navbar heights */}
+            <div className="flex pt-16 w-full min-h-[calc(min-h-screen-16)] box-border relative">
                 
-                {/* Desktop Left Fixed Sidebar (Hidden on mobile screens via its internal lg:flex structure) */}
+                {/* Desktop Left Fixed Sidebar */}
+                {/* Hidden on mobile viewports via its internal tailwind query layers */}
                 <Sidebar />
                 
-                <main className="flex-1 w-full max-w-full lg:pl-64 pb-16 lg:pb-0 overflow-x-hidden box-border">
+                {/* 🟢 FIXED MAIN APP ENGINE VIEWPANEL */}
+                {/* Added uniform px-3.5 sm:px-6 md:px-8 gaps so pages grids never stick raw to the screen glass boundaries */}
+                <main className="flex-1 w-full max-w-full lg:pl-64 px-3.5 sm:px-6 md:px-8 pb-20 lg:pb-6 overflow-x-hidden box-border">
                     <Outlet />
                 </main>
                 
             </div>
 
-            {/* Mobile Bottom Navigation Bar Trigger */}
+            {/* Mobile Bottom Navigation Bar Trigger (Hidden on lg layout break-points) */}
             <BottomNav />
         </div>
     );

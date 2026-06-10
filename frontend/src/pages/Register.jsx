@@ -1,7 +1,7 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
 import { User, Mail, Shield, Lock, UploadCloud, Camera, Sparkles, ArrowRight } from "lucide-react";
-import apiClient from "../api/apiConfig.js";
+import apiClient from "../api/apiConfig";
 
 const Register = () => {
     const [formData, setFormData] = useState({
@@ -20,8 +20,13 @@ const Register = () => {
         e.preventDefault();
         if (isSubmitting) return;
 
+        if (!avatar) {
+            return alert("Core avatar artwork image is required to build your identity profile!");
+        }
+
         const data = new FormData();
 
+        // Safe Controlled Text Field Mapping
         Object.keys(formData).forEach(key => {
             if (formData[key]) {
                 data.append(key, formData[key].trim());
@@ -38,25 +43,25 @@ const Register = () => {
 
         try {
             setIsSubmitting(true);
-            console.log("Sending registration data...");
+            console.log("Initializing account creation pipeline hooks...");
 
+            // 🟢 FIXED AXIOS MULTIPART COMPATIBILITY:
+            // Explicit headers configuration completely dropped to let Axios calculate boundary strings dynamically!
             const response = await apiClient.post("/users/register", data, {
-                headers: {
-                    "Content-Type": "multipart/form-data",
-                },
-                timeout: 60000 
+                timeout: 90000 // Extended to 90s for raw image processing weights over S3/Cloudinary clusters
             });
             
+            alert("Account created successfully! Welcome to VelocityStream. 🚀 Redirecting to authentication vault...");
             navigate("/login");
 
         } catch (error) {
             console.error("Register Error full details:", error.response?.data || error.message);
 
             if (error.response?.status === 409) {
-                alert("This account has already been registered successfully just now! Redirecting to login...");
+                alert("This account username or email has already been registered successfully! Redirecting to login...");
                 navigate("/login");
             } else {
-                alert(error.response?.data?.message || "Registration failed! Check your input fields.");
+                alert(error.response?.data?.message || "Registration dropped! Please verify input criteria and try again.");
             }
         } finally {
             setIsSubmitting(false);
@@ -68,12 +73,10 @@ const Register = () => {
             
             {/* 1. Ambient Background Atmosphere */}
             <div className="absolute inset-0 bg-grid-pattern opacity-[0.12] pointer-events-none z-0" />
-            {/* Ambient glows scaled down for mobile screens to prevent visual distortion */}
             <div className="absolute top-1/4 right-1/4 w-72 h-72 sm:w-125 sm:h-125 bg-purple-500/10 rounded-full blur-[80px] sm:blur-[120px] pointer-events-none z-0 animate-pulse" style={{ animationDuration: '7s' }} />
             <div className="absolute bottom-1/4 left-1/4 w-72 h-72 sm:w-125 sm:h-125 bg-indigo-500/10 rounded-full blur-[80px] sm:blur-[120px] pointer-events-none z-0 animate-pulse" style={{ animationDuration: '9s' }} />
 
             {/* 2. Premium Registration Container */}
-            {/* Changed standard padding to dynamic p-5 sm:p-8 for 375px viewports */}
             <div className="relative w-full max-w-2xl bg-slate-900/40 backdrop-blur-xl border border-slate-800/80 rounded-2xl shadow-2xl p-5 xs:p-6 sm:p-8 z-10 overflow-hidden transition-all duration-300">
                 
                 {/* Visual Top Highlight Accent Strip */}
@@ -102,6 +105,7 @@ const Register = () => {
                                 </span>
                                 <input 
                                     type="text" 
+                                    value={formData.fullName} // 🟢 FIXED CONTROLLED COMPONENT STATE BINDING
                                     placeholder="Enter your full name" 
                                     className="w-full bg-slate-950/45 border border-slate-800/80 rounded-xl py-2.5 sm:py-3 pl-10 pr-4 text-xs text-slate-100 placeholder-slate-500 transition-all duration-300
                                         focus:outline-none focus:border-purple-500/50 focus:ring-1 focus:ring-purple-500/25 focus:bg-slate-900/60 hover:border-slate-700"
@@ -120,6 +124,7 @@ const Register = () => {
                                 </span>
                                 <input 
                                     type="email" 
+                                    value={formData.email} // 🟢 CONTROLLED STATE LINKED
                                     placeholder="Enter your email address" 
                                     className="w-full bg-slate-950/45 border border-slate-800/80 rounded-xl py-2.5 sm:py-3 pl-10 pr-4 text-xs text-slate-100 placeholder-slate-500 transition-all duration-300
                                         focus:outline-none focus:border-purple-500/50 focus:ring-1 focus:ring-purple-500/25 focus:bg-slate-900/60 hover:border-slate-700"
@@ -138,6 +143,7 @@ const Register = () => {
                                 </span>
                                 <input 
                                     type="text" 
+                                    value={formData.username} // 🟢 CONTROLLED STATE LINKED
                                     placeholder="Enter your username" 
                                     className="w-full bg-slate-950/45 border border-slate-800/80 rounded-xl py-2.5 sm:py-3 pl-10 pr-4 text-xs text-slate-100 placeholder-slate-500 transition-all duration-300
                                         focus:outline-none focus:border-purple-500/50 focus:ring-1 focus:ring-purple-500/25 focus:bg-slate-900/60 hover:border-slate-700"
@@ -156,6 +162,7 @@ const Register = () => {
                                 </span>
                                 <input 
                                     type="password" 
+                                    value={formData.password} // 🟢 CONTROLLED STATE LINKED
                                     placeholder="••••••••••••" 
                                     className="w-full bg-slate-950/45 border border-slate-800/80 rounded-xl py-2.5 sm:py-3 pl-10 pr-4 text-xs text-slate-100 placeholder-slate-500 transition-all duration-300
                                         focus:outline-none focus:border-purple-500/50 focus:ring-1 focus:ring-purple-500/25 focus:bg-slate-900/60 hover:border-slate-700"
@@ -168,7 +175,6 @@ const Register = () => {
                     </div>
 
                     {/* Integrated Upload Controls */}
-                    {/* Fixed row spacing gaps for vertical stacks on smaller screen sizes */}
                     <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-5 pt-1">
                         
                         {/* Avatar Image upload block */}
@@ -186,7 +192,7 @@ const Register = () => {
                                     required 
                                 />
                             </div>
-                            {avatar && <p className="text-[10px] text-indigo-400 truncate max-w-full pl-1">Selected: {avatar.name}</p>}
+                            {avatar && <p className="text-[10px] text-indigo-400 truncate max-w-full pl-1 font-mono">Ready: {avatar.name}</p>}
                         </div>
 
                         {/* Cover Image upload block */}
@@ -203,7 +209,7 @@ const Register = () => {
                                     onChange={(e) => setCoverImage(e.target.files[0])} 
                                 />
                             </div>
-                            {coverImage && <p className="text-[10px] text-slate-400 truncate max-w-full pl-1">Selected: {coverImage.name}</p>}
+                            {coverImage && <p className="text-[10px] text-slate-400 truncate max-w-full pl-1 font-mono">Ready: {coverImage.name}</p>}
                         </div>
 
                     </div>
@@ -212,15 +218,14 @@ const Register = () => {
                     <button
                         type="submit"
                         disabled={isSubmitting}
-                        className="relative w-full group overflow-hidden rounded-xl py-2.5 sm:py-3 text-xs font-semibold text-white transition-all duration-300 active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none mt-2"
+                        className="relative w-full group overflow-hidden rounded-xl py-2.5 sm:py-3 text-xs font-semibold text-white transition-all duration-300 active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none mt-2 outline-none"
                     >
-                        {/* Background dynamic state gradient config */}
                         <span className={`absolute inset-0 w-full h-full bg-linear-to-r ${isSubmitting ? 'from-slate-800 to-slate-900' : 'from-purple-600 via-indigo-600 to-pink-600'} transition-all duration-300 group-hover:opacity-95`} />
                         <span className="absolute -inset-px rounded-xl bg-linear-to-r from-purple-400 to-pink-400 opacity-0 group-hover:opacity-40 blur-md transition-opacity duration-300" />
                         
                         <span className="relative flex items-center justify-center gap-1.5 px-2 text-center">
                             <span className="truncate">
-                                {isSubmitting ? "Uploading profile assets..." : "Register Creator Channel"}
+                                {isSubmitting ? "Uploading profile assets onto cloud server clusters..." : "Register Creator Channel"}
                             </span>
                             {!isSubmitting && <ArrowRight className="w-4 h-4 shrink-0 transition-transform duration-300 group-hover:translate-x-0.5" />}
                         </span>
@@ -232,7 +237,7 @@ const Register = () => {
                 <div className="mt-6 sm:mt-8 pt-5 sm:pt-6 border-t border-slate-900/80 text-center">
                     <p className="text-xs text-slate-400 flex flex-col sm:flex-row items-center justify-center gap-1">
                         <span>Already have an established channel?</span>
-                        <Link to="/login" className="font-semibold text-purple-400 hover:text-purple-300 transition-colors">
+                        <Link to="/login" className="font-semibold text-purple-400 hover:text-purple-300 transition-colors outline-none">
                             Login here
                         </Link>
                     </p>

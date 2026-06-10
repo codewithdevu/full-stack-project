@@ -1,5 +1,5 @@
-import React from "react";
-import { NavLink } from "react-router-dom";
+import React, { useEffect, useState } from "react";
+import { NavLink, useLocation } from "react-router-dom";
 import { 
     Home, 
     LayoutDashboard, 
@@ -8,10 +8,48 @@ import {
     Settings, 
     FolderPlus, 
     MessageSquare,
-    ChevronRight
-} from "lucide-react";
+    ChevronRight,
+    User,
+    Cpu,
+    RefreshCw
+} from "lucide-react"; 
+import apiClient from "../api/apiConfig.js";
 
 const Sidebar = () => {
+    const [myUsername, setMyUsername] = useState(null);
+    const [isActiveTranscoding, setIsActiveTranscoding] = useState(false); // Live worker node tracking state
+    const location = useLocation();
+
+    // 🟢 DYNAMIC DATA PIPELINE CHECK
+    useEffect(() => {
+        // 1. Fetch current active session profile
+        apiClient.get("/users/current-user")
+            .then((res) => {
+                if (res.data?.data?.username) {
+                    setMyUsername(res.data.data.username);
+                }
+            })
+            .catch(() => console.log("Sidebar: User offline"));
+
+        // 2. Transcoding status checking loop (Quiet fetch)
+        const checkActiveTranscodes = () => {
+            apiClient.get("/videos") // Gets current user/channel videos
+                .then((res) => {
+                    const videoList = res.data?.data?.docs || res.data?.data || [];
+                    const hasActiveJob = videoList.some(v => v.status === "pending" || v.status === "processing");
+                    setIsActiveTranscoding(hasActiveJob);
+                })
+                .catch(() => console.log("Sidebar status check packet dropped"));
+        };
+
+        checkActiveTranscodes();
+        const statusTimer = setInterval(checkActiveTranscodes, 10000); // Check every 10 seconds
+
+        return () => clearInterval(statusTimer);
+    }, [location.pathname]);
+
+    const profilePath = myUsername ? `/c/${myUsername}` : "/login";
+
     const sections = [
         {
             title: "Menu",
@@ -23,6 +61,7 @@ const Sidebar = () => {
         {
             title: "Library",
             items: [
+                { name: "My Channel", path: profilePath, icon: <User className="w-4 h-4" /> }, // 🟢 INJECTED DYNAMIC PROFILE LINK
                 { name: "History", path: "/history", icon: <History className="w-4 h-4" /> },
                 { name: "Liked Videos", path: "/liked", icon: <Heart className="w-4 h-4" /> },
                 { name: "Playlists", path: "/playlists", icon: <FolderPlus className="w-4 h-4" /> }
@@ -90,11 +129,20 @@ const Sidebar = () => {
                 ))}
             </div>
 
-            {/* Sidebar Bottom Metadata (Fixed safe area layout calculation) */}
+            {/* 🟢 Sidebar Bottom Metadata Panel with Dynamic HLS Transcoder Node Indicators */}
             <div className="border-t border-slate-900/80 pt-4 px-3 flex flex-col gap-1 shrink-0 bg-transparent">
                 <div className="flex items-center gap-2">
-                    <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
-                    <span className="text-[10px] text-slate-500 font-semibold tracking-wide">HLS Transcoding Node Online</span>
+                    {isActiveTranscoding ? (
+                        <>
+                            <RefreshCw className="w-3 h-3 text-indigo-400 animate-spin" />
+                            <span className="text-[10px] text-indigo-400 font-bold tracking-wide animate-pulse">FFmpeg Core Compiling...</span>
+                        </>
+                    ) : (
+                        <>
+                            <div className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse" />
+                            <span className="text-[10px] text-slate-500 font-semibold tracking-wide">Transcoding Nodes Standby</span>
+                        </>
+                    )}
                 </div>
                 <div className="text-[10px] text-slate-600 font-medium">
                     © {new Date().getFullYear()} VelocityStream Inc.
