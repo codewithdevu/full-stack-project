@@ -1,10 +1,10 @@
 import axios from "axios";
 
-// 1. 🟢 PRODUCTION-READY BASE_URL LOGIC:
-// Local machine par chalte waqt direct local port ko hit karega bina kisi proxy choke ke
-const BASE_URL = window.location.hostname === "localhost" 
+// 1. 🟢 PRODUCTION-READY BASE_URL LOGIC WITH YOUR ACTUAL BACKEND URL:
+// Local machine par chalte waqt local port hit karega, Vercel cloud par jaate hi aapki original backend url pakad lega!
+const BASE_URL = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
     ? "http://localhost:3000/api/v1" 
-    : "https://mytube-backend.onrender.com/api/v1"; // 👈 Render par deploy karne ke baad apna actual backend link yahan daal dena!
+    : "https://divyansh-tube-api.vercel.app/api/v1"; // 🚀 FIXED: Aapki actual live Vercel backend url inject kar di hai!
 
 const apiClient = axios.create({
     baseURL: BASE_URL,

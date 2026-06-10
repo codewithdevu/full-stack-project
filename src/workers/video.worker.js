@@ -139,7 +139,7 @@ const worker = new Worker(
                 job.data.videoId,
                 {
                     status: "processed",
-                    hlsMasterUrl,
+                    hlsMasterUrl: hlsMasterUrl,
                     duration: videoDuration // Saving dynamic duration here
                 }
             );
