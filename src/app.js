@@ -35,7 +35,7 @@ app.use(cors({
 }));
 
 // Pre-flight OPTIONS hit handling
-app.options("*", cors());
+// app.options("*", cors());
 
 // ⚠️ PAYLOAD LIMITS FOR FULL VIDEO STREAMS HANDLING
 app.use(express.json({ limit: "100mb" }));
