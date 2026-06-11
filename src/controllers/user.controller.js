@@ -7,11 +7,11 @@ import jwt from "jsonwebtoken"
 import { deleteOldImage } from "../utils/deleteOldImage.js"
 import mongoose from "mongoose"
 
-// Global Cookie Configuration for Vercel Serverless HTTPS Cross-Domain context
+// 🟢 FIX: lowercase "none" is standard for cross-site cookies across edge networks
 const COOKIE_OPTIONS = {
     httpOnly: true,
-    secure: true,
-    sameSite: "None",
+    secure: true,       // strictly targets HTTPS runtimes like Vercel/Render
+    sameSite: "none",   // 🚀 Fixed case-sensitivity issue
     path: "/"
 };
 
@@ -34,9 +34,6 @@ const generateAccessAndRefreshTokens = async (userId) => {
 
 // 1. REGISTER USER
 const registerUser = asyncHandler(async (req, res) => {
-    // console.log("REGISTER REQUEST BODY", req.body);
-    // console.log("REGISTER REQUEST FILES", req.files);
-
     const { email, username, fullName, password } = req.body;
 
     if (!fullName || !email || !username || !password) {
@@ -64,11 +61,6 @@ const registerUser = asyncHandler(async (req, res) => {
     });
 
     if (existedUser) {
-        console.log(" Conflict Found! Existed User Details:", {
-            id: existedUser._id,
-            username: existedUser.username,
-            email: existedUser.email
-        });
         throw new ApiError(409, `User with email '${sanitizedEmail}' or username '${sanitizedUsername}' already exists`);
     }
 
@@ -144,6 +136,7 @@ const loginUser = asyncHandler(async (req, res) => {
     const { accessToken, refreshToken } = await generateAccessAndRefreshTokens(user._id)
     const loggedInUser = await User.findById(user._id).select("-password -refreshToken")
 
+    // 🟢 explicit dynamic attachment structure inside pipeline
     return res
         .status(200)
         .cookie("accessToken", accessToken, COOKIE_OPTIONS)
@@ -165,13 +158,14 @@ const logoutUser = asyncHandler(async (req, res) => {
     await User.findByIdAndUpdate(
         req.user._id,
         {
-            $unset: { refreshToken: undefined }
+            $unset: { refreshToken: 1 } // 🟢 FIX: Standard mongoose unset command takes flag 1
         },
         {
             returnDocument: 'after'
         }
     )
 
+    // 🟢 FIX: explicitly passing accurate clean options block for validation mapping
     return res
         .status(200)
         .clearCookie("accessToken", COOKIE_OPTIONS)
@@ -183,7 +177,7 @@ const logoutUser = asyncHandler(async (req, res) => {
 
 // 4. REFRESH ACCESS TOKEN
 const refreshAccessToken = asyncHandler(async (req, res) => {
-    const incomingRefreshToken = req.cookies.refreshToken || req.body.refreshToken
+    const incomingRefreshToken = req.cookies?.refreshToken || req.body?.refreshToken
 
     if (!incomingRefreshToken) {
         throw new ApiError(401, "unauthorized request")
@@ -236,7 +230,7 @@ const forgetPassword = asyncHandler(async (req, res) => {
     }
 
     user.password = newPassword
-    await user.save({ validateBeforeSave: false }) // 🟢 THE FIX: Added await block here
+    await user.save({ validateBeforeSave: false }) 
 
     return res
         .status(200)
@@ -269,11 +263,11 @@ const updateAccountDetails = asyncHandler(async (req, res) => {
         {
             returnDocument: 'after'
         }
-    ).select("-password -refreshToken") // Exclude both secure paths
+    ).select("-password -refreshToken") 
 
     return res
         .status(200)
-        .json(new ApiResponse(200, updatedUser, "fullName changed successfully")) // 🟢 THE FIX: Bhejो updated framework profile data instance
+        .json(new ApiResponse(200, updatedUser, "fullName changed successfully")) 
 });
 
 // 8. UPDATE AVATAR
