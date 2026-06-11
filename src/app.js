@@ -24,8 +24,6 @@ app.use(cors({
     allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "Accept"]
 }));
 
-app.options("/*", cors());
-
 // ⚠️ INCREASING PAYLOAD LIMITS FROM 20kb TO 100mb FOR VIDEOS HANDLING
 app.use(express.json({ limit: "100mb" }));
 app.use(express.urlencoded({ extended: true, limit: "100mb" }));
