@@ -3,7 +3,7 @@ import path from "path";
 import connectDb from "./database/connection.js";
 import app from "./app.js";
 
-// 1. Safely load env configurations (Dono platform par strict path integration ke sath)
+// 1. Load env configurations
 dotenv.config({
     path: path.resolve(process.cwd(), ".env")
 });
@@ -15,13 +15,15 @@ const startServer = async () => {
     try {
         await connectDb();
 
-        // 3. LOCAL DEVELOPMENT HANDLER:
-        if (process.env.NODE_ENV !== 'production' && !process.env.VERCEL) {
-            app.listen(PORT, () => {
-                console.log(`🚀 Server running smoothly on Localhost: http://localhost:${PORT}`);
-            });
-        } else {
+        // 🟢 UNIVERSAL PLATFORM HANDLER (Vercel vs Render vs Local)
+        if (process.env.VERCEL) {
+            // Pure Serverless Context (Vercel ke liye - No app.listen needed)
             console.log("⚡ Serverless Cloud Context Initialized Successfully.");
+        } else {
+            // Persistent Live Context (Render Cloud aur Localhost Dono Ke Liye compulsory h)
+            app.listen(PORT, () => {
+                console.log(`🚀 Server running smoothly on Port: ${PORT}`);
+            });
         }
     } catch (err) {
         console.error("❌ Critical System Boot FAILED:", err);
@@ -32,5 +34,4 @@ const startServer = async () => {
 // Immediate Execution Trigger
 startServer();
 
-// Vercel Serverless requirements ke liye default app instances export
 export default app;
