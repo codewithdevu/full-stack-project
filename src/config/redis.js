@@ -1,20 +1,23 @@
 import IORedis from "ioredis";
 
-const redisConnection = new IORedis({
-    host: process.env.REDIS_HOST || "127.0.0.1",
-    port: process.env.REDIS_PORT || 6379,
-    // 🟢 PASSING ENCRYPTED CLOUD KEY PAIR
-    // Agar cloud environment me password hoga toh fetch karega, local binary container bina password check bypass kar dega
-    password: process.env.REDIS_PASSWORD || undefined, 
-    maxRetriesPerRequest: null,
+// 🟢 BULLETPROOF PRODUCTION-READY SINGLE CONNECTION STRING:
+// Agar cloud par REDIS_URL environment variable milega toh direct use karega, 
+// nahi toh local dashboard testing ke liye fallback target local container (127.0.0.1) pakdega!
+const REDIS_URI = process.env.REDIS_URL || "redis://127.0.0.1:6379";
+
+console.log("Initializing unified bullmq shared cloud cluster nodes...");
+
+const redisConnection = new IORedis(REDIS_URI, {
+    maxRetriesPerRequest: null, // 🔥 Mandatory rule configuration tag for BullMQ
 });
 
 redisConnection.on("connect" , () => {
-    console.log("⚡ [Redis Cluster]: Connection Established Successfully over Hostname Parameters !!");    
+    console.log("⚡ [Redis Engine]: Shared Cloud Cache Cluster Connected Successfully !!");    
 });
 
 redisConnection.on("error" , (err) => {
-    console.error("❌ [Redis Error]: Node handshake broken ->", err.message);
+    console.error("❌ [Redis Error]: Cluster connection handshake broken ->", err.message);
 });
 
 export { redisConnection };
+export default redisConnection;
