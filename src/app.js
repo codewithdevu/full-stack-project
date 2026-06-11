@@ -13,18 +13,18 @@ const allowedOrigins = [
 
 app.use(cors({
     origin: function (origin, callback) {
-        // Postman bina kisi origin header ke (ya chrome-extension se) hit karta hai
-        // Isliye !origin ko explicitly handle karna zaroori hai local environments me
         if (!origin || allowedOrigins.indexOf(origin) !== -1 || origin.startsWith("chrome-extension://")) {
             callback(null, true);
         } else {
-            callback(new Error("Not allowed by CORS policy"));
+            callback(new Error("CORS policy blockage across server environments"));
         }
     },
-    credentials: true,
+    credentials: true, // 🟢 CRITICAL: Cookies support over different cloud networks
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "Accept"]
 }));
+
+app.options("*", cors());
 
 // ⚠️ INCREASING PAYLOAD LIMITS FROM 20kb TO 100mb FOR VIDEOS HANDLING
 app.use(express.json({ limit: "100mb" }));
