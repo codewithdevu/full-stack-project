@@ -1,5 +1,5 @@
 import React, { useEffect, useState } from "react";
-import { NavLink, useLocation } from "react-router-dom";
+import { NavLink } from "react-router-dom";
 import { 
     Home, 
     LayoutDashboard, 
@@ -9,46 +9,42 @@ import {
     FolderPlus, 
     MessageSquare,
     ChevronRight,
-    User,
-    Cpu,
     RefreshCw
 } from "lucide-react"; 
 import apiClient from "../api/apiConfig.js";
 
 const Sidebar = () => {
-    const [myUsername, setMyUsername] = useState(null);
     const [isActiveTranscoding, setIsActiveTranscoding] = useState(false); // Live worker node tracking state
-    const location = useLocation();
 
-    // 🟢 DYNAMIC DATA PIPELINE CHECK
+    // 🟢 OPTIMIZED DATA PIPELINE CHECK
     useEffect(() => {
-        // 1. Fetch current active session profile
-        apiClient.get("/users/current-user")
-            .then((res) => {
-                if (res.data?.data?.username) {
-                    setMyUsername(res.data.data.username);
-                }
-            })
-            .catch(() => console.log("Sidebar: User offline"));
+        const controller = new AbortController();
 
-        // 2. Transcoding status checking loop (Quiet fetch)
-        const checkActiveTranscodes = () => {
-            apiClient.get("/videos") // Gets current user/channel videos
-                .then((res) => {
-                    const videoList = res.data?.data?.docs || res.data?.data || [];
-                    const hasActiveJob = videoList.some(v => v.status === "pending" || v.status === "processing");
-                    setIsActiveTranscoding(hasActiveJob);
-                })
-                .catch(() => console.log("Sidebar status check packet dropped"));
+        // 1. Transcoding status checking loop (Quiet fetch)
+        const checkActiveTranscodes = async () => {
+            try {
+                const res = await apiClient.get("/videos", { signal: controller.signal }); // Gets current user/channel videos
+                const videoList = res.data?.data?.docs || res.data?.data || [];
+                const hasActiveJob = videoList.some(v => v.status === "pending" || v.status === "processing");
+                setIsActiveTranscoding(hasActiveJob);
+            } catch (error) {
+                if (error.name !== 'CanceledError' && error.name !== 'AbortError') {
+                    console.log("Sidebar status check packet dropped");
+                }
+            }
         };
 
+        // Execution kickoff
         checkActiveTranscodes();
-        const statusTimer = setInterval(checkActiveTranscodes, 10000); // Check every 10 seconds
+        
+        // Strictly decoupled from location updates to avoid stacking multiple intervals
+        const statusTimer = setInterval(checkActiveTranscodes, 15000); // Checked every 15 seconds to ease server overhead
 
-        return () => clearInterval(statusTimer);
-    }, [location.pathname]);
-
-    const profilePath = myUsername ? `/c/${myUsername}` : "/login";
+        return () => {
+            clearInterval(statusTimer);
+            controller.abort(); // Safely teardown any flying network micro-tasks
+        };
+    }, []); // Empty array prevents infinite interval leaks across routes
 
     const sections = [
         {
@@ -61,7 +57,7 @@ const Sidebar = () => {
         {
             title: "Library",
             items: [
-                { name: "My Channel", path: profilePath, icon: <User className="w-4 h-4" /> }, // 🟢 INJECTED DYNAMIC PROFILE LINK
+                // 🟢 REMOVED "MY CHANNEL" DYNAMIC PROFILE STRIP DIRECTLY FROM CORE LIST
                 { name: "History", path: "/history", icon: <History className="w-4 h-4" /> },
                 { name: "Liked Videos", path: "/liked", icon: <Heart className="w-4 h-4" /> },
                 { name: "Playlists", path: "/playlists", icon: <FolderPlus className="w-4 h-4" /> }
@@ -77,7 +73,6 @@ const Sidebar = () => {
     ];
     
     return (
-        // Clean layout isolation for mobile views (strictly invisible on 375px screens)
         <aside className="fixed left-0 top-16 w-64 h-[calc(100vh-64px)] bg-slate-950/45 border-r border-slate-900/80 backdrop-blur-xl p-4 hidden lg:flex flex-col justify-between select-none z-30">
             <div className="space-y-6 overflow-y-auto scrollbar-none pr-1">
                 {sections.map((section, sectionIdx) => (
@@ -129,7 +124,7 @@ const Sidebar = () => {
                 ))}
             </div>
 
-            {/* 🟢 Sidebar Bottom Metadata Panel with Dynamic HLS Transcoder Node Indicators */}
+            {/* Sidebar Bottom Metadata Panel with Dynamic HLS Transcoder Node Indicators */}
             <div className="border-t border-slate-900/80 pt-4 px-3 flex flex-col gap-1 shrink-0 bg-transparent">
                 <div className="flex items-center gap-2">
                     {isActiveTranscoding ? (

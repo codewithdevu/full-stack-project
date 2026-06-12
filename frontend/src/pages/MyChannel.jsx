@@ -10,22 +10,28 @@ const MyChannel = () => {
     const [loading, setLoading] = useState(true);
     const navigate = useNavigate();
 
-    const fetchChannelData = async (isSilent = false) => {
+    // Added signal parameter to cancel active network pipelines on page change
+    const fetchChannelData = async (isSilent = false, signal = null) => {
         try {
-            if (!isSilent) setLoading(true)
+            if (!isSilent) setLoading(true);
 
-            const response = await apiClient.get(`/users/c/${username}`);
+            const response = await apiClient.get(`/users/c/${username}`, { signal });
             const channelInfo = response.data?.data;
 
             if (channelInfo) {
                 setChannel(channelInfo);
-                const videoResponse = await apiClient.get(`/videos?userId=${channelInfo._id}`);
+                const videoResponse = await apiClient.get(`/videos?userId=${channelInfo._id}`, { signal });
 
                 if (videoResponse.data?.data) {
                     setVideos(videoResponse.data.data.docs || videoResponse.data.data);
                 }
             }
         } catch (error) {
+            // Safely ignore aborted fetch exceptions to keep logs clean
+            if (error.name === 'CanceledError' || error.name === 'AbortError' || apiClient.isCancel(error)) {
+                console.log("Fetch request successfully aborted on unmount.");
+                return;
+            }
             console.error("Error fetching channel data:", error);
         } finally {
             if (!isSilent) setLoading(false);
@@ -33,10 +39,17 @@ const MyChannel = () => {
     };
 
     useEffect(() => {
+        const controller = new AbortController();
+
         if (username) {
-            fetchChannelData();
+            fetchChannelData(false, controller.signal);
         }
-    }, [username])
+
+        // Clean-up function: Kills any pending Axios stream links when switching tabs
+        return () => {
+            controller.abort();
+        };
+    }, [username]);
 
     const handleSubscribe = async () => {
         try {
@@ -104,7 +117,6 @@ const MyChannel = () => {
             <div className="absolute bottom-1/4 left-1/4 w-62.5 sm:w-100 bg-purple-500/5 rounded-full blur-[100px] sm:blur-[110px] pointer-events-none z-0" />
 
             {/* 1. Dynamic Cover Artwork Banner */}
-            {/* Height optimized for mobile scales */}
             <div className="h-32 xs:h-40 sm:h-44 md:h-64 w-full bg-slate-950 overflow-hidden relative border-b border-slate-900/80 z-0">
                 <img
                     src={channel.coverImage || "https://images.unsplash.com/photo-1618005182384-a83a8bd57fbe?q=80&w=1500"}
@@ -115,7 +127,6 @@ const MyChannel = () => {
             </div>
 
             {/* 2. Channel Header Info Block */}
-            {/* Added standard 'pt-4' fallback to balance out negative margins */}
             <div className="max-w-6xl mx-auto px-4 md:px-8 -mt-12 xs:-mt-16 md:-mt-16 relative z-10 space-y-5 sm:space-y-6 box-border">
                 <div className="flex flex-col md:flex-row items-center md:items-end gap-4 md:gap-6 w-full">
                     
@@ -138,7 +149,6 @@ const MyChannel = () => {
                         </div>
 
                         {/* Developer-style Subscription Info Strip */}
-                        {/* Hidden native system scrollbars explicitly while preserving touch drag swipes */}
                         <div className="flex items-center justify-center md:justify-start gap-2 text-slate-400 text-[11px] md:text-xs font-semibold whitespace-nowrap overflow-x-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden py-0.5 w-full">
                             <span className="text-indigo-400">@{channel.username}</span>
                             <span className="text-slate-800 shrink-0">•</span>
@@ -181,7 +191,6 @@ const MyChannel = () => {
                 </div>
 
                 {/* --- VIDEO CATALOG SHELF --- */}
-                {/* Fixed column structure grid constraints for mobile stacks */}
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4 sm:gap-6 animate-in fade-in duration-300 w-full box-border">
                     {videos.length > 0 ? (
                         videos.map((video) => (
