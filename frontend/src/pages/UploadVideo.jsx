@@ -31,6 +31,11 @@ const UploadVideo = ({ isOpen, onClose }) => {
 
     const navigate = useNavigate(); // 🟢 NAVIGATOR INSTANCE INITIALIZATION
 
+    // 🟢 VOICE NOTE LOGIC: Environment toggle mapping
+    // localhost ya 127.0.0.1 par ye false rahega (yani local machine par alert nhi dikhega), 
+    // par jaise hi Vercel production par live jayega, alert on ho jayega.
+    const isProductionServer = window.location.hostname !== "localhost" && window.location.hostname !== "127.0.0.1";
+
     useEffect(() => {
         return () => {
             if (videoPreview) URL.revokeObjectURL(videoPreview);
@@ -177,7 +182,7 @@ const UploadVideo = ({ isOpen, onClose }) => {
                 {/* MAIN MODAL BOX */}
                 <div className="relative bg-slate-950 border border-slate-900 shadow-[0_25px_60px_rgba(0,0,0,0.85)] rounded-2xl flex flex-col overflow-hidden max-h-[92vh] w-full box-border">
                     
-                    {/* Sticky Header */}
+                    /* Sticky Header */
                     <div className="relative z-10 flex justify-between items-center p-4 border-b border-slate-900 shrink-0 bg-slate-950/80 backdrop-blur-md">
                         <h2 className="text-xs font-bold flex items-center gap-2 text-slate-100 uppercase tracking-wider">
                             <Upload className="w-3.5 h-3.5 text-indigo-400" /> Upload Video
@@ -192,7 +197,7 @@ const UploadVideo = ({ isOpen, onClose }) => {
                         </button>
                     </div>
 
-                    {/* Progress Loader Bar */}
+                    /* Progress Loader Bar */
                     {uploadProgress > 0 && (
                         <div className="w-full h-0.5 bg-slate-900 relative z-20 shrink-0">
                             <div 
@@ -205,6 +210,21 @@ const UploadVideo = ({ isOpen, onClose }) => {
                     {/* VERTICAL FORM BODY */}
                     <form onSubmit={handleSubmit} className="relative z-10 flex-1 p-4 xs:p-5 space-y-4 overflow-y-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden w-full box-border">
                         
+                        {/* 🟢 VOICE NOTE LOGIC: Adaptive Amber Warning Alert Box Block */}
+                        {isProductionServer && (
+                            <div className="p-3 bg-amber-950/30 border border-amber-900/50 rounded-xl text-[10px] sm:text-[11px] text-amber-200/90 leading-relaxed space-y-1">
+                                <div className="flex items-center gap-1.5 font-bold text-amber-400 uppercase tracking-wider text-[9px]">
+                                    <AlertCircle className="w-3.5 h-3.5" /> Video Transcoding Turned Off
+                                </div>
+                                <p>
+                                    High-performance HLS video adaptive transcoding is heavy and expensive to host on live cloud node clusters.
+                                </p>
+                                <p className="text-slate-500 text-[9px] pt-0.5">
+                                    💡 Want full adaptive bitrate streaming? Fork this repository, set <code className="bg-slate-900/80 text-amber-300 px-1 py-0.5 rounded border border-slate-850">ENABLE_TRANSCODING=true</code> in your local environment, and execute locally!
+                                </p>
+                            </div>
+                        )}
+
                         {/* --- RESPONSIVE MEDIA DROPZONE GRID --- */}
                         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3.5 w-full min-w-0">
                             
@@ -361,12 +381,14 @@ const UploadVideo = ({ isOpen, onClose }) => {
                             </div>
                             <div className="flex gap-3 pt-2">
                                 <button
+                                    type="button"
                                     onClick={() => { setShowCloseConfirm(false); }}
                                     className="flex-1 py-2 rounded-xl bg-slate-900 border border-slate-800 text-slate-400 hover:text-slate-200 transition-colors text-xs font-semibold"
                                 >
                                     Cancel
                                 </button>
                                 <button
+                                    type="button"
                                     onClick={handleResetAndClose}
                                     className="flex-1 py-2 bg-rose-500/15 text-rose-450 hover:bg-rose-600 hover:text-white border border-rose-500/20 hover:border-transparent rounded-xl transition duration-300 font-bold text-xs"
                                 >
