@@ -2,7 +2,7 @@ import axios from "axios";
 
 // 1. 🟢 UNIVERSAL BASE_URL LOGIC FOR LOCAL & PRODUCTION:
 const BASE_URL = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
-    ? "http://localhost:3000/api/v1" 
+    ? "http://localhost:8000/api/v1" 
     : "https://divyansh-tube-api.onrender.com/api/v1"; 
     
 const apiClient = axios.create({
