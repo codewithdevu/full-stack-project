@@ -31,9 +31,7 @@ const UploadVideo = ({ isOpen, onClose }) => {
 
     const navigate = useNavigate(); // 🟢 NAVIGATOR INSTANCE INITIALIZATION
 
-    // 🟢 VOICE NOTE LOGIC: Environment toggle mapping
-    // localhost ya 127.0.0.1 par ye false rahega (yani local machine par alert nhi dikhega), 
-    // par jaise hi Vercel production par live jayega, alert on ho jayega.
+    // 🟢 VOICE NOTE LOGIC: Detect production runtime domain env
     const isProductionServer = window.location.hostname !== "localhost" && window.location.hostname !== "127.0.0.1";
 
     useEffect(() => {
@@ -182,7 +180,7 @@ const UploadVideo = ({ isOpen, onClose }) => {
                 {/* MAIN MODAL BOX */}
                 <div className="relative bg-slate-950 border border-slate-900 shadow-[0_25px_60px_rgba(0,0,0,0.85)] rounded-2xl flex flex-col overflow-hidden max-h-[92vh] w-full box-border">
                     
-                    /* Sticky Header */
+                    {/* Sticky Header */}
                     <div className="relative z-10 flex justify-between items-center p-4 border-b border-slate-900 shrink-0 bg-slate-950/80 backdrop-blur-md">
                         <h2 className="text-xs font-bold flex items-center gap-2 text-slate-100 uppercase tracking-wider">
                             <Upload className="w-3.5 h-3.5 text-indigo-400" /> Upload Video
@@ -197,7 +195,7 @@ const UploadVideo = ({ isOpen, onClose }) => {
                         </button>
                     </div>
 
-                    /* Progress Loader Bar */
+                    {/* Progress Loader Bar */}
                     {uploadProgress > 0 && (
                         <div className="w-full h-0.5 bg-slate-900 relative z-20 shrink-0">
                             <div 
@@ -210,17 +208,17 @@ const UploadVideo = ({ isOpen, onClose }) => {
                     {/* VERTICAL FORM BODY */}
                     <form onSubmit={handleSubmit} className="relative z-10 flex-1 p-4 xs:p-5 space-y-4 overflow-y-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden w-full box-border">
                         
-                        {/* 🟢 VOICE NOTE LOGIC: Adaptive Amber Warning Alert Box Block */}
+                        {/* 🟢 VOICE NOTE LOGIC: Compact Warning Banner (Shows only on production) */}
                         {isProductionServer && (
-                            <div className="p-3 bg-amber-950/30 border border-amber-900/50 rounded-xl text-[10px] sm:text-[11px] text-amber-200/90 leading-relaxed space-y-1">
-                                <div className="flex items-center gap-1.5 font-bold text-amber-400 uppercase tracking-wider text-[9px]">
-                                    <AlertCircle className="w-3.5 h-3.5" /> Video Transcoding Turned Off
+                            <div className="p-3 bg-amber-950/30 border border-amber-900/40 rounded-xl text-[10px] sm:text-[11px] text-amber-200/90 leading-relaxed">
+                                <div className="flex items-center gap-1.5 font-bold text-amber-400 uppercase tracking-wider text-[9px] mb-1">
+                                    <AlertCircle className="w-3.5 h-3.5" /> Video Transcoding Optimized (OFF)
                                 </div>
                                 <p>
-                                    High-performance HLS video adaptive transcoding is heavy and expensive to host on live cloud node clusters.
+                                    HLS adaptive stream video transcoding is currently turned off on live cluster hosts because processing multi-layered encoding is highly resource-intensive and expensive.
                                 </p>
-                                <p className="text-slate-500 text-[9px] pt-0.5">
-                                    💡 Want full adaptive bitrate streaming? Fork this repository, set <code className="bg-slate-900/80 text-amber-300 px-1 py-0.5 rounded border border-slate-850">ENABLE_TRANSCODING=true</code> in your local environment, and execute locally!
+                                <p className="text-slate-500 text-[9px] mt-1.5">
+                                    💡 Feel free to fork the repository, toggle <code className="bg-slate-900/80 text-amber-300 px-1 py-0.5 rounded border border-slate-850">ENABLE_TRANSCODING=true</code> inside your local environment, and test full resolution bitrate streams locally!
                                 </p>
                             </div>
                         )}
