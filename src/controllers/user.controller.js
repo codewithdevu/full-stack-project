@@ -7,11 +7,13 @@ import jwt from "jsonwebtoken"
 import { deleteOldImage } from "../utils/deleteOldImage.js"
 import mongoose from "mongoose"
 
-// 🟢 FIX: lowercase "none" is standard for cross-site cookies across edge networks
+// 🟢 BULLETPROOF PRODUCTION COOKIE CONFIGURATION
+// Ye explicitly lowercase "none" use karega jo Vercel frontend aur Render backend 
+// ke beech bina kisi third-party blockage ke securely save ho jayega.
 const COOKIE_OPTIONS = {
     httpOnly: true,
-    secure: true,       // strictly targets HTTPS runtimes like Vercel/Render
-    sameSite: "none",   // 🚀 Fixed case-sensitivity issue
+    secure: true,       // 🔒 Mandatory: HTTPS enforcement for cross-site networks
+    sameSite: "none",   // 🌐 Crucial: Forces Chrome to accept cookies across different domains
     path: "/"
 };
 
@@ -136,7 +138,7 @@ const loginUser = asyncHandler(async (req, res) => {
     const { accessToken, refreshToken } = await generateAccessAndRefreshTokens(user._id)
     const loggedInUser = await User.findById(user._id).select("-password -refreshToken")
 
-    // 🟢 explicit dynamic attachment structure inside pipeline
+    // 🟢 SECURE INJECTION MATRIX
     return res
         .status(200)
         .cookie("accessToken", accessToken, COOKIE_OPTIONS)
@@ -158,14 +160,14 @@ const logoutUser = asyncHandler(async (req, res) => {
     await User.findByIdAndUpdate(
         req.user._id,
         {
-            $unset: { refreshToken: 1 } // 🟢 FIX: Standard mongoose unset command takes flag 1
+            $unset: { refreshToken: 1 } 
         },
         {
             returnDocument: 'after'
         }
     )
 
-    // 🟢 FIX: explicitly passing accurate clean options block for validation mapping
+    // 🟢 CLEAN CLEAR CONFIG INJECTION
     return res
         .status(200)
         .clearCookie("accessToken", COOKIE_OPTIONS)

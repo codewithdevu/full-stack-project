@@ -8,7 +8,7 @@ dotenv.config({
     path: path.resolve(process.cwd(), ".env")
 });
 
-const PORT = process.env.PORT || 8000;
+const PORT = process.env.PORT || 3000;
 
 // Directly Start Persistent Render/Local Server
 const startServer = async () => {

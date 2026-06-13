@@ -8,7 +8,7 @@ const app = express();
 // 1. 🟢 BULLETPROOF MULTI-ORIGIN PRODUCTION MATRIX
 const allowedOrigins = [
     "https://divyansh-tube.vercel.app",
-    "https://divyansh-tube-frontend.vercel.app", // 🚀 Safe Backup: Agar vercel dashboard naming strict ho
+    "https://divyansh-tube-frontend.vercel.app", 
     "http://localhost:5173",
     "http://127.0.0.1:5173"
 ];
@@ -29,13 +29,15 @@ app.use(cors({
             callback(new Error("CORS policy blockage across server environments"));
         }
     },
-    credentials: true, // 🟢 SUPER CRITICAL: Handshake browser cross-domain cookies storage injection
+    credentials: true, // 🟢 SUPER CRITICAL: Cross-domain cookies storage injection allow karega
     methods: ["GET", "POST", "PUT", "DELETE", "PATCH", "OPTIONS"],
     allowedHeaders: ["Content-Type", "Authorization", "X-Requested-With", "Accept"]
 }));
 
-// Pre-flight OPTIONS hit handling
-// app.options("*", cors());
+// 🔥 PRODUCTION FIX FOR PRE-FLIGHT HANDSHAKE
+// Browser jab actual request (POST/PUT) se pehle OPTIONS check maarta hai, 
+// toh use yahi se 200 OK headers ke sath pass karwana mandatory hai.
+app.options("*", cors());
 
 // ⚠️ PAYLOAD LIMITS FOR FULL VIDEO STREAMS HANDLING
 app.use(express.json({ limit: "100mb" }));
