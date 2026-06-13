@@ -1,5 +1,6 @@
 import { v2 as cloudinary } from "cloudinary";
 import fs from "fs";
+import streamifier from "streamifier"; // 🟢 Buffer integration stream bridge active
 
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
@@ -53,4 +54,31 @@ const uploadOncloudinary = async (localFilepath) => {
   }
 };
 
-export { uploadOncloudinary, deleteOnCloudinary };
+// 🔥 NEW PRODUCTION REFACTOR: Direct injection for processing raw RAM buffers
+const uploadBufferOnCloudinary = (fileBuffer, resourceType = "image") => {
+  return new Promise((resolve, reject) => {
+    const cld_upload_stream = cloudinary.uploader.upload_stream(
+      { 
+        resource_type: resourceType, 
+        folder: "mytube_thumbnails" 
+      },
+      (error, result) => {
+        if (result) resolve(result);
+        else {
+          console.error("❌ Cloudinary Memory Buffer Stream upload FAILED:", error);
+          reject(error);
+        }
+      }
+    );
+    
+    // Convert raw binary buffer stream directly into streaming nodes to pipe onto Cloudinary gateway
+    streamifier.createReadStream(fileBuffer).pipe(cld_upload_stream);
+  });
+};
+
+// 🟢 EXPORT ALL ARCHITECTURAL PATTERNS Safely
+export { 
+  uploadOncloudinary, 
+  uploadBufferOnCloudinary, // 👈 Now exported properly for video.controller.js!
+  deleteOnCloudinary 
+};

@@ -3,7 +3,7 @@ import { asyncHandler } from "../utils/asyncHandler.js";
 import { Video } from "../models/video.model.js";
 import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
-import { uploadOncloudinary, deleteOnCloudinary } from "../utils/cloudinary.js";
+import { uploadBufferOnCloudinary, deleteOnCloudinary } from "../utils/cloudinary.js"; // 🟢 UPDATED: Uses uploadBufferOnCloudinary instead of physical local paths
 import fs from "fs";
 
 // NEW IMPORTS FOR S3 & BULLMQ QUEUE
@@ -101,29 +101,27 @@ const publishVideo = asyncHandler(async (req, res) => {
         throw new ApiError(400, "title and description is required");
     }
 
-    // 🟢 REFACTOR: Target whole memory payload object for video, local path for thumbnail
+    // 🟢 REFACTOR: Target whole memory payload objects (Buffers) for both video and thumbnail
     const videoFileObject = req.files?.videoFile?.[0]; 
-    const thumbnailLocalpath = req.files?.thumbnail?.[0]?.path;
+    const thumbnailFileObject = req.files?.thumbnail?.[0];
 
-    if (!(videoFileObject && thumbnailLocalpath)) {
-        if (thumbnailLocalpath && fs.existsSync(thumbnailLocalpath)) fs.unlinkSync(thumbnailLocalpath);
-        throw new ApiError(400, "videoFile or thumbnail is required");
+    // 🔥 FIX VALIDATION: Checks objects directly instead of reading .path property
+    if (!(videoFileObject && thumbnailFileObject)) {
+        throw new ApiError(400, "videoFile and thumbnail files are strictly required");
     }
 
     try {
-        const thumbnail = await uploadOncloudinary(thumbnailLocalpath);
+        console.log("Streaming thumbnail buffer directly to Cloudinary...");
+        // 🟢 FIX: Uploading thumbnail using memory buffer utility channel
+        const thumbnail = await uploadBufferOnCloudinary(thumbnailFileObject.buffer, "image");
         if (!thumbnail) {
             throw new ApiError(400, "failed to upload thumbnail on cloudinary");
         }
 
         console.log("Uploading original video to S3 directly via memory streams...");
-        const videoFileMimetype = videoFileObject.mimetype || "video/mp4";
-        
-        // 🔥 CRITICAL FIX: Pass the whole object (buffer payload block) instead of localFilePath path string
         const s3UploadResult = await uploadOnS3(videoFileObject);
 
         if (!s3UploadResult) {
-            if (thumbnailLocalpath && fs.existsSync(thumbnailLocalpath)) fs.unlinkSync(thumbnailLocalpath);
             throw new ApiError(500, "failed to upload original video on S3");
         }
 
@@ -171,9 +169,7 @@ const publishVideo = asyncHandler(async (req, res) => {
             ));
 
     } catch (error) {
-        // Only cleanup thumbnail path since video exists strictly in RAM buffer stream logic
-        if (thumbnailLocalpath && fs.existsSync(thumbnailLocalpath)) fs.unlinkSync(thumbnailLocalpath);
-
+        console.error("Critical error in publishing endpoint loop:", error);
         throw new ApiError(500, error?.message || "Internal Server Error during video publishing");
     }
 });
@@ -288,26 +284,20 @@ const updateVideo = asyncHandler(async (req, res) => {
         throw new ApiError(400, "You are not authorized to update this video");
     }
 
-    const thumbnailLocalpath = req.file?.path || req.files?.thumbnail?.[0]?.path;
+    // Update video routes typically receive fields via memory buffer adjustments
+    const thumbnailFileObject = req.file || req.files?.thumbnail?.[0];
 
     let thumbnail;
-    if (thumbnailLocalpath) {
+    if (thumbnailFileObject && thumbnailFileObject.buffer) {
         try {
             await deleteOnCloudinary(video.thumbnail, "image");
-            thumbnail = await uploadOncloudinary(thumbnailLocalpath);
-
-            if (fs.existsSync(thumbnailLocalpath)) {
-                fs.unlinkSync(thumbnailLocalpath);
-            }
+            thumbnail = await uploadBufferOnCloudinary(thumbnailFileObject.buffer, "image");
 
             if (!thumbnail) {
                 throw new ApiError(400, "failed to upload file on cloudinary");
             }
         } catch (error) {
-            if (fs.existsSync(thumbnailLocalpath)) {
-                fs.unlinkSync(thumbnailLocalpath);
-            }
-            throw new ApiError(400, "failed to upload file on cloudinary");
+            throw new ApiError(400, "failed to update file on cloudinary matrix setup");
         }
     }
 

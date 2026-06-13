@@ -1,18 +1,22 @@
-services:
+version: '3.8'
 
+services:
   app:
     build: .
     container_name: mytube-app
     ports:
-      - "3000:3000"
+      - "8000:8000" # 🔥 FIXED: 8000 outside maps strictly to 8000 inside the container!
     env_file:
       - .env
-    # 🔥 YEH VALA BLOCK JODIYE
     environment:
       - REDIS_HOST=redis
       - REDIS_PORT=6379
+      - PORT=8000 # Force internal container injection
+    networks:
+      - mytube-network
     depends_on:
-      - redis
+      redis:
+        condition: service_healthy
 
   worker:
     build: .
@@ -20,15 +24,28 @@ services:
     command: npm run worker
     env_file:
       - .env
-    # 🔥 YEH VALA BLOCK BHI JODIYE
     environment:
       - REDIS_HOST=redis
       - REDIS_PORT=6379
+    networks:
+      - mytube-network
     depends_on:
-      - redis
+      redis:
+        condition: service_healthy
 
   redis:
-    image: redis:7
+    image: redis:7-alpine
     container_name: mytube-redis
     ports:
       - "6379:6379"
+    networks:
+      - mytube-network
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 3s
+      retries: 5
+
+networks:
+  mytube-network:
+    driver: bridge
