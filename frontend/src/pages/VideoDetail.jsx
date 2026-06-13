@@ -83,19 +83,15 @@ const VideoDetail = () => {
         }
     };
 
-    // 🟢 FIXED AUTOMATIC BACKGROUND POLLING HOOK
-    // React engine lifecycle bounds safe key updates logic injection
+    // AUTOMATIC BACKGROUND POLLING HOOK
     useEffect(() => {
         if (!videoId) return;
 
-        // Initial full page skeletons loading layer fetch
         fetchVideoDetail(true);
         fetchRecommendations();
 
-        // Independent database checking interval ticker loop
         const statusPollInterval = setInterval(() => {
             setVideo((currentVideoState) => {
-                // Background quiet async processing tracking values check
                 if (!currentVideoState || currentVideoState.status === "pending" || currentVideoState.status === "processing") {
                     console.log("Polling background pipeline active transcoder nodes...");
                     apiClient.get(`/videos/${videoId}`)
@@ -108,26 +104,23 @@ const VideoDetail = () => {
                 }
                 return currentVideoState; 
             });
-        }, 4000); // Polls database securely every 4 seconds
+        }, 4000); 
 
         return () => clearInterval(statusPollInterval);
     }, [videoId]); 
 
-    // HLS ENGINE LIFECYCLE HOOK:
+    // 🔥 FIXED ADAPTIVE HLS & MP4 LIFECYCLE HYDRATION ENGINE
     useEffect(() => {
         if (loading || !videoRef.current || !video || isTranscoding) return;
 
         const videoElement = videoRef.current;
-        const streamUrl = video.hlsMasterUrl || video.videoFile;
+        // Strict mapping check: verify if it contains explicit master.m3u8 structures
+        const isHlsStream = video.hlsMasterUrl && video.hlsMasterUrl.includes(".m3u8");
+        const streamUrl = isHlsStream ? video.hlsMasterUrl : video.videoFile;
 
         if (streamUrl) {
-            if (videoElement.src && !videoElement.src.includes(".m3u8")) {
-                videoElement.pause();
-                videoElement.removeAttribute('src');
-                videoElement.load();
-            }
-
-            if (streamUrl.includes(".m3u8")) {
+            if (isHlsStream) {
+                // 🎬 CASE A: LOCAL DOCKER MULTI-LAYER RESOLUTION HLS WORKER PIPELINE
                 if (Hls.isSupported()) {
                     if (hlsInstanceRef.current) {
                         hlsInstanceRef.current.destroy();
@@ -154,8 +147,6 @@ const VideoDetail = () => {
                         
                         setResolutions(parsedLevels);
                         setCurrentResIndex(-1); 
-                        
-                        // 🟢 AUTOMATIC INSTANT PLAY ENGINE: Loads stream layout instantly
                         videoElement.play().catch((err) => console.log("Autoplay context bypass: ", err));
                     });
 
@@ -177,13 +168,24 @@ const VideoDetail = () => {
                             }
                         }
                     });
-                } 
-                else if (videoElement.canPlayType('application/vnd.apple.mpegurl')) {
+                } else if (videoElement.canPlayType('application/vnd.apple.mpegurl')) {
                     videoElement.src = streamUrl;
                 }
             } else {
+                // 🚀 CASE B: LIVE PRODUCTION CLOUD ENVIRONMENT BEYOND TRANSCODING CONSTRAINTS (DIRECT S3 MP4 LINK)
+                console.log("🎬 Direct MP4 stream URL detected. Bypassing HLS system layers safely.");
+                if (hlsInstanceRef.current) {
+                    hlsInstanceRef.current.destroy();
+                    hlsInstanceRef.current = null;
+                }
+                
+                // Pure HTML5 video element source hydration mechanism
                 videoElement.src = streamUrl;
+                videoElement.load(); // Flush container memory mapping
                 setResolutions([]); 
+                setCurrentResIndex(-1);
+                
+                videoElement.play().catch((err) => console.log("Direct play request deferred: ", err));
             }
         }
 
@@ -458,7 +460,7 @@ const VideoDetail = () => {
                                 <video
                                     ref={videoRef}
                                     poster={video.thumbnail}
-                                    className="w-full h-full object-contain pointer-events-none"
+                                    className="w-full h-full object-contain"
                                     playsInline
                                 />
 
@@ -735,6 +737,7 @@ const VideoDetail = () => {
                             {userPlaylists.length > 0 ? (
                                 userPlaylists.map(pl => (
                                     <div
+                                        document_id={pl._id}
                                         key={pl._id}
                                         onClick={() => addVideoToPlaylist(pl._id)}
                                         className="p-3 bg-slate-900/30 rounded-xl border border-slate-900 hover:bg-indigo-600/15 hover:border-indigo-500/30 text-xs transition cursor-pointer flex justify-between items-center group duration-300 w-full box-border"
