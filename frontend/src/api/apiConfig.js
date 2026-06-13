@@ -1,14 +1,17 @@
 import axios from "axios";
 
 // 1. 🟢 UNIVERSAL BASE_URL LOGIC FOR LOCAL & PRODUCTION:
-// Local machine par backend port 8000 target karega, production deployment par aapka dynamic Render cluster hit hoga!
 const BASE_URL = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1"
-    ? "http://localhost:8000/api/v1" 
+    ? "http://localhost:3000/api/v1" 
     : "https://divyansh-tube-api.onrender.com/api/v1"; 
     
 const apiClient = axios.create({
     baseURL: BASE_URL,
     withCredentials: true, // 🍪 Cross-Origin Cookie delivery mechanism support active!
+    headers: {
+        "Content-Type": "application/json",
+        "Accept": "application/json"
+    }
 });
 
 let navigateRef = null;
@@ -33,8 +36,8 @@ apiClient.interceptors.response.use(
     async (error) => {
         const originalRequest = error.config;
 
-        // Trace Exception 1: Agar refresh token api endpoint khud hi break/fail ho jaye -> Force Exit!
-        if (originalRequest?.url && originalRequest.url.includes("/users/refresh-token")) {
+        // 🔥 FIX: Check both patterns to ensure it doesn't loop infinitely on refresh endpoint
+        if (originalRequest?.url && (originalRequest.url.includes("/users/refresh-token") || originalRequest.url.includes("/refresh-token"))) {
             console.error("⛔ [Auth Error]: Refresh token hierarchy expired. Evicting user context.");
             redirectToLogin();
             return Promise.reject(error);
@@ -66,6 +69,5 @@ apiClient.interceptors.response.use(
 );
 
 // 3. 🛡️ PERMANENT SAFEGUARD MULTI-EXPORT PATTERN:
-// Default aur Named exports ek sath de diye hain taaki project me 'import apiClient' ya '{ apiClient }' kuch bhi use ho, server crash na ho!
 export { apiClient };
 export default apiClient;
