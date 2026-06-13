@@ -37,7 +37,7 @@ app.use(cors({
 // 🔥 PRODUCTION FIX FOR PRE-FLIGHT HANDSHAKE
 // Browser jab actual request (POST/PUT) se pehle OPTIONS check maarta hai, 
 // toh use yahi se 200 OK headers ke sath pass karwana mandatory hai.
-app.options("*", cors());
+// app.options("*", cors());
 
 // ⚠️ PAYLOAD LIMITS FOR FULL VIDEO STREAMS HANDLING
 app.use(express.json({ limit: "100mb" }));
