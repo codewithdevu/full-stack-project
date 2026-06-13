@@ -13,56 +13,50 @@ const s3Client = new S3Client({
     }
 });
 
-const uploadOnS3 = async (localFilePath, mimetype) => {
+// 🟢 FIX: Refactored utility to ingest the raw file memory object directly from RAM
+const uploadOnS3 = async (fileObject) => {
     try {
-        if (!localFilePath) return null;
+        if (!fileObject || !fileObject.buffer) {
+            console.error("❌ S3 Buffer Payload Check Failed: fileObject or buffer is empty.");
+            return null;
+        }
 
-        console.log("Reading File");
+        console.log("⚙️ Processing file allocation memory buffer...");
 
-        const fileStream =
-            fs.createReadStream(localFilePath);
+        // Unique filename configuration blueprint
+        const uniqueSuffix = Date.now() + "-" + Math.round(Math.random() * 1E9);
+        const fileExt = path.extname(fileObject.originalname) || ".mp4";
+        const baseName = path.basename(fileObject.originalname, fileExt).replace(/\s+/g, "_");
 
-        const filename = `${Date.now()}-${path.basename(localFilePath)}`;
-
+        const filename = `${baseName}-${uniqueSuffix}${fileExt}`;
         const key = `videos/${filename}`;
 
-        console.log("Creating Command");
+        console.log(`Creating S3 PutObjectCommand pipeline container for key: ${key}`);
 
         const command = new PutObjectCommand({
             Bucket: process.env.AWS_BUCKET_NAME,
             Key: key,
-            Body: fileStream,
-            ContentType: mimetype,
+            Body: fileObject.buffer, // 🔥 CRITICAL REFACTOR: Direct injection of binary buffers (Bypasses Local Disks completely)
+            ContentType: fileObject.mimetype || "video/mp4",
         });
 
-        console.log("Sending To S3");
-
+        console.log("🚀 Discharging binary stream payload to S3 cloud storage...");
         await s3Client.send(command);
+        console.log("✨ S3 Upload Node Sequence: SUCCESS");
 
-        console.log("S3 Upload Success");
-
-        if (localFilePath && fs.existsSync(localFilePath)) {
-            fs.unlinkSync(localFilePath);
-        }
-
-        const videoUrl = `https://${process.env.AWS_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${key}`
+        const videoUrl = `https://${process.env.AWS_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${key}`;
 
         return {
             videoUrl,
             key,
-        }
+        };
     } catch (error) {
-        if (localFilePath && fs.existsSync(localFilePath)) {
-            fs.unlinkSync(localFilePath);
-        }
-
-        console.log("S3 Upload Error:", error);
+        console.error("❌ S3 Upload Critical Structural Error:", error);
         return null;
     }
 }
 
 const downloadFromS3 = async (s3Key) => {
-
     const command = new GetObjectCommand({
         Bucket: process.env.AWS_BUCKET_NAME,
         Key: s3Key,
@@ -98,6 +92,7 @@ const downloadFromS3 = async (s3Key) => {
 
     return filePath;
 };
+
 const uploadFinalTransocodeFileToS3 = async (filePath) => {
     console.log("Reading processed file...");
     const fileContent = fs.readFileSync(filePath);
@@ -124,57 +119,42 @@ const uploadFinalTransocodeFileToS3 = async (filePath) => {
     };
 };
 
-const uploadHLSFolderToS3 = async (
-    localFolderPath,
-     videoId) => {
+const uploadHLSFolderToS3 = async (localFolderPath, videoId) => {
+    const uploadedFiles = [];
+    
+    const uploadRecursion = async (currentPath) => {
+        const files = fs.readdirSync(currentPath);
 
-        const uploadedFiles = [];
-        
-        const uploadRecursion = async (
-            currentPath,
-        ) => {
-            const files = 
-            fs.readdirSync(currentPath);
-
-            for (const file of files) {
-                const fullPath  = path.join(
-                    currentPath,
-                    file
-                );
-
-            const stats = 
-                fs.statSync(fullPath);
+        for (const file of files) {
+            const fullPath = path.join(currentPath, file);
+            const stats = fs.statSync(fullPath);
 
             if (stats.isDirectory()) {
                 await uploadRecursion(fullPath);
             } else {
-                const relativePath = path.relative(
-                    localFolderPath,
-                    fullPath
-                );  
+                const relativePath = path.relative(localFolderPath, fullPath);  
 
-            const s3Key = `hls/${videoId}/${relativePath.replace(/\\/g, "/")}`;
+                const s3Key = `hls/${videoId}/${relativePath.replace(/\\/g, "/")}`;
 
-            const command = new PutObjectCommand({
-                Bucket: process.env.AWS_BUCKET_NAME,
-                Key: s3Key, 
-                Body: fs.createReadStream(fullPath),
-            });
+                const command = new PutObjectCommand({
+                    Bucket: process.env.AWS_BUCKET_NAME,
+                    Key: s3Key, 
+                    Body: fs.createReadStream(fullPath),
+                });
 
-            await s3Client.send(command);
+                await s3Client.send(command);
 
-            uploadedFiles.push({
-                key: s3Key,
-            });
+                uploadedFiles.push({
+                    key: s3Key,
+                });
 
-            console.log(`Uploaded ${s3Key} to S3`);
+                console.log(`Uploaded ${s3Key} to S3`);
             }
         }
-     };
+    };
 
-     await uploadRecursion(localFolderPath);
-
-     return uploadedFiles;
+    await uploadRecursion(localFolderPath);
+    return uploadedFiles;
 };
 
 const deleteHLSFolderFromS3 = async (videoId) => {

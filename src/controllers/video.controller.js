@@ -101,10 +101,12 @@ const publishVideo = asyncHandler(async (req, res) => {
         throw new ApiError(400, "title and description is required");
     }
 
-    const videoLocalpath = req.files?.videoFile?.[0]?.path;
+    // 🟢 REFACTOR: Target whole memory payload object for video, local path for thumbnail
+    const videoFileObject = req.files?.videoFile?.[0]; 
     const thumbnailLocalpath = req.files?.thumbnail?.[0]?.path;
 
-    if (!(videoLocalpath && thumbnailLocalpath)) {
+    if (!(videoFileObject && thumbnailLocalpath)) {
+        if (thumbnailLocalpath && fs.existsSync(thumbnailLocalpath)) fs.unlinkSync(thumbnailLocalpath);
         throw new ApiError(400, "videoFile or thumbnail is required");
     }
 
@@ -114,16 +116,18 @@ const publishVideo = asyncHandler(async (req, res) => {
             throw new ApiError(400, "failed to upload thumbnail on cloudinary");
         }
 
-        console.log("Uploading original video to S3...");
-        const videoFileMimetype = req.files?.videoFile?.[0]?.mimetype || "video/mp4";
-        const s3UploadResult = await uploadOnS3(videoLocalpath, videoFileMimetype);
+        console.log("Uploading original video to S3 directly via memory streams...");
+        const videoFileMimetype = videoFileObject.mimetype || "video/mp4";
+        
+        // 🔥 CRITICAL FIX: Pass the whole object (buffer payload block) instead of localFilePath path string
+        const s3UploadResult = await uploadOnS3(videoFileObject);
 
         if (!s3UploadResult) {
-            if (thumbnailLocalpath) fs.unlinkSync(thumbnailLocalpath);
+            if (thumbnailLocalpath && fs.existsSync(thumbnailLocalpath)) fs.unlinkSync(thumbnailLocalpath);
             throw new ApiError(500, "failed to upload original video on S3");
         }
 
-        // 🟢 VOICE NOTE LOGIC: Toggle flag routing context extraction
+        // VOICE NOTE LOGIC: Toggle flag routing context extraction
         const isTranscodingEnabled = process.env.ENABLE_TRANSCODING === "true";
 
         const video = await Video.create({
@@ -131,9 +135,9 @@ const publishVideo = asyncHandler(async (req, res) => {
             description,
             thumbnail: thumbnail.url,
             owner: req.user?._id,
-            status: isTranscodingEnabled ? "pending" : "completed", // Transcoding off hone par seedha active scale runtime mapping               
+            status: isTranscodingEnabled ? "pending" : "completed",               
             videoFile: s3UploadResult.videoUrl, 
-            hlsMasterUrl: isTranscodingEnabled ? "" : s3UploadResult.videoUrl, // Transcoding off hone par fallback master URL directly pointing to raw video container
+            hlsMasterUrl: isTranscodingEnabled ? "" : s3UploadResult.videoUrl, 
             duration: 0,
             views: 0,
             isPublished: true
@@ -167,7 +171,7 @@ const publishVideo = asyncHandler(async (req, res) => {
             ));
 
     } catch (error) {
-        if (videoLocalpath && fs.existsSync(videoLocalpath)) fs.unlinkSync(videoLocalpath);
+        // Only cleanup thumbnail path since video exists strictly in RAM buffer stream logic
         if (thumbnailLocalpath && fs.existsSync(thumbnailLocalpath)) fs.unlinkSync(thumbnailLocalpath);
 
         throw new ApiError(500, error?.message || "Internal Server Error during video publishing");
