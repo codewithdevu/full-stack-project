@@ -123,35 +123,48 @@ const publishVideo = asyncHandler(async (req, res) => {
             throw new ApiError(500, "failed to upload original video on S3");
         }
 
+        // 🟢 VOICE NOTE LOGIC: Toggle flag routing context extraction
+        const isTranscodingEnabled = process.env.ENABLE_TRANSCODING === "true";
+
         const video = await Video.create({
             title,
             description,
             thumbnail: thumbnail.url,
             owner: req.user?._id,
-            status: "pending",               
+            status: isTranscodingEnabled ? "pending" : "completed", // Transcoding off hone par seedha active scale runtime mapping               
             videoFile: s3UploadResult.videoUrl, 
-            hlsMasterUrl: "",
+            hlsMasterUrl: isTranscodingEnabled ? "" : s3UploadResult.videoUrl, // Transcoding off hone par fallback master URL directly pointing to raw video container
             duration: 0,
             views: 0,
             isPublished: true
         });
 
-        console.log("Adding job to video-Transcoding queue...");
-        await videoQueue.add(
-            "transcode-job",
-            {
-                videoId: video._id,
-                s3Key: s3UploadResult.key 
-            },
-            {
-                attempts: 3,
-                backoff: 5000
-            }
-        );
+        if (isTranscodingEnabled) {
+            console.log("🎬 Adding job to video-Transcoding queue pipeline orchestration...");
+            await videoQueue.add(
+                "transcode-job",
+                {
+                    videoId: video._id,
+                    s3Key: s3UploadResult.key 
+                },
+                {
+                    attempts: 3,
+                    backoff: 5000
+                }
+            );
+        } else {
+            console.log("⚠️ Transcoding feature deactivated on production cluster. Bypassing BullMQ job distribution safely.");
+        }
 
         return res
             .status(200)
-            .json(new ApiResponse(200, video, "Video uploaded successfully. Transcoding started in background."));
+            .json(new ApiResponse(
+                200, 
+                video, 
+                isTranscodingEnabled 
+                    ? "Video uploaded successfully. Transcoding started in background." 
+                    : "Video uploaded directly. Transcoding bypassed due to host node structural constraints."
+            ));
 
     } catch (error) {
         if (videoLocalpath && fs.existsSync(videoLocalpath)) fs.unlinkSync(videoLocalpath);
@@ -161,7 +174,6 @@ const publishVideo = asyncHandler(async (req, res) => {
     }
 });
 
-// 🟢 FIXED ROUTE LOGIC WITH CORRECT BRACKETS & SYNTAX
 const getVideoById = asyncHandler(async (req, res) => {
     const { videoId } = req.params;
 
