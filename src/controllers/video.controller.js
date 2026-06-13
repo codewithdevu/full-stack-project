@@ -133,7 +133,7 @@ const publishVideo = asyncHandler(async (req, res) => {
             description,
             thumbnail: thumbnail.url,
             owner: req.user?._id,
-            status: isTranscodingEnabled ? "pending" : "completed",               
+            status: isTranscodingEnabled ? "pending" : "processed",               
             videoFile: s3UploadResult.videoUrl, 
             hlsMasterUrl: isTranscodingEnabled ? "" : s3UploadResult.videoUrl, 
             duration: 0,
