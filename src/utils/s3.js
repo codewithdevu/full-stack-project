@@ -36,7 +36,7 @@ const uploadOnS3 = async (fileObject) => {
         const command = new PutObjectCommand({
             Bucket: process.env.AWS_BUCKET_NAME,
             Key: key,
-            Body: fileObject.buffer, // 🔥 CRITICAL REFACTOR: Direct injection of binary buffers (Bypasses Local Disks completely)
+            Body: fileObject.buffer, // Direct injection of binary buffers
             ContentType: fileObject.mimetype || "video/mp4",
         });
 
@@ -44,7 +44,8 @@ const uploadOnS3 = async (fileObject) => {
         await s3Client.send(command);
         console.log("✨ S3 Upload Node Sequence: SUCCESS");
 
-        const videoUrl = `https://${process.env.AWS_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${key}`;
+        // 🔥 CRITICAL SDE FIX: Convert to Path-Style URL to completely bypass S3 bucket dot (.) SSL certificate error
+        const videoUrl = `https://s3.${process.env.AWS_REGION}.amazonaws.com/${process.env.AWS_BUCKET_NAME}/${key}`;
 
         return {
             videoUrl,
@@ -111,7 +112,8 @@ const uploadFinalTransocodeFileToS3 = async (filePath) => {
     await s3Client.send(command);
     console.log("S3 upload success");
 
-    const videoUrl = `https://${process.env.AWS_BUCKET_NAME}.s3.${process.env.AWS_REGION}.amazonaws.com/${key}`;
+    // 🔥 CRITICAL SDE FIX: Convert to Path-Style URL here as well to keep consistency
+    const videoUrl = `https://s3.${process.env.AWS_REGION}.amazonaws.com/${process.env.AWS_BUCKET_NAME}/${key}`;
 
     return {
         videoUrl,
@@ -161,7 +163,6 @@ const deleteHLSFolderFromS3 = async (videoId) => {
     try {
         const prefix = `hls/${videoId}/`;
         
-        // 1. Pehle us folder ke andar ki saari files list karo
         const listCommand = new ListObjectsV2Command({
             Bucket: process.env.AWS_BUCKET_NAME,
             Prefix: prefix,
@@ -174,12 +175,10 @@ const deleteHLSFolderFromS3 = async (videoId) => {
             return;
         }
 
-        // 2. Saari files ke keys ka array banao
         const objectsToDelete = listResponse.Contents.map((item) => ({
             Key: item.Key,
         }));
 
-        // 3. Ek baar me saari files delete mado
         const deleteCommand = new DeleteObjectsCommand({
             Bucket: process.env.AWS_BUCKET_NAME,
             Delete: { Objects: objectsToDelete },
