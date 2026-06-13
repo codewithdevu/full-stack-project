@@ -116,8 +116,10 @@ const UploadVideo = ({ isOpen, onClose }) => {
         data.append("thumbnail", thumbnail);
 
         try {
-            // Core Axios execution endpoint hit
             const response = await apiClient.post("/videos/publish", data, {
+                headers: {
+                    "Content-Type": "multipart/form-data",
+                },
                 onUploadProgress: (progressEvent) => {
                     const { loaded, total } = progressEvent;
                     if (total) {
@@ -129,14 +131,12 @@ const UploadVideo = ({ isOpen, onClose }) => {
 
             setUploadProgress(100);
             
-            // 🟢 REDIRECT LOCK PATTERNS: Safe check across standard wrappers object
             const newVideoId = response.data?.data?._id || response.data?._id;
 
             handleResetAndClose(); 
 
             if (newVideoId) {
                 console.log(`Navigating to cinema details loop: /video/${newVideoId}`);
-                // 🟢 NAVIGATE TRIGGER: Redirects directly to active streaming engine page template
                 navigate(`/video/${newVideoId}`);
             } else {
                 console.warn("Could not parse dynamic entity ID parameter. Sending to dashboard layout.");
@@ -208,9 +208,9 @@ const UploadVideo = ({ isOpen, onClose }) => {
                     {/* VERTICAL FORM BODY */}
                     <form onSubmit={handleSubmit} className="relative z-10 flex-1 p-4 xs:p-5 space-y-4 overflow-y-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden w-full box-border">
                         
-                        {/* 🟢 VOICE NOTE LOGIC: Compact Warning Banner (Shows only on production) */}
-                        {isProductionServer && (
-                            <div className="p-3 bg-amber-950/30 border border-amber-900/40 rounded-xl text-[10px] sm:text-[11px] text-amber-200/90 leading-relaxed">
+                        {/* 🔥 FIX CONDITION: notice only triggers during active live deployment uploading sequence */}
+                        {isProductionServer && uploading && (
+                            <div className="p-3 bg-amber-950/30 border border-amber-900/40 rounded-xl text-[10px] sm:text-[11px] text-amber-200/90 leading-relaxed animate-in fade-in slide-in-from-top-2 duration-300">
                                 <div className="flex items-center gap-1.5 font-bold text-amber-400 uppercase tracking-wider text-[9px] mb-1">
                                     <AlertCircle className="w-3.5 h-3.5" /> Video Transcoding Optimized (OFF)
                                 </div>
