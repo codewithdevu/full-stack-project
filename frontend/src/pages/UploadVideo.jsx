@@ -1,12 +1,11 @@
 import React, { useState, useEffect } from "react";
 import { X, Upload, Film, Image as ImageIcon, Sparkles, AlertCircle, RefreshCw } from "lucide-react";
-import { useNavigate } from "react-router-dom"; // 🟢 INITIAL ROUTER BINDING
+import { useNavigate } from "react-router-dom"; 
 import apiClient from "../api/apiConfig";
 
 const MAX_TITLE_CHARS = 100;
 const MAX_DESC_CHARS = 5000;
 
-// LOCAL DEPLOYMENT BARRIER CAP: 
 const MAX_VIDEO_SIZE_ALLOCATION = 100 * 1024 * 1024; // 100 Megabytes max video size
 const MAX_THUMB_SIZE_ALLOCATION = 5 * 1024 * 1024;   // 5 Megabytes max thumbnail banner
 
@@ -28,28 +27,28 @@ const UploadVideo = ({ isOpen, onClose }) => {
     const [uploadProgress, setUploadProgress] = useState(0);
     const [showCloseConfirm, setShowCloseConfirm] = useState(false);
 
-    // 🟢 ENV CONFIGURATION STATE
-    const [isTranscodingDisabled, setIsTranscodingDisabled] = useState(false);
+    // 🟢 AIRTIGHT LIVE TOGGLE SWITCH: Live servers par default ON field mapping layer
+    const [isTranscodingDisabled, setIsTranscodingDisabled] = useState(true);
 
-    const navigate = useNavigate(); // 🟢 NAVIGATOR INSTANCE INITIALIZATION
+    const navigate = useNavigate(); 
 
-    // 🟢 STRICT BARRIER GATES: Localhost par completely block karne ke liye handles mapping flag
-    const isLocalhost = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
+    // 🟢 SECURE HOSTNAME DETECTORS: Local environment variables bypass routes filter
+    const isLocalhost = 
+        window.location.hostname === "localhost" || 
+        window.location.hostname === "127.0.0.1" || 
+        window.location.port === "5173";
 
-    // Dynamic verification API handshake matrix upon open trigger
     useEffect(() => {
         if (isOpen) {
             const checkTranscodingStatus = async () => {
                 try {
+                    // Try to poll backend env matrix configurations values directly
                     const response = await apiClient.get("/videos/transcode-status").catch(() => null);
                     if (response?.data) {
                         setIsTranscodingDisabled(response.data.transcodingDisabled);
-                    } else {
-                        // Default production configuration fallback state 
-                        setIsTranscodingDisabled(true); 
                     }
                 } catch (error) {
-                    console.log("Transcoding status node checking deferred.");
+                    console.log("Using live node fallback context configuration state.");
                 }
             };
             checkTranscodingStatus();
@@ -152,7 +151,6 @@ const UploadVideo = ({ isOpen, onClose }) => {
 
             setUploadProgress(100);
             
-            // 🟢 RESPONSE SUCCESS TOAST: Direct fallback parameters check validation
             if (response.data?.transcodingDisabled || response.data?.data?.status === "processed" || isTranscodingDisabled) {
                 alert("📢 Toast Notification: Transcoding is OFF right now! Video published directly in native resolution without stream compiler delay.");
             } else {
@@ -160,7 +158,6 @@ const UploadVideo = ({ isOpen, onClose }) => {
             }
 
             const newVideoId = response.data?.data?._id || response.data?._id;
-
             handleResetAndClose(); 
 
             if (newVideoId) {
@@ -171,8 +168,7 @@ const UploadVideo = ({ isOpen, onClose }) => {
             
         } catch (error) {
             console.error("Error uploading video:", error);
-            const serverErrorMessage = error.response?.data?.message || "The server rejected the request payload.";
-            alert(`Upload failed: ${serverErrorMessage}`);
+            alert(`Upload failed: ${error.response?.data?.message || "The server rejected the request payload."}`);
             setUploadProgress(0);
         } finally {
             setUploading(false);
@@ -183,6 +179,8 @@ const UploadVideo = ({ isOpen, onClose }) => {
         /* GLOBAL FIXED OVERLAY */
         <div className="fixed inset-0 w-screen h-screen bg-slate-950/80 backdrop-blur-md flex items-center justify-center z-50 p-3 xs:p-4 select-none overflow-y-auto">
             
+            <div className="absolute top-0 right-1/4 w-72 h-72 bg-indigo-500/5 rounded-full blur-[100px] pointer-events-none z-0" />
+
             <style dangerouslySetInnerHTML={{ __html: `
                 @keyframes fadeInUpModal {
                     from { opacity: 0; transform: scale(0.97) translateY(10px); }
@@ -226,17 +224,17 @@ const UploadVideo = ({ isOpen, onClose }) => {
                     {/* VERTICAL FORM BODY */}
                     <form onSubmit={handleSubmit} className="relative z-10 flex-1 p-4 xs:p-5 space-y-4 overflow-y-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden w-full box-border">
                         
-                        {/* 🟢 FIXED GATEWAY: Box will open instantly on load BUT remains hidden on localhost loops */}
+                        {/* 🟢 ULTRA EXPLICIT FIX GATES: This exact container will trigger instantly on vercel domain nodes layout */}
                         {!isLocalhost && isTranscodingDisabled && (
-                            <div className="p-3 bg-amber-950/30 border border-amber-900/40 rounded-xl text-[10px] sm:text-[11px] text-amber-200/90 leading-relaxed animate-in fade-in slide-in-from-top-2 duration-300">
-                                <div className="flex items-center gap-1.5 font-bold text-amber-400 uppercase tracking-wider text-[9px] mb-1">
-                                    <AlertCircle className="w-3.5 h-3.5" /> Video Transcoding Optimized (OFF)
+                            <div className="p-3.5 bg-amber-950/20 border border-amber-900/40 rounded-xl text-[11px] text-amber-200/90 leading-relaxed animate-in fade-in slide-in-from-top-2 duration-300">
+                                <div className="flex items-center gap-1.5 font-bold text-amber-500 uppercase tracking-wider text-[9.5px] mb-1.5">
+                                    <AlertCircle className="w-3.5 h-3.5 text-amber-500" /> VIDEO TRANSCODING OPTIMIZED (OFF)
                                 </div>
-                                <p>
+                                <p className="text-slate-400 font-medium">
                                     HLS adaptive stream video transcoding is currently turned off on live cluster hosts because processing multi-layered encoding is highly resource-intensive and expensive.
                                 </p>
-                                <p className="text-slate-500 text-[9px] mt-1.5">
-                                    💡 Feel free to fork the repository, toggle <code className="bg-slate-900/80 text-amber-300 px-1 py-0.5 rounded border border-slate-850">ENABLE_TRANSCODING=true</code> inside your local environment, and test full resolution bitrate streams locally!
+                                <p className="text-slate-500 text-[9px] mt-2 border-t border-slate-900/60 pt-1.5">
+                                    💡 Feel free to fork the repository, toggle <code className="bg-slate-900/80 text-amber-400 px-1 py-0.5 rounded border border-slate-850 font-mono">ENABLE_TRANSCODING=true</code> inside your local environment, and test full resolution bitrate streams locally!
                                 </p>
                             </div>
                         )}
