@@ -7,10 +7,10 @@ import jwt from "jsonwebtoken"
 import { deleteOldImage } from "../utils/deleteOldImage.js"
 import mongoose from "mongoose"
 
-// 🟢 BULLETPROOF PRODUCTION COOKIE CONFIGURATION
+// PRODUCTION COOKIE CONFIGURATION OVERRIDE
 const COOKIE_OPTIONS = {
     httpOnly: true,
-    secure: true,       
+    secure: true,      
     sameSite: "none",   
     path: "/"
 };
@@ -51,8 +51,6 @@ const registerUser = asyncHandler(async (req, res) => {
         throw new ApiError(400, "Invalid email structure: '@' is required");
     }
 
-    console.log(`Checking MongoDB for existing User -> Email: ${sanitizedEmail}, Username: ${sanitizedUsername}`);
-
     const existedUser = await User.findOne({
         $or: [
             { email: sanitizedEmail },
@@ -64,7 +62,6 @@ const registerUser = asyncHandler(async (req, res) => {
         throw new ApiError(409, `User with email '${sanitizedEmail}' or username '${sanitizedUsername}' already exists`);
     }
 
-    // 🟢 MEMORY BUFFER SUPPORT FOR REGISTER LOOP
     const avatarBuffer = req.files?.avatar?.[0]?.buffer;
     const coverImageBuffer = req.files?.coverImage?.[0]?.buffer;
 
@@ -157,12 +154,8 @@ const loginUser = asyncHandler(async (req, res) => {
 const logoutUser = asyncHandler(async (req, res) => {
     await User.findByIdAndUpdate(
         req.user._id,
-        {
-            $unset: { refreshToken: 1 } 
-        },
-        {
-            returnDocument: 'after'
-        }
+        { $unset: { refreshToken: 1 } },
+        { returnDocument: 'after' }
     )
 
     return res
@@ -170,49 +163,53 @@ const logoutUser = asyncHandler(async (req, res) => {
         .clearCookie("accessToken", COOKIE_OPTIONS)
         .clearCookie("refreshToken", COOKIE_OPTIONS)
         .json(
-            new ApiResponse(200, {}, "user logged out")
+            new ApiResponse(200, {}, "user logged out successfully")
         )
 });
 
-// 4. REFRESH ACCESS TOKEN
+// 4. REFRESH ACCESS TOKEN (HEADER COMPATIBLE ENHANCED)
 const refreshAccessToken = asyncHandler(async (req, res) => {
-    const incomingRefreshToken = req.cookies?.refreshToken || req.body?.refreshToken
+    // 🟢 FREE CLOUD INJECTION TRAFFIC ACCELERATOR: Try extracting tokens from cookies, bodies, or header structures safely
+    const incomingRefreshToken = 
+        req.cookies?.refreshToken || 
+        req.body?.refreshToken || 
+        req.header("Authorization")?.replace("Bearer ", "");
 
     if (!incomingRefreshToken) {
-        throw new ApiError(401, "unauthorized request")
+        throw new ApiError(401, "Unauthorized token mapping loop request dropped");
     }
 
     try {
         const decodedToken = jwt.verify(
             incomingRefreshToken,
-            process.env.REFRESH_TOKEN_SECRET,
+            process.env.REFRESH_TOKEN_SECRET
         )
 
         const user = await User.findById(decodedToken?._id)
 
         if (!user) {
-            throw new ApiError(401, "invalid refresh token")
+            throw new ApiError(401, "Invalid deployment refresh session token context");
         }
 
         if (incomingRefreshToken !== user?.refreshToken) {
-            throw new ApiError(401, "refresh token is expired or used")
+            throw new ApiError(401, "Refresh token token sequence is expired or already processed");
         }
 
-        const { accessToken, refreshToken } = await generateAccessAndRefreshTokens(user._id)
+        const { accessToken, refreshToken: newRefreshToken } = await generateAccessAndRefreshTokens(user._id)
 
         return res
             .status(200)
             .cookie("accessToken", accessToken, COOKIE_OPTIONS)
-            .cookie("refreshToken", refreshToken, COOKIE_OPTIONS)
+            .cookie("refreshToken", newRefreshToken, COOKIE_OPTIONS)
             .json(
                 new ApiResponse(
                     200,
-                    { accessToken, refreshToken },
-                    "access token refreshed"
+                    { accessToken, refreshToken: newRefreshToken },
+                    "Access session authorization tokens refreshed successfully"
                 )
             )
     } catch (error) {
-        throw new ApiError(401, error?.message || "invalid refresh token")
+        throw new ApiError(401, error?.message || "Fatal runtime crash inside refresh token module");
     }
 });
 
@@ -221,7 +218,6 @@ const forgetPassword = asyncHandler(async (req, res) => {
     const { oldPassword, newPassword } = req.body
 
     const user = await User.findById(req.user?._id)
-
     const isPasswordCorrect = await user.isPasswordCorrect(oldPassword)
 
     if (!isPasswordCorrect) {
@@ -259,9 +255,7 @@ const updateAccountDetails = asyncHandler(async (req, res) => {
                 email,
             }
         },
-        {
-            returnDocument: 'after'
-        }
+        { returnDocument: 'after' }
     ).select("-password -refreshToken") 
 
     return res
@@ -269,9 +263,8 @@ const updateAccountDetails = asyncHandler(async (req, res) => {
         .json(new ApiResponse(200, updatedUser, "fullName changed successfully")) 
 });
 
-// 8. UPDATE AVATAR (STRICT FIXED FOR MEMORY STORAGE)
+// 8. UPDATE AVATAR
 const updateUserAvatar = asyncHandler(async (req, res) => {
-    // 🟢 MEMORY BUFFER INJECTION FIX
     const avatarBuffer = req.file?.buffer;
 
     if (!avatarBuffer) {
@@ -282,7 +275,6 @@ const updateUserAvatar = asyncHandler(async (req, res) => {
     const oldAvatarUrl = userProfile?.avatar;
 
     try {
-        // uploadOncloudinary ko local file path ke badle raw stream buffer send hoga
         const avatar = await uploadOncloudinary(avatarBuffer);
 
         if (!avatar) {
@@ -291,13 +283,10 @@ const updateUserAvatar = asyncHandler(async (req, res) => {
 
         const user = await User.findByIdAndUpdate(
             req.user?._id,
-            {
-                $set: { avatar: avatar.url }
-            },
+            { $set: { avatar: avatar.url } },
             { returnDocument: 'after' }
         ).select("-password");
 
-        // Old cloud assets management cleanup loop
         if (oldAvatarUrl) {
             try {
                 await deleteOldImage(oldAvatarUrl);
@@ -316,9 +305,8 @@ const updateUserAvatar = asyncHandler(async (req, res) => {
     }
 });
 
-// 9. UPDATE COVER IMAGE (STRICT FIXED FOR MEMORY STORAGE)
+// 9. UPDATE COVER IMAGE
 const updateUserCoverimage = asyncHandler(async (req, res) => {
-    // 🟢 MEMORY BUFFER INJECTION FIX
     const coverBuffer = req.file?.buffer;
 
     if (!coverBuffer) {
@@ -337,9 +325,7 @@ const updateUserCoverimage = asyncHandler(async (req, res) => {
 
         const user = await User.findByIdAndUpdate(
             req.user?._id,
-            {
-                $set: { coverImage: coverImage.url }
-            },
+            { $set: { coverImage: coverImage.url } },
             { returnDocument: 'after' }
         ).select("-password");
 
@@ -441,7 +427,7 @@ const addToWatchHistory = asyncHandler(async (req, res) => {
     return res.status(200).json(new ApiResponse(200, {}, "History updated"));
 });
 
-// 🔥 FIXED RE-WATCH CHRONOLOGICAL TIMELINE AGGREGATION PIPELINE
+// GET WATCH HISTORY PIPELINE
 const getWatchHistory = asyncHandler(async (req, res) => {
     const user = await User.aggregate([
         {
@@ -518,9 +504,7 @@ const getWatchHistory = asyncHandler(async (req, res) => {
 const clearWatchHistory = asyncHandler(async (req, res) => {
     const user = await User.findByIdAndUpdate(
         req.user?._id,
-        {
-            $set: { watchHistory: [] }
-        },
+        { $set: { watchHistory: [] } },
         { returnDocument: 'after' }
     );
 
