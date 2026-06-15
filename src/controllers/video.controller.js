@@ -3,7 +3,7 @@ import { asyncHandler } from "../utils/asyncHandler.js";
 import { Video } from "../models/video.model.js";
 import { ApiError } from "../utils/ApiError.js";
 import { ApiResponse } from "../utils/ApiResponse.js";
-import { uploadBufferOnCloudinary, deleteOnCloudinary } from "../utils/cloudinary.js"; // 🟢 UPDATED: Uses uploadBufferOnCloudinary instead of physical local paths
+import { uploadBufferOnCloudinary, deleteOnCloudinary } from "../utils/cloudinary.js"; 
 import fs from "fs";
 
 // NEW IMPORTS FOR S3 & BULLMQ QUEUE
@@ -101,18 +101,15 @@ const publishVideo = asyncHandler(async (req, res) => {
         throw new ApiError(400, "title and description is required");
     }
 
-    // 🟢 REFACTOR: Target whole memory payload objects (Buffers) for both video and thumbnail
     const videoFileObject = req.files?.videoFile?.[0]; 
     const thumbnailFileObject = req.files?.thumbnail?.[0];
 
-    // 🔥 FIX VALIDATION: Checks objects directly instead of reading .path property
     if (!(videoFileObject && thumbnailFileObject)) {
         throw new ApiError(400, "videoFile and thumbnail files are strictly required");
     }
 
     try {
         console.log("Streaming thumbnail buffer directly to Cloudinary...");
-        // 🟢 FIX: Uploading thumbnail using memory buffer utility channel
         const thumbnail = await uploadBufferOnCloudinary(thumbnailFileObject.buffer, "image");
         if (!thumbnail) {
             throw new ApiError(400, "failed to upload thumbnail on cloudinary");
@@ -125,7 +122,6 @@ const publishVideo = asyncHandler(async (req, res) => {
             throw new ApiError(500, "failed to upload original video on S3");
         }
 
-        // VOICE NOTE LOGIC: Toggle flag routing context extraction
         const isTranscodingEnabled = process.env.ENABLE_TRANSCODING === "true";
 
         const video = await Video.create({
@@ -191,13 +187,25 @@ const getVideoById = asyncHandler(async (req, res) => {
         console.log(`Video ${videoId} is currently processed by internal FFmpeg worker nodes. Delivering baseline payload.`);
         return res
             .status(200)
-            .json(new ApiResponse(200, baseVideoDocument, "Video target layer caught in async transcoding pipeline log. Rendering waiting shelf."));
+            .json(new ApiResponse(200, baseVideoDocument, "Video target layer caught in async transcoding pipeline log."));
     }
 
-    const userHasWatched = req.user?.watchHistory?.includes(videoId);
-
-    if (!userHasWatched) {
-        await Video.findByIdAndUpdate(videoId, { $inc: { views: 1 } });
+    // 🟢 RE-WATCH TIMELINE ENGINE: Direct increment and object push strategy configuration
+    console.log(`✨ Registering deep watch timeline segment for video: ${videoId}`);
+    await Video.findByIdAndUpdate(videoId, { $inc: { views: 1 } });
+    
+    if (req.user?._id) {
+        await mongoose.model("User").findByIdAndUpdate(
+            req.user._id,
+            {
+                $push: { 
+                    watchHistory: {
+                        video: new mongoose.Types.ObjectId(videoId),
+                        watchedAt: new Date() // Forces precise chronological layout stamps
+                    }
+                }
+            }
+        );
     }
 
     const videoAggregationArray = await Video.aggregate([
@@ -284,7 +292,6 @@ const updateVideo = asyncHandler(async (req, res) => {
         throw new ApiError(400, "You are not authorized to update this video");
     }
 
-    // Update video routes typically receive fields via memory buffer adjustments
     const thumbnailFileObject = req.file || req.files?.thumbnail?.[0];
 
     let thumbnail;

@@ -1,7 +1,7 @@
 import React, { useState, useEffect } from "react";
 import apiClient from "../api/apiConfig";
 import { useNavigate } from "react-router-dom";
-import { Trash2, Clock, Calendar, Eye, Sparkles, Compass, Loader2 } from "lucide-react";
+import { Trash2, Clock, Calendar, Eye, Compass } from "lucide-react";
 
 const formatTimeAgo = (dateString) => {
     if (!dateString) return "";
@@ -31,11 +31,16 @@ const History = () => {
             setLoading(true);
             const response = await apiClient.get(`/users/history`);
             
-            // 🟢 Filter lagaya h taaki failed ya pending videos history me load hokar player crash na karein
+            console.log("🔍 Debug History Payload:", response.data?.data); 
             const rawHistory = response.data?.data || [];
-            const sanitizedHistory = rawHistory.filter(video => 
-                video && (!video.status || video.status === "processed")
-            );
+            
+            const sanitizedHistory = rawHistory.filter(video => {
+                if (!video) return false;
+                if (!video.status) return true; 
+
+                const currentStatus = video.status.toLowerCase();
+                return currentStatus === "processed" || currentStatus === "completed";
+            });
             
             setHistory(sanitizedHistory);
         } catch (error) {
@@ -94,34 +99,28 @@ const History = () => {
                         </p>
                     </div>
                     
-                    {history.length > 0 && (
+                    {history && history.length > 0 && (
                         <button
                             onClick={clearHistory}
-                            className="flex items-center justify-center gap-1.5 text-[11px] sm:text-xs font-semibold text-rose-400 hover:text-rose-300 transition-all duration-300 px-4 py-2 sm:py-2.5 rounded-xl bg-rose-500/10 border border-rose-500/20 hover:border-rose-500/30 hover:bg-rose-500/15 active:scale-95 shadow-md w-full sm:w-auto shrink-0"
+                            className="flex items-center justify-center gap-1.5 text-[11px] sm:text-xs font-semibold text-rose-400 hover:text-rose-300 transition-all duration-300 px-4 py-2 rounded-xl bg-rose-500/10 border border-rose-500/20 hover:border-rose-500/30 hover:bg-rose-500/15 active:scale-95 shadow-md w-full sm:w-auto shrink-0"
                         >
                             <Trash2 className="w-3.5 h-3.5" /> Clear Archive
                         </button>
                     )}
                 </div>
 
-                {/* --- CHRONOLOGICAL WATCH FEED --- */}
-                {history.length === 0 ? (
-                    <div className="flex flex-col items-center justify-center text-center py-20 rounded-2xl border border-dashed border-slate-800/60 bg-slate-900/10 backdrop-blur-sm max-w-md mx-auto mt-6 px-4">
-                        <div className="w-10 h-10 rounded-xl bg-slate-950 border border-slate-900 flex items-center justify-center mb-3.5 text-slate-500 shadow-inner">
-                            <Clock className="w-4.5 h-4.5" />
-                        </div>
-                        <h3 className="text-xs font-semibold text-slate-300">Archive Empty</h3>
-                        <p className="text-[11px] text-slate-500 mt-1.5 max-w-xs leading-relaxed">
-                            No active watch history. Head over to the primary video catalog to discover active streams.
-                        </p>
-                    </div>
-                ) : (
+                {/* --- CHRONOLOGICAL WATCH FEED CONTAINER (FIXED ISOLATION LAYER) --- */}
+                {history && history.length > 0 ? (
+                    // 🟢 VIEW MODE A: Renders exclusively when actual records exist
                     <div className="flex flex-col gap-3.5 sm:gap-4 animate-in fade-in duration-300 w-full">
-                        {history.map((video) => {
+                        {history.map((video, idx) => {
                             if (!video) return null;
+                            // Strict unique structural key creation using index mesh for handling repetitive re-watch structures safely
+                            const uniqueItemKey = `${video._id}-${idx}`;
+                            
                             return (
                                 <div
-                                    key={video._id}
+                                    key={uniqueItemKey}
                                     onClick={() => navigate(`/video/${video._id}`)}
                                     className="group flex flex-col sm:flex-row gap-4 bg-slate-900/20 p-3.5 rounded-2xl border border-slate-900 hover:border-indigo-500/30 hover:bg-slate-900/40 transition-all duration-300 cursor-pointer shadow-md box-border w-full overflow-hidden"
                                 >
@@ -138,7 +137,6 @@ const History = () => {
                                                 {video.title}
                                             </h3>
                                             <div className="flex flex-wrap items-center gap-x-2 gap-y-0.5 text-[11px] text-slate-400 font-medium">
-                                                {/* 🟢 Fallback chain logic added to avoid inner property parsing error */}
                                                 <span className="text-slate-200">{video.owner?.fullName || video.ownerDetails?.fullName || "Channel Name"}</span>
                                                 <span className="text-slate-700">•</span>
                                                 <span className="flex items-center gap-1 text-[10px] sm:text-[11px]">
@@ -158,6 +156,17 @@ const History = () => {
                                 </div>
                             );
                         })}
+                    </div>
+                ) : (
+                    // 🟢 VIEW MODE B: Standalone clean fallback card block triggered exclusively when array hits absolute zero
+                    <div className="flex flex-col items-center justify-center text-center py-20 rounded-2xl border border-dashed border-slate-800/60 bg-slate-900/10 backdrop-blur-sm max-w-md mx-auto mt-6 px-4 animate-in fade-in duration-300">
+                        <div className="w-10 h-10 rounded-xl bg-slate-950 border border-slate-900 flex items-center justify-center mb-3.5 text-slate-500 shadow-inner">
+                            <Clock className="w-4.5 h-4.5" />
+                        </div>
+                        <h3 className="text-xs font-semibold text-slate-300">Archive Empty</h3>
+                        <p className="text-[11px] text-slate-500 mt-1.5 max-w-xs leading-relaxed">
+                            No active watch history. Head over to the primary video catalog to discover active streams.
+                        </p>
                     </div>
                 )}
             </div>

@@ -19,7 +19,7 @@ const Settings = () => {
     const [avatar, setAvatar] = useState(null);
     const [coverImage, setCoverImage] = useState(null);
 
-    // 🟢 NEW: Component mount hote hi current information pre-load aur fill karein
+    // Component mount hote hi current information pre-load aur fill karein
     useEffect(() => {
         const fetchCurrentProfileMeta = async () => {
             try {
@@ -83,15 +83,29 @@ const Settings = () => {
             return alert("Please select an image to upload");
         }
 
+        // Fresh dynamic form mapping payload
         const formData = new FormData();
-        formData.append(type, file);
+        
+        if (type === 'avatar') {
+            formData.append("avatar", file);
+        } else {
+            formData.append("coverImage", file);
+        }
+
         try {
             setLoading(true);
-            await apiClient.patch(`/users/${type === 'avatar' ? 'avatar' : 'cover-image'}`, formData, {
+            const endpointTarget = type === 'avatar' ? '/users/avatar' : '/users/cover-image';
+            
+            console.log(`📡 Dispatching clean file stream to: ${endpointTarget}`);
+
+            // 🟢 STRICT SDE FIX: Explicit dynamic multipart attachment layers mapping configuration
+            await apiClient.patch(endpointTarget, formData, {
                 headers: {
-                    "Content-Type": "multipart/form-data",
+                    // Let Axios compute correct multipart boundary markers dynamically
+                    "Content-Type": "multipart/form-data", 
                 },
             });
+            
             alert(`${type.charAt(0).toUpperCase() + type.slice(1)} updated successfully!`);
             if (type === 'avatar') {
                 setAvatar(null);
@@ -99,14 +113,14 @@ const Settings = () => {
                 setCoverImage(null);
             }
         } catch (error) {
-            alert("Image upload failed");
+            console.error("Image asset uploading failed constraint log:", error);
+            alert(error.response?.data?.message || "Image upload failed. Dynamic validation mismatch.");
         } finally {
             setLoading(false);
         }
     };
 
     return (
-        // ⚠️ FIXED: Updated top padding to pt-20 for navbar protection symmetry
         <div className="max-w-4xl mx-auto space-y-6 sm:space-y-8 pt-20 px-4 md:p-8 pb-24 lg:pb-12 select-none relative overflow-x-hidden font-sans box-border w-full">
             
             {/* Ambient Lighting Backdrops */}
@@ -241,7 +255,7 @@ const Settings = () => {
                     <button 
                         type="submit" 
                         disabled={loading}
-                        className="relative w-full group overflow-hidden rounded-xl py-2.5 text-xs font-bold transition-all duration-300 active:scale-[0.97] disabled:opacity-50 outline-none"
+                        className="relative w-full sm:w-44 group overflow-hidden rounded-xl py-2.5 text-xs font-bold transition-all duration-300 active:scale-[0.97] disabled:opacity-50 outline-none"
                     >
                         <span className="absolute inset-0 w-full h-full bg-linear-to-r from-indigo-500 via-purple-500 to-pink-500 transition-all duration-300 group-hover:opacity-90" />
                         <span className="relative flex items-center justify-center uppercase tracking-wider text-white whitespace-nowrap">

@@ -8,47 +8,50 @@ const MyChannel = () => {
     const [channel, setChannel] = useState(null);
     const [videos, setVideos] = useState([]);
     const [loading, setLoading] = useState(true);
+    const [currentUser, setCurrentUser] = useState(null); // 🛠️ Added state for logged-in user tracking
     const navigate = useNavigate();
 
-    // Added signal parameter to cancel active network pipelines on page change
-    const fetchChannelData = async (isSilent = false, signal = null) => {
+    const fetchChannelData = async (isSilent = false) => {
         try {
-            if (!isSilent) setLoading(true);
+            if (!isSilent) setLoading(true)
 
-            const response = await apiClient.get(`/users/c/${username}`, { signal });
+            const response = await apiClient.get(`/users/c/${username}`);
             const channelInfo = response.data?.data;
 
             if (channelInfo) {
                 setChannel(channelInfo);
-                const videoResponse = await apiClient.get(`/videos?userId=${channelInfo._id}`, { signal });
+                const videoResponse = await apiClient.get(`/videos?userId=${channelInfo._id}`);
 
                 if (videoResponse.data?.data) {
                     setVideos(videoResponse.data.data.docs || videoResponse.data.data);
                 }
             }
         } catch (error) {
-            // Safely ignore aborted fetch exceptions to keep logs clean
-            if (error.name === 'CanceledError' || error.name === 'AbortError' || apiClient.isCancel(error)) {
-                console.log("Fetch request successfully aborted on unmount.");
-                return;
-            }
             console.error("Error fetching channel data:", error);
         } finally {
             if (!isSilent) setLoading(false);
         }
     };
 
+    // 🛠️ Fetch logged-in User details for absolute authentication match logic
     useEffect(() => {
-        const controller = new AbortController();
-
-        if (username) {
-            fetchChannelData(false, controller.signal);
-        }
-
-        // Clean-up function: Kills any pending Axios stream links when switching tabs
-        return () => {
-            controller.abort();
+        const fetchUser = async () => {
+            try {
+                const response = await apiClient.get("/users/current-user");
+                if (response.data?.data) {
+                    setCurrentUser(response.data.data);
+                }
+            } catch (error) {
+                console.log("User not logged in or token expired");
+            }
         };
+        fetchUser();
+    }, []);
+
+    useEffect(() => {
+        if (username) {
+            fetchChannelData();
+        }
     }, [username]);
 
     const handleSubscribe = async () => {
@@ -109,11 +112,14 @@ const MyChannel = () => {
         );
     }
 
+    // 🛠️ CHECK OWNER MATCH CONDITION: ID base check or fallback Username check
+    const isOwnChannel = currentUser?._id === channel?._id || currentUser?.username === username;
+
     return (
         <div className="min-h-screen bg-slate-950 text-slate-100 pb-24 lg:pb-12 relative overflow-x-hidden font-sans select-none selection:bg-indigo-500/30">
             
             {/* Background Ambient Lighting Halos */}
-            <div className="absolute top-[20vh] right-1/4 w-75 sm:w-112.5 bg-indigo-500/5 rounded-full blur-[100px] sm:blur-[120px] pointer-events-none z-0" />
+            <div className="absolute top-[20vh] right-1/4 w-75-[450px] bg-indigo-500/5 rounded-full blur-[100px] sm:blur-[120px] pointer-events-none z-0" />
             <div className="absolute bottom-1/4 left-1/4 w-62.5 sm:w-100 bg-purple-500/5 rounded-full blur-[100px] sm:blur-[110px] pointer-events-none z-0" />
 
             {/* 1. Dynamic Cover Artwork Banner */}
@@ -130,7 +136,7 @@ const MyChannel = () => {
             <div className="max-w-6xl mx-auto px-4 md:px-8 -mt-12 xs:-mt-16 md:-mt-16 relative z-10 space-y-5 sm:space-y-6 box-border">
                 <div className="flex flex-col md:flex-row items-center md:items-end gap-4 md:gap-6 w-full">
                     
-                    {/* Glowing Avatar Frame */}
+                    {/* Avatar Frame */}
                     <div className="relative shrink-0 p-0.5 bg-linear-to-tr from-indigo-500 via-purple-500 to-pink-500 rounded-full shadow-2xl shadow-black/80">
                         <img
                             src={channel.avatar}
@@ -148,7 +154,6 @@ const MyChannel = () => {
                             <Sparkles className="w-4 h-4 text-pink-400 shrink-0 hidden xs:inline-block animate-pulse" />
                         </div>
 
-                        {/* Developer-style Subscription Info Strip */}
                         <div className="flex items-center justify-center md:justify-start gap-2 text-slate-400 text-[11px] md:text-xs font-semibold whitespace-nowrap overflow-x-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden py-0.5 w-full">
                             <span className="text-indigo-400">@{channel.username}</span>
                             <span className="text-slate-800 shrink-0">•</span>
@@ -163,18 +168,30 @@ const MyChannel = () => {
                         </div>
                     </div>
 
-                    {/* Interactive Subscribed Action Toggle */}
+                    {/* 🛠️ CONDITIONAL RENDER FIXED: 
+                       Agar user khud ka channel dekh raha hai, toh 'Subscribe' button ke bajaye 
+                       'Own Studio Dashboard' link badge dikhega jisse page clean lagega!
+                    */}
                     <div className="pb-1 w-full md:w-auto mt-2 md:mt-0 shrink-0 box-border">
-                        <button
-                            onClick={handleSubscribe}
-                            className={`w-full md:w-auto px-6 py-2.5 rounded-xl text-xs font-bold transition-all duration-300 active:scale-[0.97] border ${
-                                (channel.isSubscribed || channel.issubscribed)
-                                    ? "bg-slate-900/60 border-slate-800/80 text-slate-400 hover:text-slate-200 hover:border-slate-700/80 hover:bg-slate-900"
-                                    : "bg-linear-to-r from-indigo-500 via-purple-500 to-pink-500 hover:opacity-95 text-white border-transparent shadow-lg shadow-indigo-500/10"
-                            }`}
-                        >
-                            {(channel.isSubscribed || channel.issubscribed) ? "Subscribed" : "Subscribe"}
-                        </button>
+                        {isOwnChannel ? (
+                            <button
+                                onClick={() => navigate("/dashboard")}
+                                className="w-full md:w-auto px-6 py-2.5 rounded-xl text-xs font-bold bg-slate-900/80 border border-slate-800 text-indigo-400 hover:text-indigo-300 hover:bg-slate-900 transition-all duration-300 active:scale-[0.97]"
+                            >
+                                Own Channel (Studio)
+                            </button>
+                        ) : (
+                            <button
+                                onClick={handleSubscribe}
+                                className={`w-full md:w-auto px-6 py-2.5 rounded-xl text-xs font-bold transition-all duration-300 active:scale-[0.97] border ${
+                                    (channel.isSubscribed || channel.issubscribed)
+                                        ? "bg-slate-900/60 border-slate-800/80 text-slate-400 hover:text-slate-200 hover:border-slate-700/80 hover:bg-slate-900"
+                                        : "bg-linear-to-r from-indigo-500 via-purple-500 to-pink-500 hover:opacity-95 text-white border-transparent shadow-lg shadow-indigo-500/10"
+                                }`}
+                            >
+                                {(channel.isSubscribed || channel.issubscribed) ? "Subscribed" : "Subscribe"}
+                            </button>
+                        )}
                     </div>
 
                 </div>
@@ -182,8 +199,6 @@ const MyChannel = () => {
 
             {/* 3. Catalog Tab Panel */}
             <div className="max-w-6xl mx-auto px-4 md:px-8 mt-8 md:mt-12 relative z-10 space-y-5">
-                
-                {/* Minimalist Tabs Header */}
                 <div className="border-b border-slate-900 flex justify-center md:justify-start">
                     <button className="border-b-2 border-indigo-500 pb-2.5 px-4 font-bold text-xs tracking-wider text-indigo-400 uppercase">
                         Video Directory
@@ -197,16 +212,10 @@ const MyChannel = () => {
                             <div
                                 key={video._id}
                                 onClick={() => navigate(`/video/${video._id}`)}
-                                className="group flex flex-col cursor-pointer rounded-2xl border border-slate-900 bg-slate-900/20 backdrop-blur-md overflow-hidden transition-all duration-300 hover:border-indigo-500/30 hover:bg-slate-900/40 hover:shadow-xl hover:shadow-indigo-500/5 sm:hover:-translate-y-1 w-full box-border"
+                                className="group flex flex-col cursor-pointer rounded-2xl border border-slate-900 bg-slate-900/20 backdrop-blur-md overflow-hidden transition-all duration-300 hover:border-indigo-500/30 hover:bg-slate-900/40 hover:shadow-xl hover:shadow-indigo-500/5 sm:hover:-translate-y-1.5 w-full box-border"
                             >
-                                {/* Thumbnail Frame with Play Indicator */}
                                 <div className="aspect-video rounded-t-2xl overflow-hidden relative border-b border-slate-900/85 bg-slate-950">
-                                    <img
-                                        src={video.thumbnail}
-                                        className="w-full h-full object-cover transition-transform duration-500 sm:group-hover:scale-105"
-                                        alt={video.title}
-                                        loading="lazy"
-                                    />
+                                    <img src={video.thumbnail} className="w-full h-full object-cover transition-transform duration-500 sm:group-hover:scale-105" alt={video.title} loading="lazy" />
                                     <div className="absolute inset-0 bg-slate-950/40 opacity-0 group-hover:opacity-100 flex items-center justify-center transition-all duration-300">
                                         <div className="w-10 h-10 rounded-full bg-indigo-500/10 backdrop-blur-md border border-indigo-500/30 flex items-center justify-center text-indigo-400 shadow-lg shadow-indigo-500/20">
                                             <Play className="w-5 h-5 fill-indigo-400/30 translate-x-0.5" />
@@ -214,7 +223,6 @@ const MyChannel = () => {
                                     </div>
                                 </div>
 
-                                {/* Video Metadata Layout */}
                                 <div className="p-3.5 sm:p-4 flex flex-col flex-1 min-w-0">
                                     <h3 className="font-semibold text-xs sm:text-sm text-slate-100 leading-snug line-clamp-2 group-hover:text-indigo-400 transition-colors min-h-8">
                                         {video.title}
@@ -225,7 +233,6 @@ const MyChannel = () => {
                                         <span>{new Date(video.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}</span>
                                     </div>
                                 </div>
-
                             </div>
                         ))
                     ) : (
@@ -240,7 +247,6 @@ const MyChannel = () => {
                         </div>
                     )}
                 </div>
-
             </div>
         </div>
     );

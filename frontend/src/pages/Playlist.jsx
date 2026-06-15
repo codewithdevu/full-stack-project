@@ -33,7 +33,11 @@ const Playlist = () => {
 
     const handleCreatePlaylist = async (e) => {
         e.preventDefault();
-        if (!newPlaylistData.name.trim()) return alert("Name is required!");
+        
+        {/* 🛠️ STRICT DOUBLE VALIDATION LOGIC INJECTED */}
+        if (!newPlaylistData.name.trim() || !newPlaylistData.description.trim()) {
+            return alert("Playlist Title and Description are required to build an archive!");
+        }
 
         try {
             setLoading(true);
@@ -46,7 +50,7 @@ const Playlist = () => {
                 setPlaylists([response.data.data, ...playlists]);
                 setShowCreateModal(false);
                 setNewPlaylistData({ name: "", description: "" });
-                alert("Playlist created successfully!");
+                alert("Playlist created successfully! 🚀");
             }
         } catch (error) {
             console.error("Error creating playlist:", error);
@@ -162,7 +166,15 @@ const Playlist = () => {
                                 <label className="text-[10px] font-bold text-slate-400 tracking-wider uppercase ml-0.5">Description</label>
                                 <div className="relative group w-full">
                                     <span className="absolute top-3 left-3.5 flex text-slate-600 group-hover:text-slate-400 pointer-events-none transition-colors"><FileText className="w-4 h-4" /></span>
-                                    <textarea value={newPlaylistData.description} onChange={(e) => setNewPlaylistData({ ...newPlaylistData, description: e.target.value })} placeholder="What type of streams are curated here?" rows="3" className="w-full bg-slate-950 border border-slate-850 rounded-xl py-2.5 pl-10 pr-4 text-xs text-slate-100 placeholder-slate-600 transition-all duration-300 resize-none h-20 box-border" />
+                                    {/* 🛠️ ADDED REQUIRED HERE */}
+                                    <textarea 
+                                        value={newPlaylistData.description} 
+                                        onChange={(e) => setNewPlaylistData({ ...newPlaylistData, description: e.target.value })} 
+                                        placeholder="What type of streams are curated here?" 
+                                        rows="3" 
+                                        required
+                                        className="w-full bg-slate-950 border border-slate-850 rounded-xl py-2.5 pl-10 pr-4 text-xs text-slate-100 placeholder-slate-600 transition-all duration-300 resize-none h-20 box-border focus:outline-none focus:border-indigo-500/50 focus:ring-1 focus:ring-indigo-500/25" 
+                                    />
                                 </div>
                             </div>
                             <div className="flex gap-2.5 pt-1.5 w-full">

@@ -270,8 +270,9 @@ const Dashboard = () => {
                                     <th className="px-6 py-4">Pipeline Status</th>
                                     <th className="px-6 py-4">Release State</th>
                                     <th className="px-6 py-4">Video Information</th>
-                                    <th className="px-6 py-4 text-center">Date Added</th>
-                                    <th className="px-6 py-4 text-center">Total Views</th>
+                                    {/* 🛠️ Added whitespace-nowrap utility directly to avoid visual breaks on laptop screens */}
+                                    <th className="px-6 py-4 text-center whitespace-nowrap">Date Added</th>
+                                    <th className="px-6 py-4 text-center whitespace-nowrap">Total Views</th>
                                     <th className="px-6 py-4 text-right">Settings</th>
                                 </tr>
                             </thead>
@@ -309,15 +310,16 @@ const Dashboard = () => {
                                                     </div>
                                                 </div>
                                             </td>
-                                            <td className="px-6 py-4 text-center text-xs font-semibold text-slate-400 font-mono">
+                                            {/* 🛠️ Forces date logs to print inline without breaking layout limits */}
+                                            <td className="px-6 py-4 text-center text-xs font-semibold text-slate-400 font-mono whitespace-nowrap">
                                                 {new Date(video.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
                                             </td>
-                                            <td className="px-6 py-4 text-center">
+                                            <td className="px-6 py-4 text-center whitespace-nowrap">
                                                 <span className="inline-flex items-center gap-1 px-2 py-0.5 bg-slate-950 border border-slate-900 text-slate-300 rounded-md font-bold text-[11px] font-mono">
                                                     {video.views?.toLocaleString() || 0}
                                                 </span>
                                             </td>
-                                            <td className="px-6 py-4 text-right">
+                                            <td className="px-6 py-4 text-right whitespace-nowrap">
                                                 <div className="flex items-center justify-end gap-1.5">
                                                     <button
                                                         onClick={() => { setEditingVideo(video); setIsEditModalOpen(true); }}
