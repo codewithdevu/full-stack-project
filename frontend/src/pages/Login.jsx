@@ -22,8 +22,16 @@ const Login = () => {
 
             console.log("Login response target payload: ", response.data);
 
-            // 🟢 STRICT CHECK & RELOAD REDIRECT:
-            // Sahi login par navigate karne se pehle window reload ya standard hook trigger chalega
+            // 🟢 EXTRACT & SAVE TOKEN BLOCK (FREE SITE REFACTOR):
+            // Response schema se token uthao aur browser database storage layer me write karo
+            const token = response.data?.data?.accessToken || response.data?.accessToken;
+            
+            if (token) {
+                localStorage.setItem("accessToken", token);
+                console.log("⚡ Token safely written to browser memory storage.");
+            }
+
+            // STRICT CHECK & RELOAD REDIRECT:
             if (response.data?.success || response.status === 200) {
                 // Pehle dashboard path navigate set karo
                 navigate("/");

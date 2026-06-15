@@ -44,15 +44,25 @@ const Dashboard = () => {
         fetchAllData();
     }, [navigate]);
 
+    // 🟢 FIXED LOGOUT LAYER HANDLER
     const handleLogout = async () => {
         try {
             setLoading(true);
+            
+            // 1. Trigger server pipeline to unset refresh token inside MongoDB
             await apiClient.post("/users/logout");
-            navigate("/login");
+            
+            console.log("⚡ Session logged out on server successfully.");
         } catch (error) {
-            console.error("Error during logout:", error);
+            console.error("Error during server logout routing:", error);
         } finally {
+            // 2. 🛡️ CLEAN BROWSER MEMORY: LocalStorage tokens clear safely anyway
+            localStorage.removeItem("accessToken");
+            console.log("🧼 Local browser token context wiped out cleanly.");
+            
             setLoading(false);
+            // 3. Redirect back to entry auth gate
+            navigate("/login");
         }
     };
 
@@ -109,7 +119,6 @@ const Dashboard = () => {
         }
     };
 
-    // Helper status render module for clean pipeline visibility
     const renderStatusBadge = (status) => {
         switch (status) {
             case "pending":
@@ -168,49 +177,49 @@ const Dashboard = () => {
                         <div className="absolute inset-0 bg-linear-to-r from-indigo-500/10 via-purple-500/5 to-pink-500/10 opacity-70 pointer-events-none" />
                         <div className="relative bg-slate-950/80 rounded-[15px] p-5 sm:p-6 md:p-8 flex flex-col md:flex-row items-center justify-between gap-5 md:gap-6">
 
-                            <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-6 text-center sm:text-left w-full sm:w-auto">
-                                <div className="relative group shrink-0">
-                                    <div className="absolute -inset-1 bg-linear-to-tr from-indigo-500 via-purple-500 to-pink-500 rounded-full blur opacity-40 group-hover:opacity-75 transition duration-500" />
-                                    <img
-                                        src={user?.avatar}
-                                        alt="User avatar"
-                                        className="relative w-20 h-20 sm:w-24 sm:h-24 md:w-26 md:h-26 rounded-full border border-slate-800/80 object-cover shadow-2xl"
-                                    />
-                                </div>
+                    <div className="flex flex-col sm:flex-row items-center gap-4 sm:gap-6 text-center sm:text-left w-full sm:w-auto">
+                        <div className="relative group shrink-0">
+                            <div className="absolute -inset-1 bg-linear-to-tr from-indigo-500 via-purple-500 to-pink-500 rounded-full blur opacity-40 group-hover:opacity-75 transition duration-500" />
+                            <img
+                                src={user?.avatar}
+                                alt="User avatar"
+                                className="relative w-20 h-20 sm:w-24 sm:h-24 md:w-26 md:h-26 rounded-full border border-slate-800/80 object-cover shadow-2xl"
+                            />
+                        </div>
 
-                                <div className="space-y-1 min-w-0">
-                                    <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-slate-100 tracking-tight truncate">
-                                        {user?.fullName || "Creator Studio"}
-                                    </h1>
-                                    <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 text-xs font-semibold">
-                                        <span className="text-indigo-400 truncate">@{user?.username}</span>
-                                        <span className="w-1 h-1 rounded-full bg-slate-800 hidden sm:inline" />
-                                        <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-linear-to-r from-indigo-500/15 to-pink-500/15 text-pink-300 border border-pink-500/30 text-[10px] shrink-0">
-                                            <Sparkles className="w-3 h-3" /> Pro Channel
-                                        </span>
-                                    </div>
-                                </div>
+                        <div className="space-y-1 min-w-0">
+                            <h1 className="text-xl sm:text-2xl md:text-3xl font-bold text-slate-100 tracking-tight truncate">
+                                {user?.fullName || "Creator Studio"}
+                            </h1>
+                            <div className="flex flex-wrap items-center justify-center sm:justify-start gap-2 text-xs font-semibold">
+                                <span className="text-indigo-400 truncate">@{user?.username}</span>
+                                <span className="w-1 h-1 rounded-full bg-slate-800 hidden sm:inline" />
+                                <span className="inline-flex items-center gap-1 px-2.5 py-0.5 rounded-full bg-linear-to-r from-indigo-500/15 to-pink-500/15 text-pink-300 border border-pink-500/30 text-[10px] shrink-0">
+                                    <Sparkles className="w-3 h-3" /> Pro Channel
+                                </span>
                             </div>
+                        </div>
+                    </div>
 
-                            <div className="flex flex-col sm:flex-row gap-2.5 w-full md:w-auto shrink-0 mt-2 md:mt-0">
-                                <button
-                                    onClick={() => setIsUploadModalOpen(true)}
-                                    className="relative flex-1 sm:flex-none group overflow-hidden rounded-xl px-5 py-2.5 sm:py-3 text-xs font-semibold text-white transition-all duration-300 active:scale-[0.98]"
-                                >
-                                    <span className="absolute inset-0 w-full h-full bg-linear-to-r from-indigo-500 via-purple-500 to-pink-500 transition-all duration-300 group-hover:opacity-90" />
-                                    <span className="absolute -inset-px rounded-xl bg-linear-to-r from-indigo-400 to-pink-400 opacity-0 group-hover:opacity-40 blur-md transition-opacity duration-300" />
-                                    <span className="relative flex items-center justify-center gap-2">
-                                        <Plus className="w-4 h-4" /> Upload Video
-                                    </span>
-                                </button>
+                    <div className="flex flex-col sm:flex-row gap-2.5 w-full md:w-auto shrink-0 mt-2 md:mt-0">
+                        <button
+                            onClick={() => setIsUploadModalOpen(true)}
+                            className="relative flex-1 sm:flex-none group overflow-hidden rounded-xl px-5 py-2.5 sm:py-3 text-xs font-semibold text-white transition-all duration-300 active:scale-[0.98]"
+                        >
+                            <span className="absolute inset-0 w-full h-full bg-linear-to-r from-indigo-500 via-purple-500 to-pink-500 transition-all duration-300 group-hover:opacity-90" />
+                            <span className="absolute -inset-px rounded-xl bg-linear-to-r from-indigo-400 to-pink-400 opacity-0 group-hover:opacity-40 blur-md transition-opacity duration-300" />
+                            <span className="relative flex items-center justify-center gap-2">
+                                <Plus className="w-4 h-4" /> Upload Video
+                            </span>
+                        </button>
 
-                                <button
-                                    onClick={handleLogout}
-                                    className="inline-flex flex-1 sm:flex-none items-center justify-center gap-2 px-5 py-2.5 sm:py-3 rounded-xl bg-slate-900/60 border border-slate-800/80 text-slate-400 hover:text-rose-400 hover:border-rose-500/30 hover:bg-rose-500/5 transition-all duration-300 text-xs font-semibold"
-                                >
-                                    <LogOut className="w-4 h-4" /> Logout
-                                </button>
-                            </div>
+                        <button
+                            onClick={handleLogout}
+                            className="inline-flex flex-1 sm:flex-none items-center justify-center gap-2 px-5 py-2.5 sm:py-3 rounded-xl bg-slate-900/60 border border-slate-800/80 text-slate-400 hover:text-rose-400 hover:border-rose-500/30 hover:bg-rose-500/5 transition-all duration-300 text-xs font-semibold"
+                        >
+                            <LogOut className="w-4 h-4" /> Logout
+                        </button>
+                    </div>
 
                         </div>
                     </div>
@@ -270,7 +279,6 @@ const Dashboard = () => {
                                     <th className="px-6 py-4">Pipeline Status</th>
                                     <th className="px-6 py-4">Release State</th>
                                     <th className="px-6 py-4">Video Information</th>
-                                    {/* 🛠️ Added whitespace-nowrap utility directly to avoid visual breaks on laptop screens */}
                                     <th className="px-6 py-4 text-center whitespace-nowrap">Date Added</th>
                                     <th className="px-6 py-4 text-center whitespace-nowrap">Total Views</th>
                                     <th className="px-6 py-4 text-right">Settings</th>
@@ -310,7 +318,6 @@ const Dashboard = () => {
                                                     </div>
                                                 </div>
                                             </td>
-                                            {/* 🛠️ Forces date logs to print inline without breaking layout limits */}
                                             <td className="px-6 py-4 text-center text-xs font-semibold text-slate-400 font-mono whitespace-nowrap">
                                                 {new Date(video.createdAt).toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })}
                                             </td>
