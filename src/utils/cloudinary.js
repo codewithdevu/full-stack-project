@@ -1,14 +1,17 @@
 import { v2 as cloudinary } from "cloudinary";
 import fs from "fs";
-import streamifier from "streamifier"; // 🟢 Buffer integration stream bridge active
+import streamifier from "streamifier"; 
 
 cloudinary.config({
   cloud_name: process.env.CLOUDINARY_CLOUD_NAME,
-  api_key: process.env.CLOUDINARY_CLOUD_API_KEY,
-  api_secret: process.env.CLOUDINARY_CLOUD_API_SECRET,
+  api_key: process.env.CLOUDINARY_CLOUD_API_KEY || process.env.CLOUDINARY_API_KEY,
+  api_secret: process.env.CLOUDINARY_CLOUD_API_SECRET || process.env.CLOUDINARY_API_SECRET,
 });
 
-
+/**
+ * 🟢 DACTIVE BACKWARD COMPATIBLE CLEANUP
+ * Public ID nikal kar Cloudinary se assets wipe out karne ke liye
+ */
 const deleteOnCloudinary = async (url, resource_type = "image") => {
   try {
     if (!url) return null;
@@ -26,35 +29,64 @@ const deleteOnCloudinary = async (url, resource_type = "image") => {
   }
 };
 
-
-const uploadOncloudinary = async (localFilepath) => {
+/**
+ * 🔥 INTELLIGENT MASTER UPLOADER (ULTIMATE FIX)
+ * Ye single function khud check karega ki dynamic data path string hai ya raw memory buffer,
+ * aur dono controller flows (Register, Video Upload, Settings Update) ko bina tode bypass karega!
+ */
+const uploadOncloudinary = async (fileInput, resourceType = "auto") => {
   try {
-    if (!localFilepath) return null;
+    if (!fileInput) return null;
 
-    // 1. Target asset upload pipeline on Cloudinary servers
-    const response = await cloudinary.uploader.upload(localFilepath, {
-      resource_type: "auto"
+    // 🎬 CASE A: IF THE INPUT IS A RAW MEMORY BUFFER (From Settings/Multer Memory Storage)
+    if (Buffer.isBuffer(fileInput)) {
+      console.log("⚡ Cloudinary Engine: RAM buffer stream detected. Piping binary data...");
+      
+      return new Promise((resolve, reject) => {
+        const cld_upload_stream = cloudinary.uploader.upload_stream(
+          { 
+            resource_type: resourceType, 
+            folder: "velocity_stream" 
+          },
+          (error, result) => {
+            if (result) resolve(result);
+            else {
+              console.error("❌ Cloudinary Memory Buffer Stream upload FAILED:", error);
+              resolve(null); // Return null instead of crashing the thread
+            }
+          }
+        );
+        
+        // Push raw binary stream chunks straight into Cloudinary gate
+        streamifier.createReadStream(fileInput).pipe(cld_upload_stream);
+      });
+    }
+
+    // 🎬 CASE B: IF THE INPUT IS A LOCAL FILE PATH STRING (From Disk Storage Fallbacks)
+    console.log(`⚡ Cloudinary Engine: Local filepath string detected -> ${fileInput}`);
+    const response = await cloudinary.uploader.upload(fileInput, {
+      resource_type: "auto",
+      folder: "velocity_stream"
     });
 
-    // 2. 🟢 SAFE CLEANUP BLOCK: File successfully upload hone ke baad physical verification
-    if (fs.existsSync(localFilepath)) {
-      fs.unlinkSync(localFilepath);
+    // Safe Cleanup for local temp folder
+    if (fs.existsSync(fileInput)) {
+      fs.unlinkSync(fileInput);
     }
 
     return response;
 
   } catch (error) {
     console.error("❌ Cloudinary upload FAILED loop trigger:", error);
-
-    // 3. 🟢 FALLBACK CLEANUP: Agar operations break ho jayein, toh bhi kachra saaf karna zaroori h
-    if (fs.existsSync(localFilepath)) {
-      fs.unlinkSync(localFilepath);
+    // Fallback disk cleanup if string path breaks
+    if (typeof fileInput === "string" && fs.existsSync(fileInput)) {
+      fs.unlinkSync(fileInput);
     }
     return null;
   }
 };
 
-// 🔥 NEW PRODUCTION REFACTOR: Direct injection for processing raw RAM buffers
+// Original separate function configuration context preserved for your video controllers
 const uploadBufferOnCloudinary = (fileBuffer, resourceType = "image") => {
   return new Promise((resolve, reject) => {
     const cld_upload_stream = cloudinary.uploader.upload_stream(
@@ -71,14 +103,12 @@ const uploadBufferOnCloudinary = (fileBuffer, resourceType = "image") => {
       }
     );
     
-    // Convert raw binary buffer stream directly into streaming nodes to pipe onto Cloudinary gateway
     streamifier.createReadStream(fileBuffer).pipe(cld_upload_stream);
   });
 };
 
-// 🟢 EXPORT ALL ARCHITECTURAL PATTERNS Safely
 export { 
   uploadOncloudinary, 
-  uploadBufferOnCloudinary, // 👈 Now exported properly for video.controller.js!
+  uploadBufferOnCloudinary, 
   deleteOnCloudinary 
 };
