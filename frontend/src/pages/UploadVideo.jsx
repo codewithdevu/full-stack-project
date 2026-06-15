@@ -7,7 +7,6 @@ const MAX_TITLE_CHARS = 100;
 const MAX_DESC_CHARS = 5000;
 
 // LOCAL DEPLOYMENT BARRIER CAP: 
-// 100MB limits set for full local docker containers streaming tests!
 const MAX_VIDEO_SIZE_ALLOCATION = 100 * 1024 * 1024; // 100 Megabytes max video size
 const MAX_THUMB_SIZE_ALLOCATION = 5 * 1024 * 1024;   // 5 Megabytes max thumbnail banner
 
@@ -29,10 +28,33 @@ const UploadVideo = ({ isOpen, onClose }) => {
     const [uploadProgress, setUploadProgress] = useState(0);
     const [showCloseConfirm, setShowCloseConfirm] = useState(false);
 
+    // 🟢 ENV CONFIGURATION STATE
+    const [isTranscodingDisabled, setIsTranscodingDisabled] = useState(false);
+
     const navigate = useNavigate(); // 🟢 NAVIGATOR INSTANCE INITIALIZATION
 
-    // 🟢 VOICE NOTE LOGIC: Detect production runtime domain env
-    const isProductionServer = window.location.hostname !== "localhost" && window.location.hostname !== "127.0.0.1";
+    // 🟢 STRICT BARRIER GATES: Localhost par completely block karne ke liye handles mapping flag
+    const isLocalhost = window.location.hostname === "localhost" || window.location.hostname === "127.0.0.1";
+
+    // Dynamic verification API handshake matrix upon open trigger
+    useEffect(() => {
+        if (isOpen) {
+            const checkTranscodingStatus = async () => {
+                try {
+                    const response = await apiClient.get("/videos/transcode-status").catch(() => null);
+                    if (response?.data) {
+                        setIsTranscodingDisabled(response.data.transcodingDisabled);
+                    } else {
+                        // Default production configuration fallback state 
+                        setIsTranscodingDisabled(true); 
+                    }
+                } catch (error) {
+                    console.log("Transcoding status node checking deferred.");
+                }
+            };
+            checkTranscodingStatus();
+        }
+    }, [isOpen]);
 
     useEffect(() => {
         return () => {
@@ -69,7 +91,6 @@ const UploadVideo = ({ isOpen, onClose }) => {
     const handleVideoSelect = (file) => {
         if (!file) return;
 
-        // Validation against 100MB local barrier
         if (file.size > MAX_VIDEO_SIZE_ALLOCATION) {
             alert(`File size exceeds local limit! Core file is ${(file.size / (1024 * 1024)).toFixed(2)}MB. Max limit is 100MB.`);
             return;
@@ -131,15 +152,20 @@ const UploadVideo = ({ isOpen, onClose }) => {
 
             setUploadProgress(100);
             
+            // 🟢 RESPONSE SUCCESS TOAST: Direct fallback parameters check validation
+            if (response.data?.transcodingDisabled || response.data?.data?.status === "processed" || isTranscodingDisabled) {
+                alert("📢 Toast Notification: Transcoding is OFF right now! Video published directly in native resolution without stream compiler delay.");
+            } else {
+                alert("🚀 Pipeline Triggered: Video successfully pushed into background pipeline queue nodes.");
+            }
+
             const newVideoId = response.data?.data?._id || response.data?._id;
 
             handleResetAndClose(); 
 
             if (newVideoId) {
-                console.log(`Navigating to cinema details loop: /video/${newVideoId}`);
                 navigate(`/video/${newVideoId}`);
             } else {
-                console.warn("Could not parse dynamic entity ID parameter. Sending to dashboard layout.");
                 navigate("/dashboard");
             }
             
@@ -159,14 +185,8 @@ const UploadVideo = ({ isOpen, onClose }) => {
             
             <style dangerouslySetInnerHTML={{ __html: `
                 @keyframes fadeInUpModal {
-                    from {
-                        opacity: 0;
-                        transform: scale(0.97) translateY(10px);
-                    }
-                    to {
-                        opacity: 1;
-                        transform: scale(1) translateY(0);
-                    }
+                    from { opacity: 0; transform: scale(0.97) translateY(10px); }
+                    to { opacity: 1; transform: scale(1) translateY(0); }
                 }
                 .animate-modal-entry {
                     animation: fadeInUpModal 0.35s cubic-bezier(0.16, 1, 0.3, 1) forwards;
@@ -186,9 +206,7 @@ const UploadVideo = ({ isOpen, onClose }) => {
                             <Upload className="w-3.5 h-3.5 text-indigo-400" /> Upload Video
                         </h2>
                         <button 
-                            type="button"
-                            disabled={uploading}
-                            onClick={handleCloseAttempt} 
+                            type="button" disabled={uploading} onClick={handleCloseAttempt} 
                             className="p-1.5 text-slate-400 hover:text-slate-200 hover:bg-slate-900/60 border border-transparent hover:border-slate-800 rounded-lg transition-all duration-200 outline-none"
                         >
                             <X className="w-4 h-4" />
@@ -208,8 +226,8 @@ const UploadVideo = ({ isOpen, onClose }) => {
                     {/* VERTICAL FORM BODY */}
                     <form onSubmit={handleSubmit} className="relative z-10 flex-1 p-4 xs:p-5 space-y-4 overflow-y-auto [scrollbar-width:none] [-ms-overflow-style:none] [&::-webkit-scrollbar]:hidden w-full box-border">
                         
-                        {/* 🔥 FIX CONDITION: notice only triggers during active live deployment uploading sequence */}
-                        {isProductionServer && uploading && (
+                        {/* 🟢 FIXED GATEWAY: Box will open instantly on load BUT remains hidden on localhost loops */}
+                        {!isLocalhost && isTranscodingDisabled && (
                             <div className="p-3 bg-amber-950/30 border border-amber-900/40 rounded-xl text-[10px] sm:text-[11px] text-amber-200/90 leading-relaxed animate-in fade-in slide-in-from-top-2 duration-300">
                                 <div className="flex items-center gap-1.5 font-bold text-amber-400 uppercase tracking-wider text-[9px] mb-1">
                                     <AlertCircle className="w-3.5 h-3.5" /> Video Transcoding Optimized (OFF)
@@ -379,16 +397,14 @@ const UploadVideo = ({ isOpen, onClose }) => {
                             </div>
                             <div className="flex gap-3 pt-2">
                                 <button
-                                    type="button"
-                                    onClick={() => { setShowCloseConfirm(false); }}
+                                    type="button" onClick={() => { setShowCloseConfirm(false); }}
                                     className="flex-1 py-2 rounded-xl bg-slate-900 border border-slate-800 text-slate-400 hover:text-slate-200 transition-colors text-xs font-semibold"
                                 >
                                     Cancel
                                 </button>
                                 <button
-                                    type="button"
-                                    onClick={handleResetAndClose}
-                                    className="flex-1 py-2 bg-rose-500/15 text-rose-450 hover:bg-rose-600 hover:text-white border border-rose-500/20 hover:border-transparent rounded-xl transition duration-300 font-bold text-xs"
+                                    type="button" onClick={handleResetAndClose}
+                                    className="flex-1 py-2 bg-rose-500/15 text-rose-400 hover:bg-rose-600 hover:text-white border border-rose-500/20 hover:border-transparent rounded-xl transition duration-300 font-bold text-xs"
                                 >
                                     Discard
                                 </button>
