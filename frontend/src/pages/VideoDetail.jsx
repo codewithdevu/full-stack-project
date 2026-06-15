@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef } from "react";
 import apiClient from "../api/apiConfig";
 import { useParams, useNavigate } from "react-router-dom";
-import Hls from "hls.js"; 
+import Hls from "hls.js";
 import { ThumbsUp, Share2, MessageSquare, Trash2, Pencil, ListPlus, Play, Pause, Volume2, VolumeX, Maximize, Users, Clock, Compass, Sparkles, X, Heart, Video, Settings2, Cpu, RefreshCw } from "lucide-react";
 
 const formatTimeAgo = (dateString) => {
@@ -43,8 +43,8 @@ const VideoDetail = () => {
     const [editedContent, setEditedContent] = useState("");
 
     // RESOLUTION SELECTOR STATES
-    const [resolutions, setResolutions] = useState([]); 
-    const [currentResIndex, setCurrentResIndex] = useState(-1); 
+    const [resolutions, setResolutions] = useState([]);
+    const [currentResIndex, setCurrentResIndex] = useState(-1);
     const [showResMenu, setShowResMenu] = useState(false);
 
     // CUSTOM CONTROLS LAYER STATES
@@ -54,14 +54,26 @@ const VideoDetail = () => {
     const [volume, setVolume] = useState(1);
     const [isMuted, setIsMuted] = useState(false);
 
-    const videoRef = useRef(null); 
+    const videoRef = useRef(null);
     const playerContainerRef = useRef(null);
-    const hlsInstanceRef = useRef(null); 
+    const hlsInstanceRef = useRef(null);
     const navigate = useNavigate();
 
     // Dynamic state detection helpers
     const isTranscoding = video?.status === "pending" || video?.status === "processing";
     const isFailed = video?.status === "failed";
+
+    // CURRENT USER DETAILS LOG FETCH
+    const fetchCurrentUser = async () => {
+        try {
+            const response = await apiClient.get("/users/current-user");
+            if (response.data?.data) {
+                setCurrentUser(response.data.data);
+            }
+        } catch (error) {
+            console.log("User authentication node context deferred safely.");
+        }
+    };
 
     const fetchVideoDetail = async (showLoader = true) => {
         try {
@@ -87,6 +99,7 @@ const VideoDetail = () => {
     useEffect(() => {
         if (!videoId) return;
 
+        fetchCurrentUser();
         fetchVideoDetail(true);
         fetchRecommendations();
 
@@ -102,25 +115,23 @@ const VideoDetail = () => {
                         })
                         .catch(err => console.error("Silent sync background fetch check dropped: ", err));
                 }
-                return currentVideoState; 
+                return currentVideoState;
             });
-        }, 4000); 
+        }, 4000);
 
         return () => clearInterval(statusPollInterval);
-    }, [videoId]); 
+    }, [videoId]);
 
-    // 🔥 FIXED ADAPTIVE HLS & MP4 LIFECYCLE HYDRATION ENGINE
+    // ADAPTIVE HLS & MP4 LIFECYCLE HYDRATION ENGINE
     useEffect(() => {
         if (loading || !videoRef.current || !video || isTranscoding) return;
 
         const videoElement = videoRef.current;
-        // Strict mapping check: verify if it contains explicit master.m3u8 structures
         const isHlsStream = video.hlsMasterUrl && video.hlsMasterUrl.includes(".m3u8");
         const streamUrl = isHlsStream ? video.hlsMasterUrl : video.videoFile;
 
         if (streamUrl) {
             if (isHlsStream) {
-                // 🎬 CASE A: LOCAL DOCKER MULTI-LAYER RESOLUTION HLS WORKER PIPELINE
                 if (Hls.isSupported()) {
                     if (hlsInstanceRef.current) {
                         hlsInstanceRef.current.destroy();
@@ -131,7 +142,7 @@ const VideoDetail = () => {
                         enableWorker: true,
                         lowLatencyMode: true,
                         backBufferLength: 30,
-                        maxBufferLength: 10 
+                        maxBufferLength: 10
                     });
 
                     hlsInstanceRef.current = hls;
@@ -143,10 +154,10 @@ const VideoDetail = () => {
                             index: idx,
                             height: level.height,
                             bitrate: level.bitrate
-                        })).reverse(); 
-                        
+                        })).reverse();
+
                         setResolutions(parsedLevels);
-                        setCurrentResIndex(-1); 
+                        setCurrentResIndex(-1);
                         videoElement.play().catch((err) => console.log("Autoplay context bypass: ", err));
                     });
 
@@ -172,19 +183,16 @@ const VideoDetail = () => {
                     videoElement.src = streamUrl;
                 }
             } else {
-                // 🚀 CASE B: LIVE PRODUCTION CLOUD ENVIRONMENT BEYOND TRANSCODING CONSTRAINTS (DIRECT S3 MP4 LINK)
-                console.log("🎬 Direct MP4 stream URL detected. Bypassing HLS system layers safely.");
                 if (hlsInstanceRef.current) {
                     hlsInstanceRef.current.destroy();
                     hlsInstanceRef.current = null;
                 }
-                
-                // Pure HTML5 video element source hydration mechanism
+
                 videoElement.src = streamUrl;
-                videoElement.load(); // Flush container memory mapping
-                setResolutions([]); 
+                videoElement.load();
+                setResolutions([]);
                 setCurrentResIndex(-1);
-                
+
                 videoElement.play().catch((err) => console.log("Direct play request deferred: ", err));
             }
         }
@@ -336,7 +344,15 @@ const VideoDetail = () => {
         try {
             const response = await apiClient.post(`/comments/${videoId}`, { content: newComment });
             if (response.data?.data) {
-                setComment([response.data.data, ...comment]);
+                const standardCommentNode = {
+                    ...response.data.data,
+                    owner: {
+                        _id: currentUser?._id,
+                        username: currentUser?.username,
+                        avatar: currentUser?.avatar
+                    }
+                };
+                setComment([standardCommentNode, ...comment]);
                 setNewComment("");
             }
         } catch (error) {
@@ -344,9 +360,9 @@ const VideoDetail = () => {
         }
     };
 
-    const startEditing = (comment) => {
-        setEditingCommentId(comment._id);
-        setEditedContent(comment.content);
+    const startEditing = (cNode) => {
+        setEditingCommentId(cNode._id);
+        setEditedContent(cNode.content);
     };
 
     const saveEdit = async (commentId) => {
@@ -412,13 +428,12 @@ const VideoDetail = () => {
                 {/* LEFT COLUMN: Video Player & Meta & Comments */}
                 <div className="lg:col-span-2 space-y-4 sm:space-y-5 min-w-0 w-full">
 
-                    {/* PREMIUM THEME CUSTOM HANDMADE CONTROLS ENGINE PLAYER BOX */}
-                    <div 
+                    {/* PLAYER BOX */}
+                    <div
                         ref={playerContainerRef}
                         className="aspect-video rounded-2xl overflow-hidden bg-slate-950 shadow-2xl border border-slate-900 w-full box-border relative group/player cursor-pointer"
                         onClick={togglePlay}
                     >
-                        {/* 🟢 CONDITIONAL VIEW 1: ADVANCED LIVE ASYNC TRANSCODING SCREEN */}
                         {isTranscoding ? (
                             <div className="absolute inset-0 bg-slate-950 flex flex-col items-center justify-center p-6 text-center gap-4 animate-in fade-in duration-300">
                                 <div className="relative flex items-center justify-center">
@@ -434,15 +449,14 @@ const VideoDetail = () => {
                                         {video.status === "pending" ? "Queue Pipeline Waiting" : "Compiling Adaptive Bitrates"}
                                     </h3>
                                     <p className="text-[11px] text-slate-500 leading-relaxed font-medium">
-                                        {video.status === "pending" 
-                                            ? "Video asset successfully caught in database queue nodes. Waiting for backend transcoder worker allotment..." 
+                                        {video.status === "pending"
+                                            ? "Video asset successfully caught in database queue nodes. Waiting for backend transcoder worker allotment..."
                                             : "FFmpeg is demuxing adaptive bitrates streams (1080p, 720p, 480p) and generating HLS master chunks playlist files to AWS S3 cluster storage."
                                         }
                                     </p>
                                 </div>
                             </div>
                         ) : isFailed ? (
-                            /* CONDITIONAL VIEW 2: PIPELINE FAILURE PACKET SHEET */
                             <div className="absolute inset-0 bg-slate-950 flex flex-col items-center justify-center p-6 text-center gap-3 animate-in fade-in duration-300">
                                 <div className="w-10 h-10 rounded-xl bg-rose-500/10 border border-rose-500/20 flex items-center justify-center text-rose-400 shadow-inner">
                                     <X className="w-4 h-4" />
@@ -455,23 +469,21 @@ const VideoDetail = () => {
                                 </div>
                             </div>
                         ) : (
-                            /* CONDITIONAL VIEW 3: ACTIVE VIDEO INSTANT PLAYER LINK */
                             <>
                                 <video
                                     ref={videoRef}
-                                    poster={video.thumbnail}
-                                    className="w-full h-full object-contain"
+                                    poster={isPlaying ? "" : video.thumbnail}
+                                    className="w-full h-full object-contain pointer-events-none"
                                     playsInline
                                 />
 
                                 {/* PREMIUM OVERLAY CONTROL SHEET BAR */}
-                                <div 
+                                <div
                                     className="absolute inset-x-0 bottom-0 bg-linear-to-t from-slate-950/95 via-slate-950/75 to-transparent px-4 pt-10 pb-4 flex flex-col gap-3 opacity-0 group-hover/player:opacity-100 transition-opacity duration-300 z-30 select-none pointer-events-auto"
-                                    onClick={(e) => e.stopPropagation()} 
+                                    onClick={(e) => e.stopPropagation()}
                                 >
-                                    {/* Timeline Slider Track Bar */}
                                     <div className="w-full flex items-center group/slider relative">
-                                        <input 
+                                        <input
                                             type="range"
                                             min={0}
                                             max={totalDuration || 0}
@@ -481,10 +493,7 @@ const VideoDetail = () => {
                                         />
                                     </div>
 
-                                    {/* Action Buttons Management Layer */}
                                     <div className="flex items-center justify-between w-full">
-                                        
-                                        {/* LEFT ACTIONS SHELF: Play, Volume, and Time Duration */}
                                         <div className="flex items-center gap-4">
                                             <button onClick={togglePlay} className="text-slate-300 hover:text-white transition-colors active:scale-95 outline-none">
                                                 {isPlaying ? <Pause className="w-4 h-4 fill-current" /> : <Play className="w-4 h-4 fill-current" />}
@@ -494,7 +503,7 @@ const VideoDetail = () => {
                                                 <button onClick={toggleMute} className="text-slate-300 hover:text-white transition-colors active:scale-95 outline-none">
                                                     {isMuted || volume === 0 ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
                                                 </button>
-                                                <input 
+                                                <input
                                                     type="range"
                                                     min={0}
                                                     max={1}
@@ -505,16 +514,15 @@ const VideoDetail = () => {
                                                 />
                                             </div>
 
-                                            <div className="text-slate-400 text-[11px] font-semibold font-mono tracking-wide">
+                                            <div className="flex items-center gap-1.5 text-slate-400 text-[11px] font-semibold font-mono tracking-wide">
                                                 {formatDuration(currentTime)} / {formatDuration(totalDuration)}
                                             </div>
                                         </div>
 
-                                        {/* RIGHT ACTIONS SHELF: Resolution Selector Menu + Fullscreen */}
                                         <div className="flex items-center gap-4 relative">
                                             {resolutions.length > 0 && (
                                                 <div className="relative">
-                                                    <button 
+                                                    <button
                                                         onClick={() => setShowResMenu(!showResMenu)}
                                                         className="px-2 py-0.5 bg-slate-900/80 border border-slate-800 rounded-md text-slate-400 hover:text-indigo-400 font-bold font-mono text-[10px] tracking-wider transition-colors outline-none flex items-center gap-1"
                                                     >
@@ -548,7 +556,6 @@ const VideoDetail = () => {
                                                 <Maximize className="w-4 h-4" />
                                             </button>
                                         </div>
-
                                     </div>
                                 </div>
                             </>
@@ -608,15 +615,24 @@ const VideoDetail = () => {
                             </div>
                         </div>
 
-                        <button
-                            onClick={toggleSubscribe}
-                            className={`px-3.5 py-2 rounded-xl text-[11px] xs:text-xs font-bold transition-all duration-300 active:scale-[0.98] shrink-0 border ${video?.isSubscribed
-                                ? "bg-slate-900 border-slate-800 text-slate-400 hover:text-slate-200"
-                                : "bg-linear-to-r from-indigo-500 to-purple-600 hover:opacity-95 text-white border-transparent shadow-lg shadow-indigo-500/10"
-                                }`}
-                        >
-                            {video?.isSubscribed ? "Subscribed" : "Subscribe"}
-                        </button>
+                        {/* 🛠️ SELF-SUBSCRIBE PROTECTION FILTER:
+                           Agar logged-in user hi video ka real owner hai, toh 'Subscribe' ki jagah 'Your Video' badge dikhega.
+                        */}
+                        {currentUser?._id === video?.owner?._id ? (
+                            <span className="px-4 py-2 rounded-xl text-[11px] xs:text-xs font-bold bg-slate-900/60 border border-slate-800/80 text-indigo-400 font-mono tracking-wide shrink-0">
+                                Your Video
+                            </span>
+                        ) : (
+                            <button
+                                onClick={toggleSubscribe}
+                                className={`px-3.5 py-2 rounded-xl text-[11px] xs:text-xs font-bold transition-all duration-300 active:scale-[0.98] shrink-0 border ${video?.isSubscribed
+                                    ? "bg-slate-900 border-slate-800 text-slate-400 hover:text-slate-200"
+                                    : "bg-linear-to-r from-indigo-500 to-purple-600 hover:opacity-95 text-white border-transparent shadow-lg shadow-indigo-500/10"
+                                    }`}
+                            >
+                                {video?.isSubscribed ? "Subscribed" : "Subscribe"}
+                            </button>
+                        )}
                     </div>
 
                     {/* Description Box */}
@@ -640,38 +656,58 @@ const VideoDetail = () => {
                             <button onClick={postComment} className="bg-slate-900 border border-slate-800 hover:border-slate-700 px-3.5 py-1.5 rounded-xl text-[10px] font-bold text-slate-300 transition shrink-0">Comment</button>
                         </div>
 
+                        {/* COMMENT ITEMS LOOP */}
                         <div className="space-y-3 w-full box-border">
                             {comment.map((c) => {
                                 if (!c) return null;
+                                const isCommentOwner = c.owner?._id === currentUser?._id;
+                                const isEditingThisComment = editingCommentId === c._id;
+
                                 return (
-                                    <div key={c._id} className="flex gap-3 group relative items-start bg-slate-900/10 hover:bg-slate-900/20 p-3 rounded-2xl border border-transparent hover:border-slate-900/50 transition duration-300 w-full box-border overflow-hidden">
-                                        <img src={c.owner?.avatar || `https://api.dicebear.com/7.x/initials/svg?seed=${c.owner?.username || "user"}`} className="w-7 h-7 rounded-full object-cover shrink-0 border border-slate-900" alt="avatar" />
+                                    <div key={c._id} className="group flex gap-3.5 relative items-start bg-slate-900/10 hover:bg-slate-900/20 p-3 rounded-2xl border border-transparent hover:border-slate-900/50 transition duration-300 w-full box-border overflow-hidden">
+                                        <img
+                                            src={c.owner?.avatar || `https://api.dicebear.com/7.x/initials/svg?seed=${c.owner?.username || "user"}`}
+                                            className="w-7 h-7 rounded-full object-cover shrink-0 border border-slate-900"
+                                            alt="avatar"
+                                        />
 
                                         <div className="flex-1 min-w-0 w-full pr-6 md:pr-0">
                                             <div className="flex items-center gap-2 flex-wrap">
                                                 <span className="font-semibold text-xs text-indigo-400 truncate max-w-30 xs:max-w-none">@{c.owner?.username || "user"}</span>
                                                 <span className="text-[9px] text-slate-600 font-mono shrink-0">{new Date(c.createdAt).toLocaleDateString()}</span>
                                             </div>
-                                            {editingCommentId === c._id ? (
-                                                <div className="mt-2 space-y-2 w-full">
+
+                                            {/* Dynamic Edit Input Block */}
+                                            {isEditingThisComment ? (
+                                                <div className="mt-2 space-y-2 w-full animate-in fade-in duration-200">
                                                     <textarea
                                                         value={editedContent}
                                                         onChange={(e) => setEditedContent(e.target.value)}
                                                         rows={2}
-                                                        className="w-full bg-slate-900 border border-slate-800 rounded-xl p-2.5 text-xs text-slate-200 outline-none focus:border-indigo-500 resize-none"
+                                                        className="w-full bg-slate-900 border border-slate-800 rounded-xl p-2.5 text-xs text-slate-200 outline-none focus:border-indigo-500 resize-none box-border"
                                                     />
-                                                    <div className="flex gap-1.5 justify-end">
-                                                        <button onClick={() => saveEdit(c._id)} className="px-2.5 py-1 rounded-lg bg-indigo-500 text-white text-[10px] font-semibold">Save</button>
-                                                        <button onClick={() => { setEditingCommentId(null); setEditedContent(""); }} className="px-2.5 py-1 rounded-lg bg-slate-800 text-slate-300 text-[10px] font-semibold">Cancel</button>
+                                                    <div className="flex gap-2 justify-end pt-0.5">
+                                                        <button
+                                                            onClick={() => { setEditingCommentId(null); setEditedContent(""); }}
+                                                            className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-750 text-slate-300 text-[10px] font-bold uppercase tracking-wider transition-colors"
+                                                        >
+                                                            Cancel
+                                                        </button>
+                                                        <button
+                                                            onClick={() => saveEdit(c._id)}
+                                                            className="px-3.5 py-1.5 rounded-lg bg-indigo-600 hover:bg-indigo-500 text-white text-[10px] font-bold uppercase tracking-wider transition-colors shadow-md"
+                                                        >
+                                                            Save
+                                                        </button>
                                                     </div>
                                                 </div>
                                             ) : (
-                                                <p className="text-xs mt-1 text-slate-300 leading-relaxed font-medium wrap-break-word pr-2">
+                                                <p className="text-xs mt-1.5 text-slate-300 leading-relaxed font-medium wrap-break-word pr-2">
                                                     {c.content}
                                                 </p>
                                             )}
 
-                                            <div className="flex items-center gap-4 mt-2 pt-1.5 border-t border-slate-900/40">
+                                            <div className="flex items-center gap-4 mt-2.5 pt-1.5 border-t border-slate-900/40">
                                                 <button
                                                     onClick={() => handleToggleCommentLike(c._id)}
                                                     className={`flex items-center gap-1 text-[10px] font-bold transition-all group ${c.isLiked ? "text-rose-500" : "text-slate-500 hover:text-rose-400"}`}
@@ -682,10 +718,25 @@ const VideoDetail = () => {
                                             </div>
                                         </div>
 
-                                        {c.owner?._id === currentUser?._id && (
-                                            <div className="flex gap-1 absolute right-2 top-2 bg-slate-950 border border-slate-900 rounded-lg p-1 shadow-md shrink-0">
-                                                <button type="button" onClick={() => startEditing(c)} className="p-1 text-slate-500 hover:text-indigo-400"><Pencil className="w-3 h-3" /></button>
-                                                <button type="button" onClick={() => deleteComment(c._id)} className="p-1 text-slate-500 hover:text-rose-400"><Trash2 className="w-3 h-3" /></button>
+                                        {/* 🛠️ ACTION CHIPS OVERLAP PROTECTION */}
+                                        {isCommentOwner && !isEditingThisComment && (
+                                            <div className="flex gap-1 absolute right-2 top-2 bg-slate-950 border border-slate-900 rounded-lg p-1 shadow-md shrink-0 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-20">
+                                                <button
+                                                    type="button"
+                                                    onClick={() => startEditing(c)}
+                                                    className="p-1 text-slate-500 hover:text-indigo-400 transition-colors"
+                                                    title="Edit Comment"
+                                                >
+                                                    <Pencil className="w-3 h-3" />
+                                                </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={() => deleteComment(c._id)}
+                                                    className="p-1 text-slate-500 hover:text-rose-400 transition-colors"
+                                                    title="Delete Comment"
+                                                >
+                                                    <Trash2 className="w-3 h-3" />
+                                                </button>
                                             </div>
                                         )}
                                     </div>
@@ -737,7 +788,6 @@ const VideoDetail = () => {
                             {userPlaylists.length > 0 ? (
                                 userPlaylists.map(pl => (
                                     <div
-                                        document_id={pl._id}
                                         key={pl._id}
                                         onClick={() => addVideoToPlaylist(pl._id)}
                                         className="p-3 bg-slate-900/30 rounded-xl border border-slate-900 hover:bg-indigo-600/15 hover:border-indigo-500/30 text-xs transition cursor-pointer flex justify-between items-center group duration-300 w-full box-border"
