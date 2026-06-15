@@ -51,14 +51,12 @@ const Register = () => {
                 timeout: 90000 // Extended to 90s for raw image processing weights over S3/Cloudinary clusters
             });
             
-            alert("Account created successfully! Welcome to VelocityStream. 🚀 Redirecting to authentication vault...");
             navigate("/login");
 
         } catch (error) {
             console.error("Register Error full details:", error.response?.data || error.message);
 
             if (error.response?.status === 409) {
-                alert("This account username or email has already been registered successfully! Redirecting to login...");
                 navigate("/login");
             } else {
                 alert(error.response?.data?.message || "Registration dropped! Please verify input criteria and try again.");
