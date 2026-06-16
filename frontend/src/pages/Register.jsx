@@ -14,24 +14,30 @@ const Register = () => {
     const [avatar, setAvatar] = useState(null);
     const [coverImage, setCoverImage] = useState(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
+    
+    // UI Local Error Logging (No more annoying browser alerts!)
+    const [uiError, setUiError] = useState(""); 
     const navigate = useNavigate();
 
     const handleSubmit = async (e) => {
         e.preventDefault();
         if (isSubmitting) return;
+        
+        setUiError(""); // Reset error state
 
         if (!avatar) {
-            return alert("Core avatar artwork image is required to build your identity profile!");
+            setUiError("Core avatar artwork image is required to build your identity profile!");
+            return;
         }
 
-        // Initialize multi-part form data instance
         const data = new FormData();
 
-        // Explicitly map frontend state to backend expected naming keys
-        data.append("fullname", formData.fullName.trim());
+        // 🟢 FIX KEY CASING MATCHING BACKEND CONTROLLER LOGIC:
+        // 'fullname' ko badal kar 'fullName' kiya taaki req.body validation pass ho jaye!
+        data.append("fullName", formData.fullName.trim()); 
         data.append("email", formData.email.trim());
-        data.append("username", formData.username.trim().toLowerCase()); // Lowercase username tracking
-        data.append("password", formData.password); // No trim to keep absolute integrity of chosen password string
+        data.append("username", formData.username.trim().toLowerCase()); 
+        data.append("password", formData.password); 
 
         if (avatar) {
             data.append("avatar", avatar);
@@ -45,8 +51,8 @@ const Register = () => {
             setIsSubmitting(true);
             console.log("Initializing account creation pipeline hooks...");
 
-            const response = await apiClient.post("/users/register", data, {
-                timeout: 90000 // 90s tracking for large assets compression/handling routes
+            await apiClient.post("/users/register", data, {
+                timeout: 90000 
             });
             
             navigate("/login");
@@ -55,15 +61,14 @@ const Register = () => {
             console.error("Register Error full details:", error.response?.data || error.message);
 
             if (error.response?.status === 409) {
-                alert("This username or email already exists!");
-                navigate("/login");
+                setUiError("This username or email already exists!");
+                setTimeout(() => navigate("/login"), 2000); // Redirect smoothly
             } else {
-                // Determine if backend error payload is HTML code string or a standard application JSON error response object
                 const serverErrorMessage = typeof error.response?.data === 'string' && error.response.data.includes('<!DOCTYPE html>')
-                    ? "Server rejected field payload validation maps (400 Bad Request)."
+                    ? "Server rejected payload field maps (400 Bad Request). Please check backend parameter logs."
                     : error.response?.data?.message;
 
-                alert(serverErrorMessage || "Registration dropped! Please verify structural fields and try again.");
+                setUiError(serverErrorMessage || "Registration dropped! Please verify structural fields and try again.");
             }
         } finally {
             setIsSubmitting(false);
@@ -92,6 +97,13 @@ const Register = () => {
                     <h2 className="text-xl sm:text-2xl font-bold tracking-tight text-slate-100">Create Creator Profile</h2>
                     <p className="text-[11px] sm:text-xs text-slate-400 mt-1.5 px-1 balance">Get instant access to HLS transcoding nodes and developer dashboard metrics</p>
                 </div>
+
+                {/* Inline Production UI Error Display banner */}
+                {uiError && (
+                    <div className="mb-5 p-3 rounded-xl bg-rose-500/10 border border-rose-500/20 text-rose-400 text-xs text-center font-medium animate-in fade-in slide-in-from-top-1 duration-200">
+                        ⚠️ {uiError}
+                    </div>
+                )}
 
                 <form onSubmit={handleSubmit} className="space-y-4 sm:space-y-6">
                     
