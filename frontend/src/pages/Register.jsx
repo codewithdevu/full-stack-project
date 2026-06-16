@@ -1,6 +1,6 @@
 import React, { useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
-import { User, Mail, Shield, Lock, UploadCloud, Camera, Sparkles, ArrowRight } from "lucide-react";
+import { User, Mail, Shield, Lock, Sparkles, ArrowRight } from "lucide-react";
 import apiClient from "../api/apiConfig";
 
 const Register = () => {
@@ -24,14 +24,14 @@ const Register = () => {
             return alert("Core avatar artwork image is required to build your identity profile!");
         }
 
+        // Initialize multi-part form data instance
         const data = new FormData();
 
-        // Safe Controlled Text Field Mapping
-        Object.keys(formData).forEach(key => {
-            if (formData[key]) {
-                data.append(key, formData[key].trim());
-            }
-        });
+        // Explicitly map frontend state to backend expected naming keys
+        data.append("fullname", formData.fullName.trim());
+        data.append("email", formData.email.trim());
+        data.append("username", formData.username.trim().toLowerCase()); // Lowercase username tracking
+        data.append("password", formData.password); // No trim to keep absolute integrity of chosen password string
 
         if (avatar) {
             data.append("avatar", avatar);
@@ -45,10 +45,8 @@ const Register = () => {
             setIsSubmitting(true);
             console.log("Initializing account creation pipeline hooks...");
 
-            // 🟢 FIXED AXIOS MULTIPART COMPATIBILITY:
-            // Explicit headers configuration completely dropped to let Axios calculate boundary strings dynamically!
             const response = await apiClient.post("/users/register", data, {
-                timeout: 90000 // Extended to 90s for raw image processing weights over S3/Cloudinary clusters
+                timeout: 90000 // 90s tracking for large assets compression/handling routes
             });
             
             navigate("/login");
@@ -57,9 +55,15 @@ const Register = () => {
             console.error("Register Error full details:", error.response?.data || error.message);
 
             if (error.response?.status === 409) {
+                alert("This username or email already exists!");
                 navigate("/login");
             } else {
-                alert(error.response?.data?.message || "Registration dropped! Please verify input criteria and try again.");
+                // Determine if backend error payload is HTML code string or a standard application JSON error response object
+                const serverErrorMessage = typeof error.response?.data === 'string' && error.response.data.includes('<!DOCTYPE html>')
+                    ? "Server rejected field payload validation maps (400 Bad Request)."
+                    : error.response?.data?.message;
+
+                alert(serverErrorMessage || "Registration dropped! Please verify structural fields and try again.");
             }
         } finally {
             setIsSubmitting(false);
@@ -69,12 +73,12 @@ const Register = () => {
     return (
         <div className="relative min-h-screen bg-slate-950 text-slate-100 flex items-center justify-center p-3 xs:p-4 md:p-8 overflow-hidden font-sans selection:bg-indigo-500/30">
             
-            {/* 1. Ambient Background Atmosphere */}
+            {/* Ambient Background Atmosphere */}
             <div className="absolute inset-0 bg-grid-pattern opacity-[0.12] pointer-events-none z-0" />
             <div className="absolute top-1/4 right-1/4 w-72 h-72 sm:w-125 sm:h-125 bg-purple-500/10 rounded-full blur-[80px] sm:blur-[120px] pointer-events-none z-0 animate-pulse" style={{ animationDuration: '7s' }} />
             <div className="absolute bottom-1/4 left-1/4 w-72 h-72 sm:w-125 sm:h-125 bg-indigo-500/10 rounded-full blur-[80px] sm:blur-[120px] pointer-events-none z-0 animate-pulse" style={{ animationDuration: '9s' }} />
 
-            {/* 2. Premium Registration Container */}
+            {/* Premium Registration Container */}
             <div className="relative w-full max-w-2xl bg-slate-900/40 backdrop-blur-xl border border-slate-800/80 rounded-2xl shadow-2xl p-5 xs:p-6 sm:p-8 z-10 overflow-hidden transition-all duration-300">
                 
                 {/* Visual Top Highlight Accent Strip */}
@@ -103,7 +107,7 @@ const Register = () => {
                                 </span>
                                 <input 
                                     type="text" 
-                                    value={formData.fullName} // 🟢 FIXED CONTROLLED COMPONENT STATE BINDING
+                                    value={formData.fullName} 
                                     placeholder="Enter your full name" 
                                     className="w-full bg-slate-950/45 border border-slate-800/80 rounded-xl py-2.5 sm:py-3 pl-10 pr-4 text-xs text-slate-100 placeholder-slate-500 transition-all duration-300
                                         focus:outline-none focus:border-purple-500/50 focus:ring-1 focus:ring-purple-500/25 focus:bg-slate-900/60 hover:border-slate-700"
@@ -122,7 +126,7 @@ const Register = () => {
                                 </span>
                                 <input 
                                     type="email" 
-                                    value={formData.email} // 🟢 CONTROLLED STATE LINKED
+                                    value={formData.email} 
                                     placeholder="Enter your email address" 
                                     className="w-full bg-slate-950/45 border border-slate-800/80 rounded-xl py-2.5 sm:py-3 pl-10 pr-4 text-xs text-slate-100 placeholder-slate-500 transition-all duration-300
                                         focus:outline-none focus:border-purple-500/50 focus:ring-1 focus:ring-purple-500/25 focus:bg-slate-900/60 hover:border-slate-700"
@@ -138,10 +142,10 @@ const Register = () => {
                             <div className="relative group">
                                 <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-500 group-hover:text-slate-400 transition-colors pointer-events-none">
                                     <Shield className="w-4 h-4" />
-                                </span>
+                                end</span>
                                 <input 
                                     type="text" 
-                                    value={formData.username} // 🟢 CONTROLLED STATE LINKED
+                                    value={formData.username} 
                                     placeholder="Enter your username" 
                                     className="w-full bg-slate-950/45 border border-slate-800/80 rounded-xl py-2.5 sm:py-3 pl-10 pr-4 text-xs text-slate-100 placeholder-slate-500 transition-all duration-300
                                         focus:outline-none focus:border-purple-500/50 focus:ring-1 focus:ring-purple-500/25 focus:bg-slate-900/60 hover:border-slate-700"
@@ -160,7 +164,7 @@ const Register = () => {
                                 </span>
                                 <input 
                                     type="password" 
-                                    value={formData.password} // 🟢 CONTROLLED STATE LINKED
+                                    value={formData.password} 
                                     placeholder="••••••••••••" 
                                     className="w-full bg-slate-950/45 border border-slate-800/80 rounded-xl py-2.5 sm:py-3 pl-10 pr-4 text-xs text-slate-100 placeholder-slate-500 transition-all duration-300
                                         focus:outline-none focus:border-purple-500/50 focus:ring-1 focus:ring-purple-500/25 focus:bg-slate-900/60 hover:border-slate-700"
