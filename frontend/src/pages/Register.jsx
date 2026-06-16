@@ -15,7 +15,7 @@ const Register = () => {
     const [coverImage, setCoverImage] = useState(null);
     const [isSubmitting, setIsSubmitting] = useState(false);
     
-    // UI Local Error Logging (No more annoying browser alerts!)
+    // UI Local Error Logging
     const [uiError, setUiError] = useState(""); 
     const navigate = useNavigate();
 
@@ -32,8 +32,7 @@ const Register = () => {
 
         const data = new FormData();
 
-        // 🟢 FIX KEY CASING MATCHING BACKEND CONTROLLER LOGIC:
-        // 'fullname' ko badal kar 'fullName' kiya taaki req.body validation pass ho jaye!
+        // Casing strings synchronized exactly with backend validation variables
         data.append("fullName", formData.fullName.trim()); 
         data.append("email", formData.email.trim());
         data.append("username", formData.username.trim().toLowerCase()); 
@@ -51,10 +50,15 @@ const Register = () => {
             setIsSubmitting(true);
             console.log("Initializing account creation pipeline hooks...");
 
+            // 🟢 AXIOS EXPLICIT HEADERS FIX: force content-type to handle file payload binary blocks
             await apiClient.post("/users/register", data, {
+                headers: {
+                    "Content-Type": "multipart/form-data",
+                },
                 timeout: 90000 
             });
             
+            console.log("🚀 Account pipeline registration successfully integrated!");
             navigate("/login");
 
         } catch (error) {
@@ -62,10 +66,10 @@ const Register = () => {
 
             if (error.response?.status === 409) {
                 setUiError("This username or email already exists!");
-                setTimeout(() => navigate("/login"), 2000); // Redirect smoothly
+                setTimeout(() => navigate("/login"), 2000);
             } else {
                 const serverErrorMessage = typeof error.response?.data === 'string' && error.response.data.includes('<!DOCTYPE html>')
-                    ? "Server rejected payload field maps (400 Bad Request). Please check backend parameter logs."
+                    ? "Server rejected payload fields validation. Please make sure Multer routing tags match."
                     : error.response?.data?.message;
 
                 setUiError(serverErrorMessage || "Registration dropped! Please verify structural fields and try again.");
