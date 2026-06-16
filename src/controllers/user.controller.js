@@ -32,7 +32,7 @@ const generateAccessAndRefreshTokens = async (userId) => {
     }
 }
 
-// 1. REGISTER USER
+// 1. REGISTER USER (REFACTOR WITH BUFFER INTEGRITY FALLBACKS)
 const registerUser = asyncHandler(async (req, res) => {
     const { email, username, fullName, password } = req.body;
 
@@ -62,11 +62,13 @@ const registerUser = asyncHandler(async (req, res) => {
         throw new ApiError(409, `User with email '${sanitizedEmail}' or username '${sanitizedUsername}' already exists`);
     }
 
-    const avatarBuffer = req.files?.avatar?.[0]?.buffer;
+    // 🟢 DYNAMIC FILE BUFFER FALLBACK MATRIX:
+    // Support upload.fields() -> req.files OR upload.single() -> req.file automatically!
+    const avatarBuffer = req.files?.avatar?.[0]?.buffer || req.file?.buffer;
     const coverImageBuffer = req.files?.coverImage?.[0]?.buffer;
 
     if (!avatarBuffer) {
-        throw new ApiError(400, "Avatar file stream buffer is required to build a channel");
+        throw new ApiError(400, "Avatar file stream buffer is required to build a creator channel identity");
     }
 
     const avatar = await uploadOncloudinary(avatarBuffer);
@@ -167,9 +169,8 @@ const logoutUser = asyncHandler(async (req, res) => {
         )
 });
 
-// 4. REFRESH ACCESS TOKEN (HEADER COMPATIBLE ENHANCED)
+// 4. REFRESH ACCESS TOKEN
 const refreshAccessToken = asyncHandler(async (req, res) => {
-    // 🟢 FREE CLOUD INJECTION TRAFFIC ACCELERATOR: Try extracting tokens from cookies, bodies, or header structures safely
     const incomingRefreshToken = 
         req.cookies?.refreshToken || 
         req.body?.refreshToken || 
@@ -462,7 +463,7 @@ const getWatchHistory = asyncHandler(async (req, res) => {
                                         avatar: 1
                                     }
                                 }
-                            ]
+                              ]
                         }
                     },
                     {
