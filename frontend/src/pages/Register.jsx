@@ -142,7 +142,7 @@ const Register = () => {
                             <div className="relative group">
                                 <span className="absolute inset-y-0 left-0 pl-3.5 flex items-center text-slate-500 group-hover:text-slate-400 transition-colors pointer-events-none">
                                     <Shield className="w-4 h-4" />
-                                end</span>
+                                </span>
                                 <input 
                                     type="text" 
                                     value={formData.username} 
