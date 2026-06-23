@@ -54,7 +54,7 @@ const VideoDetail = () => {
     const [volume, setVolume] = useState(1);
     const [isMuted, setIsMuted] = useState(false);
     
-    // 🟢 MOBILE TAP CONTROLS VISIBILITY STATE
+    // MOBILE TAP CONTROLS VISIBILITY STATE
     const [showControls, setShowControls] = useState(true);
 
     const videoRef = useRef(null);
@@ -223,7 +223,7 @@ const VideoDetail = () => {
         };
     }, [video, loading, isTranscoding]);
 
-    // 🟢 DYNAMIC CONTROLS DISAPPEAR PIPELINE (FOR MOBILE AUTO-HIDE)
+    // DYNAMIC CONTROLS DISAPPEAR PIPELINE (FOR MOBILE AUTO-HIDE)
     const resetControlsTimeout = () => {
         if (controlsTimeoutRef.current) clearTimeout(controlsTimeoutRef.current);
         setShowControls(true);
@@ -232,13 +232,12 @@ const VideoDetail = () => {
             controlsTimeoutRef.current = setTimeout(() => {
                 setShowControls(false);
                 setShowResMenu(false);
-            }, 3000); // Hide controls after 3 seconds of inactivity
+            }, 3000); 
         }
     };
 
     const handlePlayerClick = () => {
         if (isTranscoding) return;
-        // Toggle controls visibility on mobile tap
         if (!showControls) {
             resetControlsTimeout();
         } else {
@@ -527,7 +526,7 @@ const VideoDetail = () => {
                                     className={`absolute inset-x-0 bottom-0 bg-linear-to-t from-slate-950/95 via-slate-950/75 to-transparent px-4 pt-10 pb-4 flex flex-col gap-3 transition-opacity duration-300 z-30 select-none pointer-events-auto ${showControls ? "opacity-100" : "opacity-0"}`}
                                     onClick={(e) => e.stopPropagation()}
                                 >
-                                    <div className="w-full flex items-center group/slider relative">
+                                    <div className="w-full flex items-center group/slider relative" onClick={(e) => e.stopPropagation()}>
                                         <input
                                             type="range"
                                             min={0}
@@ -540,12 +539,26 @@ const VideoDetail = () => {
 
                                     <div className="flex items-center justify-between w-full">
                                         <div className="flex items-center gap-4">
-                                            <button onClick={togglePlay} className="text-slate-300 hover:text-white transition-colors active:scale-95 outline-none">
+                                            {/* 🟢 FIXED: added e.stopPropagation() to prevent mobile toggle collision */}
+                                            <button 
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    togglePlay();
+                                                    resetControlsTimeout();
+                                                }} 
+                                                className="text-slate-300 hover:text-white transition-colors active:scale-95 outline-none"
+                                            >
                                                 {isPlaying ? <Pause className="w-4 h-4 fill-current" /> : <Play className="w-4 h-4 fill-current" />}
                                             </button>
 
-                                            <div className="flex items-center gap-1.5 group/vol max-w-fit">
-                                                <button onClick={toggleMute} className="text-slate-300 hover:text-white transition-colors active:scale-95 outline-none">
+                                            <div className="flex items-center gap-1.5 group/vol max-w-fit" onClick={(e) => e.stopPropagation()}>
+                                                <button 
+                                                    onClick={(e) => {
+                                                        e.stopPropagation();
+                                                        toggleMute();
+                                                    }} 
+                                                    className="text-slate-300 hover:text-white transition-colors active:scale-95 outline-none"
+                                                >
                                                     {isMuted || volume === 0 ? <VolumeX className="w-4 h-4" /> : <Volume2 className="w-4 h-4" />}
                                                 </button>
                                                 <input
@@ -559,7 +572,7 @@ const VideoDetail = () => {
                                                 />
                                             </div>
 
-                                            <div className="flex items-center gap-1.5 text-slate-400 text-[11px] font-semibold font-mono tracking-wide">
+                                            <div className="flex items-center gap-1.5 text-slate-400 text-[11px] font-semibold font-mono tracking-wide" onClick={(e) => e.stopPropagation()}>
                                                 {formatDuration(currentTime)} / {formatDuration(totalDuration)}
                                             </div>
                                         </div>
@@ -587,7 +600,10 @@ const VideoDetail = () => {
                                                         >
                                                             <button
                                                                 type="button"
-                                                                onClick={() => changeResolution(-1)}
+                                                                onClick={(e) => {
+                                                                    e.stopPropagation();
+                                                                    changeResolution(-1);
+                                                                }}
                                                                 className={`w-full text-left px-2 py-1.5 rounded-md text-[10px] font-bold font-mono transition-colors ${currentResIndex === -1 ? "bg-indigo-600/20 text-indigo-400 border border-indigo-500/10" : "text-slate-400 hover:bg-slate-900 hover:text-slate-200"}`}
                                                             >
                                                                 Auto
@@ -596,7 +612,10 @@ const VideoDetail = () => {
                                                                 <button
                                                                     type="button"
                                                                     key={res.index}
-                                                                    onClick={() => changeResolution(res.index)}
+                                                                    onClick={(e) => {
+                                                                        e.stopPropagation();
+                                                                        changeResolution(res.index);
+                                                                    }}
                                                                     className={`w-full text-left px-2 py-1.5 rounded-md text-[10px] font-bold font-mono transition-colors ${currentResIndex === res.index ? "bg-indigo-600/20 text-indigo-400 border border-indigo-500/10" : "text-slate-400 hover:bg-slate-900 hover:text-slate-200"}`}
                                                                 >
                                                                     {res.height}p
@@ -607,7 +626,13 @@ const VideoDetail = () => {
                                                 </div>
                                             )}
 
-                                            <button onClick={toggleFullScreen} className="text-slate-300 hover:text-white transition-colors active:scale-95 outline-none">
+                                            <button 
+                                                onClick={(e) => {
+                                                    e.stopPropagation();
+                                                    toggleFullScreen();
+                                                }} 
+                                                className="text-slate-300 hover:text-white transition-colors active:scale-95 outline-none"
+                                            >
                                                 <Maximize className="w-4 h-4" />
                                             </button>
                                         </div>
@@ -740,7 +765,7 @@ const VideoDetail = () => {
                                                     <div className="flex gap-2 justify-end pt-0.5">
                                                         <button
                                                             onClick={() => { setEditingCommentId(null); setEditedContent(""); }}
-                                                            className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-750 text-slate-300 text-[10px] font-bold uppercase tracking-wider transition-colors"
+                                                            className="px-3 py-1.5 rounded-lg bg-slate-800 hover:bg-slate-7xl text-slate-300 text-[10px] font-bold uppercase tracking-wider transition-colors"
                                                         >
                                                             Cancel
                                                         </button>
