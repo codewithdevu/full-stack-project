@@ -53,10 +53,14 @@ const VideoDetail = () => {
     const [totalDuration, setTotalDuration] = useState(0);
     const [volume, setVolume] = useState(1);
     const [isMuted, setIsMuted] = useState(false);
+    
+    // 🟢 MOBILE TAP CONTROLS VISIBILITY STATE
+    const [showControls, setShowControls] = useState(true);
 
     const videoRef = useRef(null);
     const playerContainerRef = useRef(null);
     const hlsInstanceRef = useRef(null);
+    const controlsTimeoutRef = useRef(null);
     const navigate = useNavigate();
 
     // Dynamic state detection helpers
@@ -219,6 +223,41 @@ const VideoDetail = () => {
         };
     }, [video, loading, isTranscoding]);
 
+    // 🟢 DYNAMIC CONTROLS DISAPPEAR PIPELINE (FOR MOBILE AUTO-HIDE)
+    const resetControlsTimeout = () => {
+        if (controlsTimeoutRef.current) clearTimeout(controlsTimeoutRef.current);
+        setShowControls(true);
+
+        if (isPlaying) {
+            controlsTimeoutRef.current = setTimeout(() => {
+                setShowControls(false);
+                setShowResMenu(false);
+            }, 3000); // Hide controls after 3 seconds of inactivity
+        }
+    };
+
+    const handlePlayerClick = () => {
+        if (isTranscoding) return;
+        // Toggle controls visibility on mobile tap
+        if (!showControls) {
+            resetControlsTimeout();
+        } else {
+            togglePlay();
+            resetControlsTimeout();
+        }
+    };
+
+    const handleMouseMove = () => {
+        resetControlsTimeout();
+    };
+
+    useEffect(() => {
+        resetControlsTimeout();
+        return () => {
+            if (controlsTimeoutRef.current) clearTimeout(controlsTimeoutRef.current);
+        };
+    }, [isPlaying]);
+
     const togglePlay = () => {
         if (isTranscoding || !videoRef.current) return;
         if (isPlaying) videoRef.current.pause();
@@ -230,6 +269,7 @@ const VideoDetail = () => {
         const targetTime = parseFloat(e.target.value);
         videoRef.current.currentTime = targetTime;
         setCurrentTime(targetTime);
+        resetControlsTimeout();
     };
 
     const handleVolumeSlider = (e) => {
@@ -239,6 +279,7 @@ const VideoDetail = () => {
         setVolume(targetVol);
         setIsMuted(targetVol === 0);
         videoRef.current.muted = targetVol === 0;
+        resetControlsTimeout();
     };
 
     const toggleMute = () => {
@@ -250,6 +291,7 @@ const VideoDetail = () => {
             setVolume(0.5);
             videoRef.current.volume = 0.5;
         }
+        resetControlsTimeout();
     };
 
     const toggleFullScreen = () => {
@@ -259,6 +301,7 @@ const VideoDetail = () => {
         } else {
             document.exitFullscreen();
         }
+        resetControlsTimeout();
     };
 
     const changeResolution = (levelIndex) => {
@@ -266,6 +309,7 @@ const VideoDetail = () => {
         hlsInstanceRef.current.currentLevel = levelIndex;
         setCurrentResIndex(levelIndex);
         setShowResMenu(false);
+        resetControlsTimeout();
     };
 
     const openPlaylistModal = async () => {
@@ -431,8 +475,9 @@ const VideoDetail = () => {
                     {/* PLAYER BOX */}
                     <div
                         ref={playerContainerRef}
-                        className="aspect-video rounded-2xl overflow-hidden bg-slate-950 shadow-2xl border border-slate-900 w-full box-border relative group/player cursor-pointer"
-                        onClick={togglePlay}
+                        className="aspect-video rounded-2xl overflow-hidden bg-slate-950 shadow-2xl border border-slate-900 w-full box-border relative cursor-pointer group/player"
+                        onClick={handlePlayerClick}
+                        onMouseMove={handleMouseMove}
                     >
                         {isTranscoding ? (
                             <div className="absolute inset-0 bg-slate-950 flex flex-col items-center justify-center p-6 text-center gap-4 animate-in fade-in duration-300">
@@ -477,9 +522,9 @@ const VideoDetail = () => {
                                     playsInline
                                 />
 
-                                {/* PREMIUM OVERLAY CONTROL SHEET BAR */}
+                                {/* PREMIUM OVERLAY CONTROL SHEET BAR WITH HYBRID VISIBILITY ENGAGING ARRAYS */}
                                 <div
-                                    className="absolute inset-x-0 bottom-0 bg-linear-to-t from-slate-950/95 via-slate-950/75 to-transparent px-4 pt-10 pb-4 flex flex-col gap-3 opacity-0 group-hover/player:opacity-100 transition-opacity duration-300 z-30 select-none pointer-events-auto"
+                                    className={`absolute inset-x-0 bottom-0 bg-linear-to-t from-slate-950/95 via-slate-950/75 to-transparent px-4 pt-10 pb-4 flex flex-col gap-3 transition-opacity duration-300 z-30 select-none pointer-events-auto ${showControls ? "opacity-100" : "opacity-0"}`}
                                     onClick={(e) => e.stopPropagation()}
                                 >
                                     <div className="w-full flex items-center group/slider relative">
@@ -510,7 +555,7 @@ const VideoDetail = () => {
                                                     step={0.05}
                                                     value={isMuted ? 0 : volume}
                                                     onChange={handleVolumeSlider}
-                                                    className="w-0 opacity-0 group-hover/vol:w-16 group-hover/vol:opacity-100 h-1 bg-slate-800 appearance-none rounded cursor-pointer accent-indigo-500 transition-all outline-none"
+                                                    className="w-0 opacity-0 md:group-hover/vol:w-16 md:group-hover/vol:opacity-100 h-1 bg-slate-800 appearance-none rounded cursor-pointer accent-indigo-500 transition-all outline-none"
                                                 />
                                             </div>
 
@@ -527,6 +572,7 @@ const VideoDetail = () => {
                                                         onClick={(e) => {
                                                             e.stopPropagation();
                                                             setShowResMenu(!showResMenu);
+                                                            resetControlsTimeout();
                                                         }}
                                                         className="px-2 py-0.5 bg-slate-900/80 border border-slate-800 rounded-md text-slate-400 hover:text-indigo-400 font-bold font-mono text-[10px] tracking-wider transition-colors outline-none flex items-center gap-1 relative z-40"
                                                     >
@@ -535,9 +581,8 @@ const VideoDetail = () => {
                                                     </button>
 
                                                     {showResMenu && (
-                                                        /* 🟢 FIXED RESPONSIVE DROPDOWN ENGINE FOR MOBILE LAYER */
                                                         <div 
-                                                            className="absolute bottom-10 right-0 mb-1 w-24 bg-slate-950 border border-slate-800 rounded-xl shadow-2xl p-1 flex flex-col gap-0.5 z-50 pointer-events-auto max-h-48 overflow-y-auto"
+                                                            className="absolute bottom-10 right-0 mb-1 w-24 bg-slate-950 border border-slate-800 rounded-xl shadow-2xl p-1 flex flex-col gap-0.5 z-55 pointer-events-auto max-h-48 overflow-y-auto"
                                                             onClick={(e) => e.stopPropagation()}
                                                         >
                                                             <button
