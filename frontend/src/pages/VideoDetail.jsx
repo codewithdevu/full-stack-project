@@ -523,26 +523,36 @@ const VideoDetail = () => {
                                             {resolutions.length > 0 && (
                                                 <div className="relative">
                                                     <button
-                                                        onClick={() => setShowResMenu(!showResMenu)}
-                                                        className="px-2 py-0.5 bg-slate-900/80 border border-slate-800 rounded-md text-slate-400 hover:text-indigo-400 font-bold font-mono text-[10px] tracking-wider transition-colors outline-none flex items-center gap-1"
+                                                        type="button"
+                                                        onClick={(e) => {
+                                                            e.stopPropagation();
+                                                            setShowResMenu(!showResMenu);
+                                                        }}
+                                                        className="px-2 py-0.5 bg-slate-900/80 border border-slate-800 rounded-md text-slate-400 hover:text-indigo-400 font-bold font-mono text-[10px] tracking-wider transition-colors outline-none flex items-center gap-1 relative z-40"
                                                     >
                                                         <Settings2 className="w-3 h-3" />
                                                         {currentResIndex === -1 ? "AUTO" : `${resolutions.find(r => r.index === currentResIndex)?.height}p`}
                                                     </button>
 
                                                     {showResMenu && (
-                                                        <div className="absolute bottom-full right-0 mb-2 w-24 bg-slate-950 border border-slate-900 rounded-xl shadow-2xl p-1 flex flex-col gap-0.5 z-40">
+                                                        /* 🟢 FIXED RESPONSIVE DROPDOWN ENGINE FOR MOBILE LAYER */
+                                                        <div 
+                                                            className="absolute bottom-10 right-0 mb-1 w-24 bg-slate-950 border border-slate-800 rounded-xl shadow-2xl p-1 flex flex-col gap-0.5 z-50 pointer-events-auto max-h-48 overflow-y-auto"
+                                                            onClick={(e) => e.stopPropagation()}
+                                                        >
                                                             <button
+                                                                type="button"
                                                                 onClick={() => changeResolution(-1)}
-                                                                className={`w-full text-left px-2 py-1 rounded-md text-[10px] font-bold font-mono ${currentResIndex === -1 ? "bg-indigo-600/20 text-indigo-400 border border-indigo-500/10" : "text-slate-400 hover:bg-slate-900 hover:text-slate-200"}`}
+                                                                className={`w-full text-left px-2 py-1.5 rounded-md text-[10px] font-bold font-mono transition-colors ${currentResIndex === -1 ? "bg-indigo-600/20 text-indigo-400 border border-indigo-500/10" : "text-slate-400 hover:bg-slate-900 hover:text-slate-200"}`}
                                                             >
                                                                 Auto
                                                             </button>
                                                             {resolutions.map((res) => (
                                                                 <button
+                                                                    type="button"
                                                                     key={res.index}
                                                                     onClick={() => changeResolution(res.index)}
-                                                                    className={`w-full text-left px-2 py-1 rounded-md text-[10px] font-bold font-mono ${currentResIndex === res.index ? "bg-indigo-600/20 text-indigo-400 border border-indigo-500/10" : "text-slate-400 hover:bg-slate-900 hover:text-slate-200"}`}
+                                                                    className={`w-full text-left px-2 py-1.5 rounded-md text-[10px] font-bold font-mono transition-colors ${currentResIndex === res.index ? "bg-indigo-600/20 text-indigo-400 border border-indigo-500/10" : "text-slate-400 hover:bg-slate-900 hover:text-slate-200"}`}
                                                                 >
                                                                     {res.height}p
                                                                 </button>
@@ -615,9 +625,6 @@ const VideoDetail = () => {
                             </div>
                         </div>
 
-                        {/* 🛠️ SELF-SUBSCRIBE PROTECTION FILTER:
-                           Agar logged-in user hi video ka real owner hai, toh 'Subscribe' ki jagah 'Your Video' badge dikhega.
-                        */}
                         {currentUser?._id === video?.owner?._id ? (
                             <span className="px-4 py-2 rounded-xl text-[11px] xs:text-xs font-bold bg-slate-900/60 border border-slate-800/80 text-indigo-400 font-mono tracking-wide shrink-0">
                                 Your Video
@@ -677,7 +684,6 @@ const VideoDetail = () => {
                                                 <span className="text-[9px] text-slate-600 font-mono shrink-0">{new Date(c.createdAt).toLocaleDateString()}</span>
                                             </div>
 
-                                            {/* Dynamic Edit Input Block */}
                                             {isEditingThisComment ? (
                                                 <div className="mt-2 space-y-2 w-full animate-in fade-in duration-200">
                                                     <textarea
@@ -718,7 +724,6 @@ const VideoDetail = () => {
                                             </div>
                                         </div>
 
-                                        {/* 🛠️ ACTION CHIPS OVERLAP PROTECTION */}
                                         {isCommentOwner && !isEditingThisComment && (
                                             <div className="flex gap-1 absolute right-2 top-2 bg-slate-950 border border-slate-900 rounded-lg p-1 shadow-md shrink-0 opacity-0 group-hover:opacity-100 transition-opacity duration-200 z-20">
                                                 <button
